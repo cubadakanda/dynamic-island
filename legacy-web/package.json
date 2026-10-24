@@ -5,7 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron src/main.js",
-    "test": "node tests/window-manager.test.js; node tests/notch-controller.test.js; node tests/shelf-engine.test.js; node tests/music-player.test.js; node tests/pomodoro-engine.test.js; node tests/system-monitor.test.js; node tests/e2e-smoke.test.js"
+    "test": "node tests/window-manager.test.js && node tests/notch-controller.test.js && node tests/shelf-engine.test.js && node tests/music-player.test.js && node tests/pomodoro-engine.test.js && node tests/system-monitor.test.js && node tests/e2e-smoke.test.js"
   },
   "keywords": [
     "dynamic-island",

@@ -1,0 +1,111 @@
+﻿{
+    "theme":  "ocean-dark",
+    "accentColor":  "#00D2FF",
+    "dndEnabled":  false,
+    "gamingMode":  false,
+    "islandPosition":  "top-center",
+    "islandWidth":  180,
+    "islandOpacity":  0.95,
+    "autoCollapseSeconds":  5,
+    "language":  "id",
+    "volume":  75,
+    "isMuted":  false,
+    "currentMedia":  {
+                         "title":  "Never Gonna Give You Up",
+                         "artist":  "Rick Astley • YouTube Music",
+                         "isPlaying":  false,
+                         "progress":  42
+                     },
+    "pomodoro":  {
+                     "mode":  "focus",
+                     "remainingSeconds":  1500,
+                     "isRunning":  false
+                 },
+    "stopwatch":  {
+                      "elapsedSeconds":  0,
+                      "isRunning":  false,
+                      "laps":  [
+
+                               ]
+                  },
+    "countdown":  {
+                      "totalSeconds":  300,
+                      "remainingSeconds":  300,
+                      "isRunning":  false
+                  },
+    "notes":  [
+                  {
+                      "id":  1,
+                      "title":  "Catatan Proyek Oceru",
+                      "content":  "Desain antarmuka Ocean Azure Glass dengan integrasi kontrol hardware Windows.",
+                      "updatedAt":  "2026-10-24 23:30"
+                  }
+              ],
+    "tasks":  [
+                  {
+                      "id":  1,
+                      "text":  "Desain UI bertema Ocean Azure Glass",
+                      "done":  true
+                  },
+                  {
+                      "id":  2,
+                      "text":  "Hubungkan slider volume dan flyout Wi-Fi",
+                      "done":  true
+                  },
+                  {
+                      "id":  3,
+                      "text":  "Kembangkan Dashboard 15 destinasi",
+                      "done":  false
+                  }
+              ],
+    "clipboard":  [
+                      {
+                          "text":  "https://github.com/cubadakanda/dynamic-island",
+                          "pinned":  true
+                      },
+                      {
+                          "text":  "Oceru Dynamic Island Desktop",
+                          "pinned":  false
+                      },
+                      {
+                          "text":  "Never Gonna Give You Up - Rick Astley",
+                          "pinned":  false
+                      }
+                  ],
+    "quickLauncher":  [
+                          {
+                              "name":  "Google Chrome",
+                              "path":  "chrome.exe",
+                              "icon":  "🌐"
+                          },
+                          {
+                              "name":  "File Explorer",
+                              "path":  "explorer.exe",
+                              "icon":  "📁"
+                          },
+                          {
+                              "name":  "Terminal PowerShell",
+                              "path":  "powershell.exe",
+                              "icon":  "💻"
+                          },
+                          {
+                              "name":  "Task Manager",
+                              "path":  "taskmgr.exe",
+                              "icon":  "⚡"
+                          },
+                          {
+                              "name":  "Windows Settings",
+                              "path":  "ms-settings:",
+                              "icon":  "⚙️"
+                          }
+                      ],
+    "notifications":  [
+                          {
+                              "id":  1,
+                              "title":  "Selamat Datang di Oceru",
+                              "message":  "Oceru Dynamic Island telah aktif di desktop Windows.",
+                              "time":  "23:45",
+                              "read":  false
+                          }
+                      ]
+}
