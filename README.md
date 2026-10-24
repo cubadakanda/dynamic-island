@@ -1,5 +1,7 @@
 # Oceru Dynamic Island Desktop
 
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg) ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg)
+
 Aplikasi smart notch, status bar & control center modern untuk Windows 10 & 11 buatan **Oceru** yang mengapung elegan di tepi atas layar laptop.
 
 ## Fitur Unggulan Oceru Dynamic Island (Berdasarkan Referensi Video & Gambar)
