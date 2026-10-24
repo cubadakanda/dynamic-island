@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Island Desktop</title>
+  <link rel="stylesheet" href="css/notch.css">
+</head>
+<body>
+
+  <!-- Main Notch Container -->
+  <div id="notch">
+    
+    <!-- Collapsed View -->
+    <div class="collapsed-view" id="collapsed-view">
+      <span class="status-dot"></span>
+      <span id="clock-text">19:21</span>
+      <div class="audio-bars">
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+      </div>
+    </div>
+
+    <!-- Expanded View -->
+    <div class="expanded-view" id="expanded-view">
+      
+      <!-- Header with Tabs and Status -->
+      <div class="notch-header">
+        <div class="tabs-group">
+          <button class="tab-btn" data-tab="shelf">📁 Shelf <span id="shelf-count-badge"></span></button>
+          <button class="tab-btn active" data-tab="music">🎵 Music</button>
+          <button class="tab-btn" data-tab="pomodoro">⏱️ Pomodoro</button>
+        </div>
+        <div class="header-meta">
+          <span class="bt-badge" id="bt-status-badge">🎧 Ready</span>
+          <span id="date-text">Sat, 24 Oct • 19:21</span>
+        </div>
+      </div>
+
+      <!-- Tab Panes Container -->
+      <div class="tab-content">
+        
+        <!-- Tab 1: Shelf -->
+        <div class="tab-pane" id="tab-shelf">
+          <div id="shelf-drop-zone" style="flex: 1; border: 2px dashed var(--shelf-border); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-direction: column; color: var(--text-muted); font-size: 11px; padding: 10px;">
+            <span style="font-size: 16px; margin-bottom: 2px;">📥</span>
+            <span>Tarik & lepas file ke sini untuk menyimpan sementara</span>
+            <div id="shelf-items-list" style="display: flex; gap: 8px; margin-top: 6px; overflow-x: auto; width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Music (Active by default) -->
+        <div class="tab-pane active" id="tab-music">
+          <div style="display: flex; gap: 14px; width: 100%; align-items: center;">
+            <div id="track-art" style="width: 58px; height: 58px; background: linear-gradient(135deg, #e11d48, #4f46e5); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(225,29,72,0.25);">
+              🎵
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <div id="track-title" style="font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                No Music Playing
+              </div>
+              <div id="track-artist" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                YouTube Audio / Windows Media
+              </div>
+              <!-- Mini player controls -->
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+                <button id="btn-prev" style="background: none; border: none; color: #fff; cursor: pointer; font-size: 12px;">⏮</button>
+                <button id="btn-play" style="background: #3b82f6; border: none; color: #fff; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center;">▶</button>
+                <button id="btn-next" style="background: none; border: none; color: #fff; cursor: pointer; font-size: 12px;">⏭</button>
+                <input type="text" id="yt-search-input" placeholder="Cari / paste link YouTube..." style="flex: 1; background: #161822; border: 1px solid #2d3142; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 10px;">
+              </div>
+            </div>
+            <div id="lyrics-box" style="width: 140px; background: #0c0d12; border: 1px solid #1a1e29; border-radius: 8px; padding: 6px 8px; font-size: 10px; color: #94a3b8; height: 58px; overflow-y: auto;">
+              <div style="font-size: 9px; color: #64748b; font-weight: bold; margin-bottom: 2px;">LIRIK</div>
+              <div id="lyric-text" style="color: #38bdf8; font-size: 10px; line-height: 1.3;">Lirik sinkron otomatis saat musik diputar...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Pomodoro -->
+        <div class="tab-pane" id="tab-pomodoro">
+          <div style="display: flex; justify-content: space-around; align-items: center; width: 100%;">
+            <div style="text-align: center;">
+              <div id="pomodoro-timer" style="font-size: 30px; font-weight: 800; font-family: monospace; color: #fff;">25:00</div>
+              <div id="pomodoro-mode-label" style="font-size: 10px; color: #10b981; text-transform: uppercase; letter-spacing: 0.05em;">FOKUS AKTIF</div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button id="btn-pomo-start" style="background: #10b981; border: none; color: #fff; padding: 6px 14px; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer;">Mulai</button>
+              <button id="btn-pomo-reset" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 6px 14px; border-radius: 8px; font-size: 11px; cursor: pointer;">Reset</button>
+              <button id="btn-pomo-toggle-mode" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 6px 14px; border-radius: 8px; font-size: 11px; cursor: pointer;">Mode Istirahat</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="js/notch-controller.js"></script>
+  <script src="js/shelf-ui.js"></script>
+  <script src="js/music-player.js"></script>
+  <script src="js/pomodoro-ui.js"></script>
+  <script src="js/toast-manager.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      window.notch = new NotchController();
+      window.shelf = new ShelfUI();
+      window.music = new MusicPlayerUI();
+      window.pomodoro = new PomodoroUI();
+      window.toasts = new ToastManager();
+
+      // Demo welcome toast after 1 second
+      setTimeout(() => {
+        window.toasts.showToast({
+          type: 'bluetooth',
+          title: 'Dynamic Island Siap',
+          subtitle: 'Arahkan kursor ke atas layar'
+        });
+      }, 1000);
+    });
+  </script>
+</body>
+</html>

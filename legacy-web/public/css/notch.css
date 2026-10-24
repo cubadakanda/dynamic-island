@@ -1,0 +1,185 @@
+:root {
+  --bg-color: #000000;
+  --border-color: rgba(255, 255, 255, 0.14);
+  --primary-accent: #3b82f6;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --shelf-border: rgba(59, 130, 246, 0.45);
+  --spring-easing: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-app-region: no-drag;
+}
+
+html, body {
+  background: transparent !important;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* Notch Container */
+#notch {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  color: var(--text-main);
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.95);
+  cursor: pointer;
+  width: 140px;
+  height: 32px;
+  transition: width 0.35s var(--spring-easing), height 0.35s var(--spring-easing), border-radius 0.35s var(--spring-easing);
+  overflow: hidden;
+  position: relative;
+  z-index: 100;
+}
+
+#notch.expanded {
+  width: 560px;
+  height: 190px;
+  border-bottom-left-radius: 26px;
+  border-bottom-right-radius: 26px;
+  cursor: default;
+}
+
+/* Collapsed Header View */
+.collapsed-view {
+  width: 100%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  background-color: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.audio-bars {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 10px;
+}
+
+.audio-bar {
+  width: 2px;
+  height: 8px;
+  background-color: var(--primary-accent);
+  border-radius: 1px;
+  animation: pulseBar 1.2s infinite ease-in-out;
+}
+.audio-bar:nth-child(2) { animation-delay: 0.2s; height: 10px; }
+.audio-bar:nth-child(3) { animation-delay: 0.4s; height: 6px; }
+
+@keyframes pulseBar {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+
+/* Expanded View */
+.expanded-view {
+  display: none;
+  opacity: 0;
+  padding: 14px 20px;
+  flex-direction: column;
+  height: 100%;
+  transition: opacity 0.2s ease 0.1s;
+}
+
+#notch.expanded .collapsed-view {
+  display: none;
+}
+
+#notch.expanded .expanded-view {
+  display: flex;
+  opacity: 1;
+}
+
+/* Header bar inside expanded */
+.notch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.tabs-group {
+  display: flex;
+  gap: 6px;
+}
+
+.tab-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-main);
+}
+
+.tab-btn.active {
+  background: var(--primary-accent);
+  border-color: var(--primary-accent);
+  color: #fff;
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.bt-badge {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Tab Content Areas */
+.tab-content {
+  flex: 1;
+  position: relative;
+}
+
+.tab-pane {
+  display: none;
+  height: 100%;
+}
+
+.tab-pane.active {
+  display: flex;
+}
