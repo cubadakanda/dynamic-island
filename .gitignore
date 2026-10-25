@@ -18,4 +18,5 @@ $RECYCLE.BIN/
 # Temporary / Scratch
 *.tmp
 *.log
+*.bak
 scratch/
