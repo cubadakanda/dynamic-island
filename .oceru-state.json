@@ -13,12 +13,12 @@
     "currentMedia":  {
                          "title":  "(93)Collection For Windows created by ocearizz",
                          "artist":  "YouTube / Chrome",
-                         "isPlaying":  true,
+                         "isPlaying":  false,
                          "progress":  42
                      },
     "pomodoro":  {
                      "mode":  "focus",
-                     "remainingSeconds":  1500,
+                     "remainingSeconds":  0,
                      "isRunning":  false
                  },
     "stopwatch":  {
