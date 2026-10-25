@@ -78,7 +78,7 @@ if (Test-Path $pidPath) {
         }
     } catch {}
 }
-try { $PID | Out-File -FilePath $pidPath -Force -Encoding ASCII } catch {}
+try { [System.Diagnostics.Process]::GetCurrentProcess().Id | Out-File -FilePath $pidPath -Force -Encoding ASCII } catch {}
 
 # Global Shared Application State
 function Load-OceruState {
@@ -88,52 +88,49 @@ function Load-OceruState {
             return ($raw | ConvertFrom-Json)
         } catch {}
     }
-    # Default State
     return [PSCustomObject]@{
         theme = "ocean-dark"
         accentColor = "#00D2FF"
         dndEnabled = $false
         gamingMode = $false
         islandPosition = "top-center"
-        islandWidth = 185
-        islandOpacity = 0.95
-        autoCollapseSeconds = 5
-        language = "id"
-        volume = 75
+        islandWidth = 560
+        islandOpacity = 0.98
+        autoCollapseSeconds = 0.28
+        volume = 72
         isMuted = $false
         currentMedia = [PSCustomObject]@{
-            title = "Never Gonna Give You Up"
-            artist = "Rick Astley • YouTube Music"
-            isPlaying = $false
-            progress = 42
+            title = "Paper Sky"
+            artist = "Lumen Coast - Summer Flows"
+            album = "Summer Flows"
+            isPlaying = $true
+            progressSeconds = 193
+            durationSeconds = 256
         }
         pomodoro = [PSCustomObject]@{
             mode = "focus"
             remainingSeconds = 1500
+            totalSeconds = 1500
             isRunning = $false
+            completedCount = 3
         }
-        stopwatch = [PSCustomObject]@{
-            elapsedSeconds = 0
-            isRunning = $false
-            laps = @()
-        }
-        countdown = [PSCustomObject]@{
-            totalSeconds = 300
-            remainingSeconds = 300
-            isRunning = $false
+        water = [PSCustomObject]@{
+            currentMl = 1250
+            targetMl = 2000
         }
         notes = @(
-            [PSCustomObject]@{ id = 1; title = "Catatan Proyek Oceru"; content = "Desain antarmuka Ocean Azure Glass dengan integrasi kontrol hardware Windows."; updatedAt = "2026-10-24 23:30" }
+            [PSCustomObject]@{ id = 1; title = "Oceru Design Language"; content = "Ocean Azure Glass dengan midnight navy dan aksen cyan." },
+            [PSCustomObject]@{ id = 2; title = "Shortcut Cepat"; content = "Arahkan kursor ke Notch atas untuk membuka Oceru Island." }
         )
         tasks = @(
-            [PSCustomObject]@{ id = 1; text = "Desain UI bertema Ocean Azure Glass"; done = $true },
-            [PSCustomObject]@{ id = 2; text = "Hubungkan slider volume dan flyout Wi-Fi"; done = $true },
-            [PSCustomObject]@{ id = 3; text = "Kembangkan Dashboard 15 destinasi"; done = $false }
+            [PSCustomObject]@{ id = 1; text = "Uji responsivitas Notch"; done = $true },
+            [PSCustomObject]@{ id = 2; text = "Sinkronisasi audio & volume"; done = $true },
+            [PSCustomObject]@{ id = 3; text = "Cek catatan & to-do list"; done = $false }
         )
         clipboard = @(
             [PSCustomObject]@{ text = "https://github.com/cubadakanda/dynamic-island"; pinned = $true },
             [PSCustomObject]@{ text = "Oceru Dynamic Island Desktop"; pinned = $false },
-            [PSCustomObject]@{ text = "Never Gonna Give You Up - Rick Astley"; pinned = $false }
+            [PSCustomObject]@{ text = "Paper Sky - Lumen Coast"; pinned = $false }
         )
         quickLauncher = @(
             [PSCustomObject]@{ name = "Google Chrome"; path = "chrome.exe"; icon = "Web" },
@@ -143,7 +140,7 @@ function Load-OceruState {
             [PSCustomObject]@{ name = "Windows Settings"; path = "ms-settings:"; icon = "Config" }
         )
         notifications = @(
-            [PSCustomObject]@{ id = 1; title = "Selamat Datang di Oceru"; message = "Oceru Dynamic Island telah aktif di desktop Windows."; time = "23:45"; read = $false }
+            [PSCustomObject]@{ id = 1; title = "Selamat Datang di Oceru"; message = "Oceru Dynamic Island aktif dengan desain baru."; time = "00:25"; read = $false }
         )
     }
 }
@@ -158,10 +155,27 @@ function Save-OceruState {
 $global:OceruState = Load-OceruState
 
 $screenWidth = [System.Windows.SystemParameters]::PrimaryScreenWidth
-$winWidth = 660
-$leftPos = [Math]::Round(($screenWidth - $winWidth) / 2)
+$screenHeight = [System.Windows.SystemParameters]::PrimaryScreenHeight
 
-# XAML 1: DYNAMIC ISLAND & EXPANDED QUICK PANEL (Top Center Screen)
+# Geometry for 3 Distinct Island Modes:
+# 1. Eyes Mode (Resting standalone cat eyes pill)
+$eyesWidth = 88
+$eyesHeight = 36
+$eyesLeftPos = [Math]::Round(($screenWidth - $eyesWidth) / 2)
+
+# 2. Status Mode (Clock, Weather, Battery status bar on collapse)
+$statusWidth = 230
+$statusHeight = 36
+$statusLeftPos = [Math]::Round(($screenWidth - $statusWidth) / 2)
+
+# 3. Expanded Mode (Full 6-card carousel notch)
+$expandedWidth = 560
+$expandedHeight = 205
+$expandedLeftPos = [Math]::Round(($screenWidth - $expandedWidth) / 2)
+
+$global:notchCenterX = $screenWidth / 2
+
+# XAML 1: DYNAMIC ISLAND (RESTING CAT EYES + STATUS BAR + 6-CARD CAROUSEL)
 $islandXaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -172,85 +186,24 @@ $islandXaml = @'
         Topmost="True"
         ShowInTaskbar="False"
         WindowStartupLocation="Manual"
-        Top="0" Width="660" Height="270">
+        Top="0" Width="88" Height="36">
     <Window.Resources>
-        <!-- Inactive Tab Button -->
-        <Style x:Key="NavIconBtn" TargetType="Button">
-            <Setter Property="Background" Value="#0B1220"/>
-            <Setter Property="Foreground" Value="#7888A6"/>
-            <Setter Property="Width" Value="32"/>
+        <!-- Circle Navigation Button -->
+        <Style x:Key="CircleNavBtn" TargetType="Button">
+            <Setter Property="Width" Value="28"/>
             <Setter Property="Height" Value="28"/>
-            <Setter Property="Margin" Value="0,0,4,0"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#17243B"/>
+            <Setter Property="Background" Value="#242426"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8">
+                        <Border x:Name="BtnBorder" Background="{TemplateBinding Background}" CornerRadius="14">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Active Tab Pill Button (Ocean Azure Gradient) -->
-        <Style x:Key="ActiveNavBtn" TargetType="Button">
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="Padding" Value="10,0"/>
-            <Setter Property="Margin" Value="0,0,4,0"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#00D2FF"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border CornerRadius="8">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#0284C7" Offset="0"/>
-                                    <GradientStop Color="#1E40AF" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Ocean Glass Card Style -->
-        <Style x:Key="GlassCardBtn" TargetType="Button">
-            <Setter Property="Background" Value="#0C1527"/>
-            <Setter Property="BorderBrush" Value="#1E3150"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
-            <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="CardBorder"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="12"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="CardBorder" Property="BorderBrush" Value="#00D2FF"/>
-                                <Setter TargetName="CardBorder" Property="Background" Value="#111F38"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="CardBorder" Property="Background" Value="#16294A"/>
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#38383A"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -258,47 +211,13 @@ $islandXaml = @'
             </Setter>
         </Style>
 
-        <!-- Quick Action Pill -->
-        <Style x:Key="SysActionBtn" TargetType="Button">
-            <Setter Property="Background" Value="#0C1527"/>
-            <Setter Property="Foreground" Value="#CBD5E1"/>
-            <Setter Property="BorderBrush" Value="#1E3150"/>
+        <!-- Pill Button -->
+        <Style x:Key="PillBtn" TargetType="Button">
+            <Setter Property="Background" Value="#1C1C1E"/>
+            <Setter Property="BorderBrush" Value="#2C2C2E"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Height" Value="34"/>
-            <Setter Property="Padding" Value="8,0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="BtnBorder"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BtnBorder" Property="BorderBrush" Value="#38BDF8"/>
-                                <Setter TargetName="BtnBorder" Property="Background" Value="#13223D"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Duration Preset Pill -->
-        <Style x:Key="TimerPill" TargetType="Button">
-            <Setter Property="Background" Value="#101D33"/>
-            <Setter Property="Foreground" Value="#93C5FD"/>
-            <Setter Property="FontSize" Value="10"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="Margin" Value="2,0"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#223961"/>
-            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="12,5"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -306,651 +225,712 @@ $islandXaml = @'
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                CornerRadius="14"
+                                Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="PillBorder" Property="Background" Value="#0284C7"/>
-                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                <Setter TargetName="PillBorder" Property="Background" Value="#2C2C2E"/>
+                                <Setter TargetName="PillBorder" Property="BorderBrush" Value="#38BDF8"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Quick Mini Button -->
+        <Style x:Key="QuickMiniBtn" TargetType="Button">
+            <Setter Property="Background" Value="#141416"/>
+            <Setter Property="BorderBrush" Value="#242426"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="MiniBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="MiniBorder" Property="Background" Value="#202024"/>
+                                <Setter TargetName="MiniBorder" Property="BorderBrush" Value="#00D2FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Media Playback Icon Button -->
+        <Style x:Key="MediaControlBtn" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
-    <Grid HorizontalAlignment="Center" VerticalAlignment="Top">
-        
-        <!-- Main Notch Container (Ocean Azure Glass Bezel) -->
-        <Border x:Name="NotchBorder"
-                Background="#070B14"
-                BorderBrush="#172640"
-                BorderThickness="1,0,1,1"
-                CornerRadius="0,0,18,18"
-                Width="185" Height="32"
-                Cursor="Hand"
-                AllowDrop="True">
-            <Border.ContextMenu>
-                <ContextMenu Background="#09101E" Foreground="#E2E8F0" BorderBrush="#1E3150" BorderThickness="1">
-                    <MenuItem x:Name="MenuOpenDashboard" Header="Buka Dashboard Oceru (Penuh)" Foreground="#38BDF8" FontWeight="Bold"/>
-                    <Separator Background="#1E3150"/>
-                    <MenuItem x:Name="MenuReload" Header="Muat Ulang / Reload (F5)" Foreground="#93C5FD"/>
-                    <MenuItem Header="Pilihan Tema Visual">
-                        <MenuItem x:Name="CtxThemeDark" Header="Ocean Dark (Midnight Navy)" Foreground="#CBD5E1"/>
-                        <MenuItem x:Name="CtxThemeGlass" Header="Aero Glassmorphism (Cyan)" Foreground="#38BDF8"/>
-                        <MenuItem x:Name="CtxThemeCyber" Header="Neon Cyberpunk (Magenta)" Foreground="#F43F5E"/>
-                    </MenuItem>
-                    <Separator Background="#1E3150"/>
-                    <MenuItem x:Name="MenuOpenWifi" Header="Panel Wi-Fi Windows" Foreground="#93C5FD"/>
-                    <MenuItem x:Name="MenuOpenBt" Header="Pengaturan Bluetooth" Foreground="#93C5FD"/>
-                    <MenuItem x:Name="MenuOpenFolder" Header="Buka Folder Proyek" Foreground="#CBD5E1"/>
-                    <Separator Background="#1E3150"/>
-                    <MenuItem x:Name="MenuExit" Header="Tutup Oceru Dynamic Island" Foreground="#F87171" FontWeight="SemiBold"/>
-                </ContextMenu>
-            </Border.ContextMenu>
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="28" ShadowDepth="5" Opacity="0.9" Color="#000000"/>
-            </Border.Effect>
+    <Grid>
+        <!-- ======================================================== -->
+        <!-- VIEW 1: RESTING CAT EYES PILL (Standalone, Eyes Only!)    -->
+        <!-- ======================================================== -->
+        <Grid x:Name="EyesGrid" Visibility="Visible" HorizontalAlignment="Center" VerticalAlignment="Top" Width="88" Height="36" Cursor="Hand">
+            <!-- Sleek Concave Silhouette for 88px Pill -->
+            <Path x:Name="EyesNotchBg" Fill="#000000"
+                  Data="M 0,0 C 6,0 12,6 12,12 L 12,20 A 16,16 0 0 0 28,36 L 60,36 A 16,16 0 0 0 76,20 L 76,12 C 76,6 82,0 88,0 L 0,0 Z">
+                <Path.Effect>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270" Opacity="0.6" Color="#000000"/>
+                </Path.Effect>
+            </Path>
 
-            <Grid>
-                <!-- 1. COMPACT ISLAND: Multi-Contextual Modes -->
-                
-                <!-- 1A: Idle Mode (Weather, Clock & Battery) -->
-                <Grid x:Name="CompactIdleView" VerticalAlignment="Center" Margin="12,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <!-- Weather -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE706;" FontSize="10" Foreground="#FBBF24" Margin="0,0,3,0" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="WeatherSmallText" Text="28°" Foreground="#FDE68A" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    
-                    <!-- Digital Clock -->
-                    <TextBlock Grid.Column="1" x:Name="ClockText" Text="23:50"
-                               Foreground="#FFFFFF" FontWeight="Bold" FontSize="11"
-                               HorizontalAlignment="Center" FontFamily="Segoe UI, Consolas"/>
-                    
-                    <!-- Battery & Mode Icons -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock x:Name="DndIconCompact" FontFamily="Segoe MDL2 Assets" Text="&#xE708;" FontSize="10" Foreground="#A78BFA" Margin="0,0,3,0" VerticalAlignment="Center" Visibility="Collapsed"/>
-                        <TextBlock x:Name="CollapsedBatIcon" FontFamily="Segoe MDL2 Assets" Text="&#xEBAA;" FontSize="11" Foreground="#38BDF8" Margin="0,0,2,0" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="CollapsedBatPct" Text="88%" Foreground="#94A3B8" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Grid>
-
-                <!-- 1B: Resting Mode (Animated Glowing Eyes) -->
-                <Grid x:Name="CompactRestingView" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border x:Name="LeftEye" Width="6" Height="10" Background="#FFFFFF" CornerRadius="3" Margin="0,0,8,0">
-                            <Border.Effect>
-                                <DropShadowEffect BlurRadius="7" Color="#00D2FF" ShadowDepth="0" Opacity="0.85"/>
-                            </Border.Effect>
-                        </Border>
-                        <Border x:Name="RightEye" Width="6" Height="10" Background="#FFFFFF" CornerRadius="3">
-                            <Border.Effect>
-                                <DropShadowEffect BlurRadius="7" Color="#00D2FF" ShadowDepth="0" Opacity="0.85"/>
-                            </Border.Effect>
-                        </Border>
-                    </StackPanel>
-                </Grid>
-
-                <!-- 1C: Media Playback Mode (Compact Music Pill) -->
-                <Grid x:Name="CompactMediaView" Visibility="Collapsed" VerticalAlignment="Center" Margin="10,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" FontFamily="Segoe MDL2 Assets" Text="&#xE189;" FontSize="10" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="1" x:Name="CompactTrackText" Text="Never Gonna Give You Up" Foreground="#FFFFFF" FontSize="10" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="2" x:Name="CompactWaveText" Text="|||" Foreground="#38BDF8" FontSize="9" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                </Grid>
-
-                <!-- 1D: Timer Running Mode (Pomodoro / Stopwatch / Countdown) -->
-                <Grid x:Name="CompactTimerView" Visibility="Collapsed" VerticalAlignment="Center" Margin="10,0">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock x:Name="CompactTimerIcon" FontFamily="Segoe MDL2 Assets" Text="&#xE916;" FontSize="11" Foreground="#10B981" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="CompactTimerText" Text="24:59" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" FontFamily="Segoe UI, Consolas" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Grid>
-
-                <!-- 1E: Collapsed Dynamic Toast Popup -->
-                <Grid x:Name="ToastView" Visibility="Collapsed" VerticalAlignment="Center" Margin="10,0">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock x:Name="ToastIcon" FontFamily="Segoe MDL2 Assets" Text="&#xE7F6;" FontSize="12" Foreground="#60A5FA" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="ToastText" Text="Perangkat Terhubung" Foreground="#FFFFFF" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Grid>
-
-                <!-- 2. EXPANDED QUICK PANEL (Full Dashboard Navigation & Controls) -->
-                <Grid x:Name="ExpandedView" Visibility="Collapsed" Margin="14,10">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Top Bar: Segmented Tabs & Action Feedback -->
-                    <Grid Grid.Row="0" Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Sleek Segmented Navigation (7 Core Quick Panes) -->
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <!-- Tab 1: Control -->
-                            <Button x:Name="BtnControl" Style="{StaticResource ActiveNavBtn}">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="11" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="LblControl" Text="Kontrol" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- Tab 2: Music -->
-                            <Button x:Name="BtnMusic" Style="{StaticResource NavIconBtn}" ToolTip="Pemutar Musik">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE189;" FontSize="11" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="LblMusic" Text="Media" FontSize="10" FontWeight="Bold" Margin="5,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- Tab 3: Lyrics -->
-                            <Button x:Name="BtnLyrics" Style="{StaticResource NavIconBtn}" ToolTip="Lirik Sinkron">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8BD;" FontSize="11" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="LblLyrics" Text="Lirik" FontSize="10" FontWeight="Bold" Margin="5,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- Tab 4: Timer -->
-                            <Button x:Name="BtnPomo" Style="{StaticResource NavIconBtn}" ToolTip="Fokus Timer &amp; Stopwatch">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE916;" FontSize="11" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="LblPomo" Text="Fokus" FontSize="10" FontWeight="Bold" Margin="5,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- Tab 5: Clipboard -->
-                            <Button x:Name="BtnClip" Style="{StaticResource NavIconBtn}" ToolTip="Riwayat Papan Klip">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8C8;" FontSize="11" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="LblClip" Text="Klip" FontSize="10" FontWeight="Bold" Margin="5,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- Tab 6: Notes -->
-                            <Button x:Name="BtnTodo" Style="{StaticResource NavIconBtn}" ToolTip="Catatan &amp; To-Do">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE73E;" FontSize="11" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="LblTodo" Text="Catatan" FontSize="10" FontWeight="Bold" Margin="5,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- Tab 7: Shelf -->
-                            <Button x:Name="BtnShelf" Style="{StaticResource NavIconBtn}" ToolTip="File Shelf">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xED25;" FontSize="11" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="LblShelf" Text="Shelf" FontSize="10" FontWeight="Bold" Margin="5,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
-                                    <TextBlock x:Name="ShelfBadgeCount" Text="" Foreground="#00D2FF" FontWeight="Bold" FontSize="9"/>
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-
-                        <!-- Header Right Controls -->
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <!-- In-Notch Action Feedback Pill -->
-                            <Border x:Name="ExpandedToastPill" Background="#0284C7" CornerRadius="7" Padding="7,3" Margin="0,0,6,0" Visibility="Collapsed">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock x:Name="ExpandedToastIcon" FontFamily="Segoe MDL2 Assets" Text="&#xE73E;" FontSize="9" Foreground="#FFFFFF" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="ExpandedToastText" Text="Aksi Berhasil" Foreground="#FFFFFF" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- Dashboard Fullscreen Launcher Button -->
-                            <Button x:Name="BtnLaunchDashboard" Background="#101D33" BorderBrush="#00D2FF" BorderThickness="1" Padding="7,3" Margin="0,0,6,0" Cursor="Hand" ToolTip="Buka Dashboard Lengkap 15 Halaman">
-                                <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="7"/></Style></Button.Resources>
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE7F4;" FontSize="9" Foreground="#00D2FF" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Dashboard" Foreground="#E0F2FE" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- Bluetooth Pill -->
-                            <Button x:Name="BtnHeaderBt" Background="#0C1527" BorderBrush="#1E3150" BorderThickness="1" Padding="6,3" Margin="0,0,5,0" Cursor="Hand" ToolTip="Kelola Bluetooth">
-                                <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="7"/></Style></Button.Resources>
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE7F6;" FontSize="9" Foreground="#60A5FA" Margin="0,0,3,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="BtBadge" Text="Bluetooth" Foreground="#93C5FD" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- Battery Pill -->
-                            <Border Background="#091814" BorderBrush="#065F46" BorderThickness="1" CornerRadius="7" Padding="6,3" Margin="0,0,5,0">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock x:Name="HeaderBatIcon" FontFamily="Segoe MDL2 Assets" Text="&#xEBAA;" FontSize="9" Foreground="#10B981" Margin="0,0,3,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="HeaderBatText" Text="88%" Foreground="#6EE7B7" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-
-                            <TextBlock x:Name="DateText" Text="23:50" Foreground="#94A3B8" FontSize="10" VerticalAlignment="Center"/>
-                        </StackPanel>
+            <!-- Centered Interactive Cat Eyes (Tracks Cursor Everywhere!) -->
+            <StackPanel x:Name="CatEyesContainer" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <!-- Left Eye -->
+                <Border x:Name="LeftEye" Width="14" Height="16" CornerRadius="7" Background="#FFFFFF" Margin="0,0,8,0" ClipToBounds="True">
+                    <Grid>
+                        <Grid x:Name="LeftPupil" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Grid.RenderTransform>
+                                <TranslateTransform x:Name="LeftPupilTransform" X="0" Y="0"/>
+                            </Grid.RenderTransform>
+                            <Border Width="4.5" Height="10" CornerRadius="2.25" Background="#060A14"/>
+                            <Border Width="1.8" Height="1.8" CornerRadius="0.9" Background="#FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,0.5,0"/>
+                        </Grid>
                     </Grid>
+                </Border>
 
-                    <!-- Content Panes -->
-                    <Grid Grid.Row="1">
-                        
-                        <!-- TAB 1: KONTROL (Grouped Connectivity, Audio Slider, Display, & System Actions) -->
-                        <Grid x:Name="PaneControl" Visibility="Visible">
+                <!-- Right Eye -->
+                <Border x:Name="RightEye" Width="14" Height="16" CornerRadius="7" Background="#FFFFFF" ClipToBounds="True">
+                    <Grid>
+                        <Grid x:Name="RightPupil" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Grid.RenderTransform>
+                                <TranslateTransform x:Name="RightPupilTransform" X="0" Y="0"/>
+                            </Grid.RenderTransform>
+                            <Border Width="4.5" Height="10" CornerRadius="2.25" Background="#060A14"/>
+                            <Border Width="1.8" Height="1.8" CornerRadius="0.9" Background="#FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,0.5,0"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </Grid>
+
+
+        <!-- ======================================================== -->
+        <!-- VIEW 2: COMPACT STATUS BAR (Weather, Clock, Battery)     -->
+        <!-- ======================================================== -->
+        <Grid x:Name="StatusGrid" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Width="230" Height="36" Cursor="Hand">
+            <!-- Silhouette with Concave Ears for 230px Status Bar -->
+            <Path x:Name="StatusNotchBg" Fill="#000000"
+                  Data="M 0,0 C 6,0 12,6 12,12 L 12,20 A 16,16 0 0 0 28,36 L 202,36 A 16,16 0 0 0 218,20 L 218,12 C 218,6 224,0 230,0 L 0,0 Z">
+                <Path.Effect>
+                    <DropShadowEffect BlurRadius="14" ShadowDepth="3" Direction="270" Opacity="0.6" Color="#000000"/>
+                </Path.Effect>
+            </Path>
+
+            <!-- Status Content Row: Weather on Left, Clock in Center, Battery on Right -->
+            <Grid Margin="16,0,16,0">
+                <!-- Left: Weather -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE706;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="28&#176;" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Center: REAL-TIME CLOCK (Replaces Eyes in Status Bar!) -->
+                <TextBlock x:Name="CompactClockText" Text="09:35" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                <!-- Right: Battery & Mode -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock x:Name="CompactBatPct" Text="85%" FontSize="11" Foreground="#CBD5E1" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="CompactBatIcon" Text="&#xEA93;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+
+        <!-- ======================================================== -->
+        <!-- VIEW 3: EXPANDED CAROUSEL VIEW (Full Notch)              -->
+        <!-- ======================================================== -->
+        <Grid x:Name="ExpandedGrid" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Width="560" Height="205">
+            <!-- Background Notch Silhouette with Concave Ears -->
+            <Path x:Name="NotchBgPath" Fill="#000000"
+                  Data="M 0,0 C 10,0 20,10 20,20 L 20,162 A 28,28 0 0 0 48,190 L 512,190 A 28,28 0 0 0 540,162 L 540,20 C 540,10 550,0 560,0 L 0,0 Z">
+                <Path.Effect>
+                    <DropShadowEffect BlurRadius="25" ShadowDepth="6" Direction="270" Opacity="0.6" Color="#000000"/>
+                </Path.Effect>
+            </Path>
+
+            <!-- Main Interior Container -->
+            <Grid Margin="26,0,26,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="34"/>  <!-- Top Status / Header Row -->
+                    <RowDefinition Height="114"/> <!-- Main Carousel Card Body -->
+                    <RowDefinition Height="38"/>  <!-- Bottom Action Buttons & Pagination -->
+                </Grid.RowDefinitions>
+
+                <!-- Center Top Sensor / Camera Dot -->
+                <Border Width="6" Height="6" CornerRadius="3" Background="#18181A"
+                        HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,3,0,0"/>
+
+                <!-- TOP HEADER ROW (NO COLLAPSE BUTTON!) -->
+                <Grid Grid.Row="0" Margin="10,6,10,0">
+                    <!-- Left: Card Title -->
+                    <TextBlock x:Name="HeaderTitleText" Text="" FontWeight="SemiBold" FontSize="15" Foreground="#FFFFFF"
+                               VerticalAlignment="Center" HorizontalAlignment="Left" Cursor="Hand"/>
+
+                    <!-- Center: Green Ring + Date & Time -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Border Width="13" Height="13" CornerRadius="6.5" BorderThickness="2" BorderBrush="#10B981"
+                                Margin="0,0,7,0" Background="Transparent"/>
+                        <TextBlock x:Name="HeaderDateText" Text="Sun 25 Oct 2026 " FontSize="12" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="HeaderTimeText" Text="09:35" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Right: Soundwave Equalizer Bars (Collapse Button Removed as Requested!) -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <StackPanel x:Name="HeaderWavePanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0">
+                            <Border x:Name="WaveBar1" Width="2.5" Height="8" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
+                            <Border x:Name="WaveBar2" Width="2.5" Height="14" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
+                            <Border x:Name="WaveBar3" Width="2.5" Height="10" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
+                            <Border x:Name="WaveBar4" Width="2.5" Height="12" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+
+                <!-- MAIN CAROUSEL CONTENT (6 CARDS) -->
+                <Grid Grid.Row="1" Margin="10,0,10,0">
+                    
+                    <!-- ============================================== -->
+                    <!-- CARD 0: MUSIC PLAYER                           -->
+                    <!-- ============================================== -->
+                    <Grid x:Name="CardMusic" Visibility="Visible">
+                        <!-- Default Player Layout -->
+                        <Grid x:Name="MusicPlayerView" Visibility="Visible">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="68"/>
+                                <RowDefinition Height="20"/>
+                                <RowDefinition Height="26"/>
                             </Grid.RowDefinitions>
 
-                            <!-- Row 1: Connectivity & Audio Master Slider -->
-                            <Grid Grid.Row="0" Margin="0,0,0,6">
+                            <Grid Grid.Row="0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="1*"/>
-                                    <ColumnDefinition Width="1*"/>
-                                    <ColumnDefinition Width="1.35*"/>
+                                    <ColumnDefinition Width="78"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="32"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!-- 1. Wi-Fi Card -->
-                                <Button x:Name="CardWifi" Grid.Column="0" Style="{StaticResource GlassCardBtn}" Margin="0,0,5,0" ToolTip="Buka Flyout Jaringan Wi-Fi Windows">
-                                    <Grid VerticalAlignment="Center">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Border x:Name="IconBgWifi" Background="#0284C7" CornerRadius="9" Width="30" Height="30" Margin="0,0,8,0">
-                                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE701;" FontSize="12" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <!-- Stylized Vinyl Album Art -->
+                                <Border Grid.Column="0" Width="68" Height="68" CornerRadius="14" Background="#DCEAF8"
+                                        HorizontalAlignment="Left" VerticalAlignment="Center" ClipToBounds="True">
+                                    <Grid>
+                                        <Border Height="1" Background="#CBDCF0" VerticalAlignment="Top" Margin="0,14,0,0"/>
+                                        <Border Height="1" Background="#CBDCF0" VerticalAlignment="Top" Margin="0,28,0,0"/>
+                                        <Border Height="1" Background="#CBDCF0" VerticalAlignment="Top" Margin="0,42,0,0"/>
+                                        <Border Height="1" Background="#CBDCF0" VerticalAlignment="Top" Margin="0,56,0,0"/>
+                                        <Border Width="46" Height="46" CornerRadius="23" BorderThickness="1.5" BorderBrush="#94C5EE"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Border Width="38" Height="38" CornerRadius="19" Background="#0284C7"
+                                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Border Width="24" Height="24" CornerRadius="12" BorderThickness="1.5" BorderBrush="#BAE6FD"
+                                                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Border Width="10" Height="10" CornerRadius="5" Background="#0369A1"/>
+                                                </Border>
+                                            </Border>
                                         </Border>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="Wi-Fi" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold"/>
-                                            <TextBlock x:Name="StatusWifi" Text="Buka Jaringan &#x2197;" Foreground="#38BDF8" FontSize="8.5" Margin="0,1,0,0"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Button>
-
-                                <!-- 2. Bluetooth Card -->
-                                <Button x:Name="CardBt" Grid.Column="1" Style="{StaticResource GlassCardBtn}" Margin="0,0,5,0" ToolTip="Buka Pengaturan Bluetooth Windows">
-                                    <Grid VerticalAlignment="Center">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Border x:Name="IconBgBt" Background="#0284C7" CornerRadius="9" Width="30" Height="30" Margin="0,0,8,0">
-                                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE7F6;" FontSize="12" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="Bluetooth" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold"/>
-                                            <TextBlock x:Name="StatusBt" Text="Kelola TWS/Audio &#x2197;" Foreground="#38BDF8" FontSize="8.5" Margin="0,1,0,0"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Button>
-
-                                <!-- 3. Audio Master Volume with Live Slider -->
-                                <Border x:Name="CardMuteBorder" Grid.Column="2" Background="#0C1527" BorderBrush="#1E3150" BorderThickness="1" CornerRadius="12" Padding="8,5">
-                                    <Grid VerticalAlignment="Center">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-                                        
-                                        <!-- Top: Mute Button + Volume Percentage -->
-                                        <Grid Grid.Row="0" Margin="0,0,0,3">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <Button x:Name="CardMute" Background="Transparent" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Left">
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <TextBlock x:Name="IconMute" FontFamily="Segoe MDL2 Assets" Text="&#xE767;" FontSize="11" Foreground="#38BDF8" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                                    <TextBlock x:Name="StatusMute" Text="Volume Suara" Foreground="#FFFFFF" FontSize="10.5" FontWeight="Bold" VerticalAlignment="Center"/>
-                                                </StackPanel>
-                                            </Button>
-                                            <TextBlock Grid.Column="1" x:Name="LblVolPct" Text="75%" Foreground="#94A3B8" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                        </Grid>
-
-                                        <!-- Bottom: Interactive Slider & Step Buttons -->
-                                        <Grid Grid.Row="1">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <Button x:Name="BtnVolDown" Grid.Column="0" Background="#13223D" BorderBrush="#223961" BorderThickness="1" Width="18" Height="18" Margin="0,0,4,0" Cursor="Hand" ToolTip="Turunkan Volume">
-                                                <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
-                                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74F;" FontSize="8" Foreground="#93C5FD" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Button>
-                                            <Slider x:Name="SliderVol" Grid.Column="1" Minimum="0" Maximum="100" Value="75" Height="16" VerticalAlignment="Center"/>
-                                            <Button x:Name="BtnVolUp" Grid.Column="2" Background="#13223D" BorderBrush="#223961" BorderThickness="1" Width="18" Height="18" Margin="4,0,0,0" Cursor="Hand" ToolTip="Naikkan Volume">
-                                                <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="4"/></Style></Button.Resources>
-                                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE767;" FontSize="8" Foreground="#93C5FD" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Button>
-                                        </Grid>
+                                        <Path Data="M 14,8 L 54,60" Stroke="#FFFFFF" StrokeThickness="1.5" Opacity="0.9"/>
                                     </Grid>
                                 </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0">
+                                    <TextBlock x:Name="MusicTitle" Text="Paper Sky" FontSize="16" FontWeight="SemiBold"
+                                               Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="MusicArtist" Text="Lumen Coast - Summer Flows" FontSize="12"
+                                               Foreground="#8E8E93" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+
+                                <Button x:Name="BtnMusicNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}"
+                                        HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                                </Button>
                             </Grid>
 
-                            <!-- Row 2: Modes & Display (DND, Gaming, Brightness, Task Manager) -->
-                            <Grid Grid.Row="1" Margin="0,0,0,6">
+                            <!-- Seekbar -->
+                            <Grid Grid.Row="1" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="42"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="46"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="MusicCurrentTime" Grid.Column="0" Text="03:13" FontSize="11" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                <Grid Grid.Column="1" Margin="6,0" VerticalAlignment="Center">
+                                    <Border Height="4" CornerRadius="2" Background="#2C2C2E"/>
+                                    <Border x:Name="MusicProgressBar" Height="4" CornerRadius="2" Background="#FFFFFF" HorizontalAlignment="Left" Width="150"/>
+                                </Grid>
+                                <TextBlock x:Name="MusicRemainingTime" Grid.Column="2" Text="-01:03" FontSize="11" Foreground="#8E8E93"
+                                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- Controls Row -->
+                            <Grid Grid.Row="2">
+                                <Button x:Name="BtnToggleLyrics" Style="{StaticResource CircleNavBtn}" Width="26" Height="26"
+                                        HorizontalAlignment="Left" VerticalAlignment="Center" ToolTip="Lihat Lirik Lagu">
+                                    <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#8E8E93"/>
+                                </Button>
+
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Button x:Name="BtnMusicPrev" Style="{StaticResource MediaControlBtn}" Margin="0,0,24,0">
+                                        <TextBlock Text="&#xE892;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#FFFFFF"/>
+                                    </Button>
+                                    <Button x:Name="BtnMusicPlayPause" Style="{StaticResource MediaControlBtn}" Margin="0,0,24,0">
+                                        <TextBlock x:Name="MusicPlayPauseIcon" Text="&#xE769;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#FFFFFF"/>
+                                    </Button>
+                                    <Button x:Name="BtnMusicNext" Style="{StaticResource MediaControlBtn}">
+                                        <TextBlock Text="&#xE893;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#FFFFFF"/>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+
+                        <!-- Synced Lyrics View (Toggled via Lyrics button) -->
+                        <Grid x:Name="MusicLyricsView" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="24"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Button x:Name="BtnBackFromLyrics" Grid.Row="0" Style="{StaticResource CircleNavBtn}" Width="22" Height="22" HorizontalAlignment="Left">
+                                <TextBlock Text="&#xE72B;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#CBD5E1"/>
+                            </Button>
+                            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="Gliding high above the quiet morning sky..." FontSize="12" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,2"/>
+                                <TextBlock Text="Ocean breeze whispers what you left behind" FontSize="14" FontWeight="Bold" Foreground="#00D2FF" HorizontalAlignment="Center" Margin="0,2"/>
+                                <TextBlock Text="Folded wings of paper chasing summer light" FontSize="12" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,2"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+
+
+                    <!-- ============================================== -->
+                    <!-- CARD 1: POMODORO FOCUS TIMER                   -->
+                    <!-- ============================================== -->
+                    <Grid x:Name="CardPomo" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="32"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="32"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Button x:Name="BtnPomoPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        </Button>
+
+                        <Grid Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Circular Timer Dial -->
+                            <Grid Grid.Column="0" Width="82" Height="82" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Border Width="82" Height="82" CornerRadius="41" BorderThickness="2.5" BorderBrush="#222224" Background="#121214"/>
+                                <Border Width="82" Height="82" CornerRadius="41" BorderThickness="2.5" BorderBrush="#FF5252"
+                                        Opacity="0.85" Background="Transparent"/>
+                                <Border Width="6" Height="6" CornerRadius="3" Background="#FF5252" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                                <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#FF5252"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- Timer Typography and Reset -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0">
+                                <TextBlock Text="Waktu Fokus" FontSize="12" Foreground="#A1A1AA" Margin="0,0,0,2"/>
+                                <TextBlock x:Name="PomoSubtitle" Text="Focus time" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <TextBlock x:Name="PomoDisplayTime" Text="25:00" FontFamily="Segoe UI, Consolas" FontSize="30" FontWeight="Bold" Foreground="#FFFFFF"/>
+                                    <Button x:Name="BtnPomoReset" Style="{StaticResource CircleNavBtn}" Width="24" Height="24" Margin="10,0,0,0" ToolTip="Reset Timer">
+                                        <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#A1A1AA"/>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+
+                        <Button x:Name="BtnPomoNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        </Button>
+                    </Grid>
+
+
+                    <!-- ============================================== -->
+                    <!-- CARD 2: CATATAN & TO-DO LIST                   -->
+                    <!-- ============================================== -->
+                    <Grid x:Name="CardNotesTodo" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="32"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="32"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Button x:Name="BtnNotesPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        </Button>
+
+                        <!-- Left Half: Quick Note Editor -->
+                        <Border Grid.Column="1" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="22"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="24"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Catatan Cepat" FontSize="12" FontWeight="Bold" Foreground="#00D2FF" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBox x:Name="InputNoteText" Grid.Row="1" Background="#070C18" Foreground="#FFFFFF" BorderBrush="#1B2F50"
+                                         FontSize="11" Margin="0,3" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Hidden"
+                                         Text="Meeting project Oceru jam 10 pagi..."/>
+                                <Button x:Name="BtnSaveNote" Grid.Row="2" Style="{StaticResource PillBtn}" Padding="8,2" HorizontalAlignment="Right">
+                                    <TextBlock Text="Simpan" FontSize="10" Foreground="#38BDF8"/>
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- Right Half: To-Do Checklist -->
+                        <Border Grid.Column="2" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="22"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Tugas Hari Ini" FontSize="12" FontWeight="Bold" Foreground="#10B981" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TodoStatusCount" Text=" (2/3)" FontSize="11" Foreground="#94A3B8" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Margin="0,4,0,0">
+                                    <CheckBox x:Name="CbTask1" Content="Uji responsivitas Notch" IsChecked="True" Foreground="#CBD5E1" FontSize="11" Margin="0,2"/>
+                                    <CheckBox x:Name="CbTask2" Content="Sinkronisasi audio &amp; volume" IsChecked="True" Foreground="#CBD5E1" FontSize="11" Margin="0,2"/>
+                                    <CheckBox x:Name="CbTask3" Content="Cek catatan &amp; to-do list" IsChecked="False" Foreground="#CBD5E1" FontSize="11" Margin="0,2"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Button x:Name="BtnNotesNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        </Button>
+                    </Grid>
+
+
+                    <!-- ============================================== -->
+                    <!-- CARD 3: PAPAN KLIP & FILE SHELF                -->
+                    <!-- ============================================== -->
+                    <Grid x:Name="CardClipShelf" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="32"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="32"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Button x:Name="BtnClipPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        </Button>
+
+                        <!-- Left: Clipboard History -->
+                        <Border Grid.Column="1" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="22"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#C084FC" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Riwayat Salinan" FontSize="12" FontWeight="Bold" Foreground="#C084FC" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Margin="0,4,0,0">
+                                    <Button x:Name="BtnCopyClip1" Style="{StaticResource QuickMiniBtn}" Margin="0,2" HorizontalContentAlignment="Left">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE71B;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#38BDF8" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="github.com/cubadakanda..." FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="BtnCopyClip2" Style="{StaticResource QuickMiniBtn}" Margin="0,2" HorizontalContentAlignment="Left">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Oceru Dynamic Island" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Right: File Shelf Drop Zone -->
+                        <Border x:Name="ShelfDropBorder" Grid.Column="2" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0" AllowDrop="True">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="22"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="File Shelf (Tarik File)" FontSize="12" FontWeight="Bold" Foreground="#F59E0B" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <Border Grid.Row="1" BorderBrush="#2A3B58" BorderThickness="1" CornerRadius="8" Background="#070D18" Margin="0,3">
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="&#xED25;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Lepas file di sini" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <TextBlock x:Name="ShelfFileCount" Text="0 file tersimpan" FontSize="10" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <Button x:Name="BtnClipNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        </Button>
+                    </Grid>
+
+
+                    <!-- ============================================== -->
+                    <!-- CARD 4: MONITOR SISTEM & WATER REMINDER        -->
+                    <!-- ============================================== -->
+                    <Grid x:Name="CardSysWater" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="32"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="32"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Button x:Name="BtnSysPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        </Button>
+
+                        <!-- Left: System Hardware -->
+                        <Border Grid.Column="1" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                            <StackPanel VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="SysRamText" Text="48%" FontFamily="Segoe UI, Consolas" FontSize="28" FontWeight="Bold" Foreground="#FFFFFF"/>
+                                    <TextBlock Text=" RAM" FontSize="14" FontWeight="SemiBold" Foreground="#00D2FF" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
+                                </StackPanel>
+                                <TextBlock x:Name="SysBatStatusText" Text="Baterai 85% - Mengisi Daya" FontSize="11" Foreground="#8E8E93" Margin="0,2,0,0"/>
+                                <Button x:Name="BtnSysTaskMgr" Style="{StaticResource QuickMiniBtn}" Margin="0,6,0,0" HorizontalAlignment="Left">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#38BDF8" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Buka Task Manager" FontSize="10" Foreground="#38BDF8" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Right: Water Reminder -->
+                        <Border Grid.Column="2" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                            <StackPanel VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE798;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#38BDF8" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Air Minum" FontSize="12" FontWeight="Bold" Foreground="#38BDF8" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="WaterAmountText" Text=" (1.250 ml)" FontSize="11" Foreground="#94A3B8" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <Grid Margin="0,6">
+                                    <Border Height="5" CornerRadius="2.5" Background="#162846"/>
+                                    <Border x:Name="WaterProgressBar" Height="5" CornerRadius="2.5" Background="#00D2FF" HorizontalAlignment="Left" Width="110"/>
+                                </Grid>
+                                <Button x:Name="BtnAddWater" Style="{StaticResource PillBtn}" Padding="8,3" HorizontalAlignment="Left">
+                                    <TextBlock Text="+ 250 ml (1 Gelas)" FontSize="10" Foreground="#E2E8F0"/>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <Button x:Name="BtnSysNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        </Button>
+                    </Grid>
+
+
+                    <!-- ============================================== -->
+                    <!-- CARD 5: KONTROL CEPAT & AUDIO MASTER           -->
+                    <!-- ============================================== -->
+                    <Grid x:Name="CardQuick" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="32"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="32"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Button x:Name="BtnQuickPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        </Button>
+
+                        <Grid Grid.Column="1" VerticalAlignment="Center" Margin="8,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="32"/>
+                                <RowDefinition Height="34"/>
+                                <RowDefinition Height="32"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Row 0: Switches -->
+                            <Grid Grid.Row="0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-
-                                <!-- DND Toggle -->
-                                <Button x:Name="BtnToggleDnd" Grid.Column="0" Style="{StaticResource SysActionBtn}" Margin="0,0,4,0" ToolTip="Aktifkan Mode Jangan Ganggu">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Border x:Name="BgDnd" Background="#1E1736" CornerRadius="5" Width="18" Height="18" Margin="0,0,6,0">
-                                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE708;" FontSize="9" Foreground="#C084FC" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock x:Name="LblDnd" Text="Jangan Ganggu" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Button x:Name="BtnQuickWifi" Grid.Column="0" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE701;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#38BDF8" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Wi-Fi" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
-
-                                <!-- Gaming Mode Toggle -->
-                                <Button x:Name="BtnToggleGame" Grid.Column="1" Style="{StaticResource SysActionBtn}" Margin="0,0,4,0" ToolTip="Optimalkan Performa untuk Game">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Border x:Name="BgGame" Background="#112920" CornerRadius="5" Width="18" Height="18" Margin="0,0,6,0">
-                                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE7FC;" FontSize="9" Foreground="#34D399" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock x:Name="LblGame" Text="Mode Game" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Button x:Name="BtnQuickBt" Grid.Column="1" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE702;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#38BDF8" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Bluetooth" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
-
-                                <!-- Brightness Display Shortcut -->
-                                <Button x:Name="BtnSysBright" Grid.Column="2" Style="{StaticResource SysActionBtn}" Margin="0,0,4,0" ToolTip="Buka Pengaturan Kecerahan Layar">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Border Background="#2B2109" CornerRadius="5" Width="18" Height="18" Margin="0,0,6,0">
-                                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE706;" FontSize="9" Foreground="#FBBF24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock Text="Kecerahan &#x2197;" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Button x:Name="BtnQuickDnd" Grid.Column="2" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#A855F7" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="QuickStatusDnd" Text="DND" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
-
-                                <!-- Task Manager Shortcut -->
-                                <Button x:Name="BtnSysTaskMgr" Grid.Column="3" Style="{StaticResource SysActionBtn}" ToolTip="Buka Task Manager Windows">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Border Background="#0C2338" CornerRadius="5" Width="18" Height="18" Margin="0,0,6,0">
-                                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE9D9;" FontSize="9" Foreground="#38BDF8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock Text="Task Manager" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Button x:Name="BtnQuickGame" Grid.Column="3" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="QuickStatusGame" Text="Game" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
                             </Grid>
 
-                            <!-- Row 3: System & Power Actions (Lock, Sleep, Restart, Theme) -->
+                            <!-- Row 1: Audio Slider -->
+                            <Grid Grid.Row="1" VerticalAlignment="Center" Margin="2,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="30"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="34"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="BtnQuickMute" Grid.Column="0" Style="{StaticResource QuickMiniBtn}" Padding="4,2">
+                                    <TextBlock x:Name="QuickIconMute" Text="&#xE767;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#38BDF8"/>
+                                </Button>
+                                <Slider x:Name="QuickSliderVol" Grid.Column="1" Minimum="0" Maximum="100" Value="72" VerticalAlignment="Center" Margin="8,0"/>
+                                <TextBlock x:Name="QuickVolPctText" Grid.Column="2" Text="72%" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- Row 2: Lock, Sleep, Restart, Dashboard -->
                             <Grid Grid.Row="2">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="1.4*"/>
                                 </Grid.ColumnDefinitions>
-
-                                <!-- 1: Lock Workstation -->
-                                <Button x:Name="BtnSysLock" Grid.Column="0" Style="{StaticResource SysActionBtn}" Margin="0,0,4,0" ToolTip="Kunci Layar Windows Seketika">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Border Background="#102447" CornerRadius="5" Width="18" Height="18" Margin="0,0,6,0">
-                                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE72E;" FontSize="9" Foreground="#60A5FA" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock Text="Kunci Layar" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Button x:Name="BtnQuickLock" Grid.Column="0" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#CBD5E1" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Kunci" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
-
-                                <!-- 2: Sleep Mode -->
-                                <Button x:Name="BtnSysSleep" Grid.Column="1" Style="{StaticResource SysActionBtn}" Margin="0,0,4,0" ToolTip="Masuk Mode Tidur (Sleep)">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Border Background="#241347" CornerRadius="5" Width="18" Height="18" Margin="0,0,6,0">
-                                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE708;" FontSize="9" Foreground="#C084FC" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock Text="Mode Tidur" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Button x:Name="BtnQuickSleep" Grid.Column="1" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#CBD5E1" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Tidur" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
-
-                                <!-- 3: Restart with Safe Confirmation -->
-                                <Button x:Name="BtnSysRestart" Grid.Column="2" Style="{StaticResource SysActionBtn}" Margin="0,0,4,0" ToolTip="Restart Laptop (Dengan Konfirmasi)">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Border Background="#3D1807" CornerRadius="5" Width="18" Height="18" Margin="0,0,6,0">
-                                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE777;" FontSize="9" Foreground="#FBBF24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock x:Name="LblRestart" Text="Restart" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Button x:Name="BtnQuickRestart" Grid.Column="2" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#EF4444" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="QuickLblRestart" Text="Restart" FontSize="11" Foreground="#EF4444" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
-
-                                <!-- 4: Theme Toggle -->
-                                <Button x:Name="BtnThemeSwitch" Grid.Column="3" Style="{StaticResource SysActionBtn}" ToolTip="Ganti Tema Visual">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Border Background="#06382C" CornerRadius="5" Width="18" Height="18" Margin="0,0,6,0">
-                                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE790;" FontSize="9" Foreground="#34D399" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock x:Name="LblTheme" Text="Ganti Tema" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Button x:Name="BtnSysLaunchDash" Grid.Column="3" Margin="2" Style="{StaticResource PillBtn}" Padding="6,2">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE737;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#00D2FF" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Dashboard" FontSize="11" FontWeight="SemiBold" Foreground="#00D2FF" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
                             </Grid>
                         </Grid>
 
-                        <!-- TAB 2: MEDIA PLAYER (Playback, Progress, YouTube Search, Equalizer) -->
-                        <Grid x:Name="PaneMusic" Visibility="Collapsed">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="58"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="185"/>
-                            </Grid.ColumnDefinitions>
-
-                            <Border Grid.Column="0" CornerRadius="12" Width="52" Height="52" HorizontalAlignment="Left">
-                                <Border.Background>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                        <GradientStop Color="#0284C7" Offset="0"/>
-                                        <GradientStop Color="#4F46E5" Offset="0.5"/>
-                                        <GradientStop Color="#E11D48" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </Border.Background>
-                                <Border.Effect>
-                                    <DropShadowEffect BlurRadius="12" Color="#0284C7" ShadowDepth="2" Opacity="0.4"/>
-                                </Border.Effect>
-                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE189;" FontSize="18" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0">
-                                <TextBlock x:Name="TrackTitle" Text="Never Gonna Give You Up" Foreground="#FFFFFF" FontWeight="Bold" FontSize="11.5" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock x:Name="TrackArtist" Text="Rick Astley • YouTube Music" Foreground="#94A3B8" FontSize="9" Margin="0,1,0,4"/>
-                                
-                                <Grid Margin="0,0,0,5">
-                                    <ProgressBar x:Name="TrackProgress" Value="42" Maximum="100" Height="3" Background="#162238" Foreground="#00D2FF" BorderThickness="0"/>
-                                </Grid>
-
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button x:Name="BtnPrev" Background="Transparent" Foreground="#CBD5E1" BorderThickness="0" Margin="0,0,8,0" Cursor="Hand" ToolTip="Lagu Sebelumnya">
-                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE892;" FontSize="12"/>
-                                    </Button>
-                                    
-                                    <Button x:Name="BtnPlay" Width="26" Height="26" Background="#0284C7" BorderThickness="0" Cursor="Hand" ToolTip="Putar / Jeda">
-                                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="13"/></Style></Button.Resources>
-                                        <TextBlock x:Name="PlayIcon" FontFamily="Segoe MDL2 Assets" Text="&#xE768;" FontSize="10" Foreground="#FFFFFF"/>
-                                    </Button>
-                                    
-                                    <Button x:Name="BtnNext" Background="Transparent" Foreground="#CBD5E1" BorderThickness="0" Margin="8,0,10,0" Cursor="Hand" ToolTip="Lagu Selanjutnya">
-                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE893;" FontSize="12"/>
-                                    </Button>
-                                    
-                                    <TextBox x:Name="YtInput" Text="Cari / paste link YouTube..."
-                                             Foreground="#64748B" Background="#0C1527" BorderBrush="#1E3150"
-                                             Padding="8,3" FontSize="9" Width="140" VerticalAlignment="Center">
-                                        <TextBox.Resources><Style TargetType="{x:Type Border}"><Setter Property="CornerRadius" Value="6"/></Style></TextBox.Resources>
-                                    </TextBox>
-                                </StackPanel>
-                            </StackPanel>
-
-                            <!-- Synced Lyrics Preview Box -->
-                            <Border Grid.Column="2" Background="#09101E" BorderBrush="#192A45" BorderThickness="1" CornerRadius="10" Padding="10,7">
-                                <StackPanel VerticalAlignment="Center">
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
-                                        <TextBlock Text="LIRIK SINKRON" Foreground="#64748B" FontSize="8" FontWeight="Bold"/>
-                                        <TextBlock x:Name="WaveAnimText" Text=" &#x266B;" Foreground="#00D2FF" FontSize="9"/>
-                                    </StackPanel>
-                                    <TextBlock x:Name="MusicLyricMini" Text="Never gonna give you up... never gonna let you down"
-                                               Foreground="#38BDF8" FontSize="9.5" FontWeight="SemiBold" TextWrapping="Wrap" LineHeight="13"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- Hidden Web Engine for YouTube Audio -->
-                            <WebBrowser x:Name="AudioWebEngine" Width="0" Height="0" Visibility="Collapsed"/>
-                        </Grid>
-
-                        <!-- TAB 3: LIRIK SINKRON (Karaoke View) -->
-                        <Grid x:Name="PaneLyrics" Visibility="Collapsed">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <Border Grid.Column="0" Background="#09101E" BorderBrush="#192A45" BorderThickness="1" CornerRadius="10" Padding="12,8" Margin="0,0,6,0">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="KARAOKE REAL-TIME" Foreground="#64748B" FontSize="8" FontWeight="Bold" Margin="0,0,0,3"/>
-                                    <TextBlock x:Name="LyricLinePast" Text="I just wanna tell you how I'm feeling" Foreground="#64748B" FontSize="9.5" Margin="0,0,0,2"/>
-                                    <TextBlock x:Name="LyricLineActive" Text="Gotta make you understand..." Foreground="#00D2FF" FontSize="12" FontWeight="Bold" Margin="0,0,0,2"/>
-                                    <TextBlock x:Name="LyricLineNext" Text="Never gonna give you up" Foreground="#94A3B8" FontSize="9.5"/>
-                                </StackPanel>
-                            </Border>
-
-                            <Border Grid.Column="1" Background="#09101E" BorderBrush="#192A45" BorderThickness="1" CornerRadius="10" Padding="12,8">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="METADATA AUDIO" Foreground="#64748B" FontSize="8" FontWeight="Bold" Margin="0,0,0,3"/>
-                                    <TextBlock Text="Never Gonna Give You Up" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold"/>
-                                    <TextBlock Text="Rick Astley • LRCLIB Engine" Foreground="#94A3B8" FontSize="9.5" Margin="0,1,0,4"/>
-                                    <TextBlock Text="Ketuk baris lirik untuk melompat ke bagian musik" Foreground="#64748B" FontSize="8.5"/>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-
-                        <!-- TAB 4: FOKUS & PENGATUR WAKTU (Pomodoro, Stopwatch, Countdown) -->
-                        <Grid x:Name="PanePomo" Visibility="Collapsed">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-
-                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="6,0">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-                                    <TextBlock x:Name="PomoStatus" Text="FOKUS AKTIF" Foreground="#10B981" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
-                                    <TextBlock Text=" • Pilih durasi:" Foreground="#64748B" FontSize="9" VerticalAlignment="Center" Margin="4,0,5,0"/>
-                                    <Button x:Name="BtnPill5" Content="5m" Style="{StaticResource TimerPill}"/>
-                                    <Button x:Name="BtnPill10" Content="10m" Style="{StaticResource TimerPill}"/>
-                                    <Button x:Name="BtnPill15" Content="15m" Style="{StaticResource TimerPill}"/>
-                                    <Button x:Name="BtnPill25" Content="25m" Style="{StaticResource TimerPill}"/>
-                                    <Button x:Name="BtnPill45" Content="45m" Style="{StaticResource TimerPill}"/>
-                                </StackPanel>
-                                <TextBlock x:Name="PomoTimer" Text="25:00" Foreground="#FFFFFF" FontSize="32" FontWeight="Bold" FontFamily="Segoe UI, Consolas"/>
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button x:Name="BtnPomoStart" Content="Mulai" Background="#10B981" Foreground="#FFFFFF" FontWeight="Bold" Padding="12,5" BorderThickness="0" Margin="0,0,4,0" Cursor="Hand">
-                                    <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="7"/></Style></Button.Resources>
-                                </Button>
-                                <Button x:Name="BtnPomoReset" Content="Reset" Background="#13223D" Foreground="#CBD5E1" FontWeight="Bold" Padding="10,5" BorderThickness="0" Margin="0,0,4,0" Cursor="Hand">
-                                    <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="7"/></Style></Button.Resources>
-                                </Button>
-                                <Button x:Name="BtnPomoMode" Content="Istirahat" Background="#13223D" Foreground="#38BDF8" FontWeight="Bold" Padding="10,5" BorderThickness="0" Cursor="Hand">
-                                    <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="7"/></Style></Button.Resources>
-                                </Button>
-                            </StackPanel>
-                        </Grid>
-
-                        <!-- TAB 5: RIWAYAT PAPAN KLIP (Clipboard) -->
-                        <Grid x:Name="PaneClip" Visibility="Collapsed">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="RIWAYAT PAPAN KLIP (KLIK UNTUK MENYALIN ULANG)" Foreground="#64748B" FontSize="8" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <StackPanel Grid.Row="1" x:Name="ClipListPanel">
-                                <Button x:Name="BtnClipItem1" Style="{StaticResource GlassCardBtn}" Padding="8,4" Margin="0,0,0,3" ToolTip="Klik untuk salin">
-                                    <TextBlock Text="https://github.com/cubadakanda/dynamic-island" Foreground="#93C5FD" FontSize="9.5"/>
-                                </Button>
-                                <Button x:Name="BtnClipItem2" Style="{StaticResource GlassCardBtn}" Padding="8,4" Margin="0,0,0,3" ToolTip="Klik untuk salin">
-                                    <TextBlock Text="Oceru Dynamic Island Desktop" Foreground="#CBD5E1" FontSize="9.5"/>
-                                </Button>
-                                <Button x:Name="BtnClipItem3" Style="{StaticResource GlassCardBtn}" Padding="8,4" ToolTip="Klik untuk salin">
-                                    <TextBlock Text="Never Gonna Give You Up - Rick Astley" Foreground="#94A3B8" FontSize="9.5"/>
-                                </Button>
-                            </StackPanel>
-                        </Grid>
-
-                        <!-- TAB 6: CATATAN & TO-DO -->
-                        <Grid x:Name="PaneTodo" Visibility="Collapsed">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-
-                            <Grid Grid.Row="0" Margin="0,0,0,5">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox x:Name="TodoInput" Text="Tulis catatan / tugas baru lalu tekan Enter..."
-                                         Foreground="#64748B" Background="#09101E" BorderBrush="#192A45"
-                                         Padding="8,4" FontSize="9.5">
-                                    <TextBox.Resources><Style TargetType="{x:Type Border}"><Setter Property="CornerRadius" Value="6"/></Style></TextBox.Resources>
-                                </TextBox>
-                                <TextBlock Grid.Column="1" x:Name="TodoCounterText" Text="2 dari 3 selesai" Foreground="#10B981" FontSize="9.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                            </Grid>
-
-                            <StackPanel Grid.Row="1" x:Name="TodoListPanel">
-                                <Border Background="#09101E" BorderBrush="#192A45" BorderThickness="1" CornerRadius="6" Padding="7,3" Margin="0,0,0,3">
-                                    <StackPanel Orientation="Horizontal">
-                                        <CheckBox x:Name="Chk1" IsChecked="True" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                                        <TextBlock x:Name="Txt1" Text="Desain UI bertema Ocean Azure Glass" Foreground="#64748B" TextDecorations="Strikethrough" FontSize="9.5" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border Background="#09101E" BorderBrush="#192A45" BorderThickness="1" CornerRadius="6" Padding="7,3" Margin="0,0,0,3">
-                                    <StackPanel Orientation="Horizontal">
-                                        <CheckBox x:Name="Chk2" IsChecked="True" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                                        <TextBlock x:Name="Txt2" Text="Integrasi hardware: Wi-Fi flyout, Audio slider, Lock" Foreground="#64748B" TextDecorations="Strikethrough" FontSize="9.5" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border Background="#09101E" BorderBrush="#192A45" BorderThickness="1" CornerRadius="6" Padding="7,3">
-                                    <StackPanel Orientation="Horizontal">
-                                        <CheckBox x:Name="Chk3" IsChecked="False" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                                        <TextBlock x:Name="Txt3" Text="Kembangkan Dashboard 15 destinasi lengkap" Foreground="#FFFFFF" FontSize="9.5" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </Grid>
-
-                        <!-- TAB 7: FILE SHELF -->
-                        <Grid x:Name="PaneShelf" Visibility="Collapsed">
-                            <Border BorderBrush="#0284C7" BorderThickness="1.5" CornerRadius="10" Background="#09101E" Padding="10">
-                                <Grid>
-                                    <StackPanel x:Name="ShelfPlaceholder" VerticalAlignment="Center" HorizontalAlignment="Center">
-                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xED25;" FontSize="18" Foreground="#00D2FF" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Tarik &amp; lepas file ke sini untuk menyimpan sementara"
-                                                   Foreground="#94A3B8" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="File tetap aman di laptopmu dan bisa ditarik kembali ke chat atau email"
-                                                   Foreground="#64748B" FontSize="8.5" Margin="0,1,0,0" HorizontalAlignment="Center"/>
-                                    </StackPanel>
-                                    
-                                    <StackPanel x:Name="ShelfItemsList" Orientation="Horizontal" VerticalAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                        </Grid>
-
+                        <Button x:Name="BtnQuickNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        </Button>
                     </Grid>
+
                 </Grid>
 
+                <!-- ROW 2: BOTTOM BUTTONS (CONTEXTUAL) & PAGINATION DOTS -->
+                <Grid Grid.Row="2" Margin="10,0,10,6">
+                    <!-- Pomodoro Bottom Buttons -->
+                    <Grid x:Name="BottomPomoRow" Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Button x:Name="BtnPomoShortBreak" Style="{StaticResource PillBtn}" Margin="0,0,10,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Short Break" FontSize="12" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="BtnPomoPlay" Width="66" Height="32" Background="#FF5252" Cursor="Hand"
+                                    BorderThickness="0" Margin="0,0,10,0">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" CornerRadius="16">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                                <TextBlock x:Name="PomoPlayPauseIcon" Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#FFFFFF"/>
+                            </Button>
+                            <Button x:Name="BtnPomoFocusTime" Style="{StaticResource PillBtn}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#FF5252" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Focus Time" FontSize="12" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- BOTTOM PAGINATION INDICATOR (6 DOTS FOR 6 CARDS) -->
+                    <StackPanel x:Name="PaginationPanel" Orientation="Horizontal" HorizontalAlignment="Center"
+                                VerticalAlignment="Bottom" Margin="0,0,0,2">
+                        <Border x:Name="Dot0" Width="16" Height="3" CornerRadius="1.5" Background="#FFFFFF" Margin="2.5,0" Cursor="Hand"/>
+                        <Border x:Name="Dot1" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
+                        <Border x:Name="Dot2" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
+                        <Border x:Name="Dot3" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
+                        <Border x:Name="Dot4" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
+                        <Border x:Name="Dot5" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- FLOATING ACTION FEEDBACK TOAST PILL -->
+                <Border x:Name="ToastFeedbackPill" Grid.Row="0" Grid.RowSpan="2" HorizontalAlignment="Center"
+                        VerticalAlignment="Top" Margin="0,38,0,0" Background="#E6070B14" BorderBrush="#00D2FF"
+                        BorderThickness="1" CornerRadius="14" Padding="14,6" Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="ToastFeedbackIcon" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                   Foreground="#00D2FF" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ToastFeedbackText" Text="Berhasil" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
             </Grid>
-        </Border>
+        </Grid>
     </Grid>
 </Window>
 '@
@@ -959,31 +939,31 @@ $islandXaml = @'
 $dashXaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Oceru Dashboard — Ocean Azure Glass"
+        Title="Oceru Dashboard - Ocean Azure Glass"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
         Width="980" Height="650">
     <Window.Resources>
-        <!-- Sidebar Navigation Button Style -->
         <Style x:Key="SidebarNavBtn" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#8EA2C6"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#8E9CB2"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Padding" Value="14,0"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="Margin" Value="0,1"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="SideBorder" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="NavBorder" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}">
                             <ContentPresenter VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="SideBorder" Property="Background" Value="#14223A"/>
+                                <Setter TargetName="NavBorder" Property="Background" Value="#101C30"/>
                                 <Setter Property="Foreground" Value="#00D2FF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -992,87 +972,76 @@ $dashXaml = @'
             </Setter>
         </Style>
 
-        <!-- Active Sidebar Item Style -->
-        <Style x:Key="ActiveSidebarNavBtn" TargetType="Button" BasedOn="{StaticResource SidebarNavBtn}">
-            <Setter Property="Background" Value="#172A47"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-        </Style>
-
-        <!-- Dashboard Card Style -->
-        <Style x:Key="DashCard" TargetType="Border">
-            <Setter Property="Background" Value="#0C1527"/>
-            <Setter Property="BorderBrush" Value="#1E3150"/>
+        <Style x:Key="ActiveSidebarNavBtn" TargetType="Button">
+            <Setter Property="Background" Value="#0C2038"/>
+            <Setter Property="Foreground" Value="#00D2FF"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="14"/>
-            <Setter Property="Padding" Value="16"/>
-        </Style>
-
-        <!-- Primary Pill Button -->
-        <Style x:Key="DashPrimaryBtn" TargetType="Button">
-            <Setter Property="Background" Value="#0284C7"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="BorderBrush" Value="#00D2FF"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="9" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="DashCard" TargetType="Border">
+            <Setter Property="Background" Value="#080F1E"/>
+            <Setter Property="BorderBrush" Value="#172844"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="6"/>
+        </Style>
     </Window.Resources>
 
-    <!-- Outer Frame with Ocean Azure Glass Drop Shadow -->
-    <Border Background="#070B14" BorderBrush="#1C2F4D" BorderThickness="1" CornerRadius="18">
+    <!-- Outer Frame with Drop Shadow -->
+    <Border CornerRadius="18" Background="#060A14" BorderBrush="#162846" BorderThickness="1.5">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="36" ShadowDepth="8" Opacity="0.9" Color="#000000"/>
+            <DropShadowEffect BlurRadius="40" ShadowDepth="12" Direction="270" Opacity="0.7" Color="#000000"/>
         </Border.Effect>
 
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="42"/> <!-- Modern Drag Title Bar -->
-                <RowDefinition Height="*"/>  <!-- Main Content -->
+                <RowDefinition Height="44"/> <!-- Modern Title Bar -->
+                <RowDefinition Height="*"/>  <!-- Main Content Body -->
             </Grid.RowDefinitions>
 
-            <!-- 1. Custom Title Bar -->
-            <Border Grid.Row="0" x:Name="DashTitleBar" Background="#0A1220" BorderBrush="#172640" BorderThickness="0,0,0,1" CornerRadius="18,18,0,0">
+            <!-- Custom Drag Title Bar -->
+            <Border Grid.Row="0" x:Name="DashTitleBar" Background="#0A1224" CornerRadius="17,17,0,0" BorderBrush="#14233C" BorderThickness="0,0,0,1" Cursor="Hand">
                 <Grid Margin="16,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Brand / App Info -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Background="#0284C7" Width="18" Height="18" CornerRadius="5" Margin="0,0,8,0">
-                            <TextBlock Text="O" Foreground="#FFFFFF" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="22" Height="22" CornerRadius="11" Background="#0284C7" Margin="0,0,10,0">
+                            <TextBlock Text="O" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
-                        <TextBlock Text="Oceru Dashboard" Foreground="#FFFFFF" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
-                        <Border Background="#0B2638" BorderBrush="#00D2FF" BorderThickness="1" CornerRadius="5" Padding="5,1" Margin="8,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="Ocean Azure Glass" Foreground="#38BDF8" FontSize="9" FontWeight="SemiBold"/>
-                        </Border>
+                        <TextBlock Text="OCERU" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                        <TextBlock Text=" - Ocean Azure Glass Dashboard" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" Margin="6,0,0,0"/>
                     </StackPanel>
 
-                    <!-- Window Control Buttons (Minimize, Close) -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button x:Name="BtnDashMin" Background="Transparent" Foreground="#8EA2C6" BorderThickness="0" Width="28" Height="28" Cursor="Hand" ToolTip="Minimize">
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE921;" FontSize="10"/>
+                    <!-- Control Buttons -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button x:Name="BtnDashMin" Width="30" Height="26" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0">
+                            <TextBlock Text="&#xE921;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#94A3B8"/>
                         </Button>
-                        <Button x:Name="BtnDashClose" Background="Transparent" Foreground="#F87171" BorderThickness="0" Width="28" Height="28" Cursor="Hand" Margin="4,0,0,0" ToolTip="Tutup Dashboard">
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8BB;" FontSize="10"/>
+                        <Button x:Name="BtnDashClose" Width="30" Height="26" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                            <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#94A3B8"/>
                         </Button>
                     </StackPanel>
                 </Grid>
             </Border>
 
-            <!-- 2. Main Body Grid: Sidebar + Viewport -->
+            <!-- Main Body Grid: Sidebar + Viewport -->
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="220"/>
@@ -1080,132 +1049,102 @@ $dashXaml = @'
                 </Grid.ColumnDefinitions>
 
                 <!-- Left Sidebar (15 Destinations) -->
-                <Border Grid.Column="0" Background="#09101E" BorderBrush="#172640" BorderThickness="0,0,1,0" Padding="10,12">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel>
-                            <TextBlock Text="MENU UTAMA" Foreground="#64748B" FontSize="8.5" FontWeight="Bold" Margin="10,0,0,6"/>
-                            
-                            <!-- Destination 1: Overview -->
+                <Border Grid.Column="0" Background="#070E1C" BorderBrush="#122038" BorderThickness="0,0,1,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Hidden">
+                        <StackPanel Margin="10,12">
+                            <TextBlock Text="NAVIGASI UTAMA" FontSize="10" FontWeight="Bold" Foreground="#475569" Margin="10,4,0,8"/>
                             <Button x:Name="NavOverview" Style="{StaticResource ActiveSidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE80F;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Ringkasan (Overview)" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#00D2FF" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Ringkasan" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-
-                            <!-- Destination 2: Dynamic Island -->
                             <Button x:Name="NavIsland" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE7F4;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Dynamic Island" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE737;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Dynamic Island" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-
-                            <!-- Destination 3: Media -->
                             <Button x:Name="NavMedia" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE189;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Media &amp; Lirik" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Media &amp; Lirik" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-
-                            <!-- Destination 4: Pomodoro -->
                             <Button x:Name="NavPomo" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE916;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Fokus Pomodoro" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Fokus Pomodoro" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-
-                            <!-- Destination 5: Stopwatch -->
                             <Button x:Name="NavStopwatch" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE823;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Stopwatch" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Stopwatch" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-
-                            <!-- Destination 6: Countdown -->
                             <Button x:Name="NavCountdown" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE787;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Hitung Mundur" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Countdown" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
-                            <TextBlock Text="PRODUKTIVITAS &amp; ALAT" Foreground="#64748B" FontSize="8.5" FontWeight="Bold" Margin="10,12,0,6"/>
-
-                            <!-- Destination 7: System Monitor -->
+                            <TextBlock Text="PRODUKTIVITAS &amp; SISTEM" FontSize="10" FontWeight="Bold" Foreground="#475569" Margin="10,14,0,8"/>
                             <Button x:Name="NavSysMon" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE9D9;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Monitor Sistem" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Monitor Sistem" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-
-                            <!-- Destination 8: Notifications -->
                             <Button x:Name="NavNotif" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xEA8F;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Pusat Notifikasi" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE7E7;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Pusat Notifikasi" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-
-                            <!-- Destination 9: Notes -->
                             <Button x:Name="NavNotes" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE70B;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Catatan (Notes)" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Catatan" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-
-                            <!-- Destination 10: To-Do -->
                             <Button x:Name="NavTodo" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE73E;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Daftar Tugas (To-Do)" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Daftar Tugas" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-
-                            <!-- Destination 11: Clipboard -->
                             <Button x:Name="NavClip" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8C8;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Papan Klip" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Papan Klip" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
-                            <TextBlock Text="PENGATURAN &amp; SISTEM" Foreground="#64748B" FontSize="8.5" FontWeight="Bold" Margin="10,12,0,6"/>
-
-                            <!-- Destination 12: Quick Settings -->
+                            <TextBlock Text="PREFERENSI" FontSize="10" FontWeight="Bold" Foreground="#475569" Margin="10,14,0,8"/>
                             <Button x:Name="NavQuickSet" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Pengaturan Cepat" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Pengaturan Cepat" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-
-                            <!-- Destination 13: Quick Launcher -->
                             <Button x:Name="NavQuickLaunch" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xEC5A;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Peluncur Cepat" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE737;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Peluncur Cepat" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-
-                            <!-- Destination 14: Settings -->
                             <Button x:Name="NavSettings" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Pengaturan" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Pengaturan" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-
-                            <!-- Destination 15: About -->
                             <Button x:Name="NavAbout" Style="{StaticResource SidebarNavBtn}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="12" Margin="0,0,9,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Tentang Oceru" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Tentang Oceru" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -1213,88 +1152,45 @@ $dashXaml = @'
                 </Border>
 
                 <!-- Right Viewport: Destination Content Panes -->
-                <Grid Grid.Column="1" Margin="24,18">
-                    
-                    <!-- PAGE 1: OVERVIEW (Ringkasan Sistem & Status) -->
+                <Grid Grid.Column="1" Background="#050812" Margin="16">
+                    <!-- PAGE 1: OVERVIEW -->
                     <Grid x:Name="PageOverview" Visibility="Visible">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-
-                        <!-- Header -->
                         <StackPanel Grid.Row="0" Margin="0,0,0,16">
-                            <TextBlock Text="Selamat Datang di Oceru Desktop" Foreground="#FFFFFF" FontSize="20" FontWeight="Bold"/>
-                            <TextBlock Text="Pusat kontrol smart notch, pemantauan sistem, dan produktivitas Anda." Foreground="#8EA2C6" FontSize="11" Margin="0,3,0,0"/>
+                            <TextBlock Text="Ringkasan Sistem Oceru" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/>
+                            <TextBlock Text="Status waktu nyata hardware, media, dan fokus Anda di desktop Windows." FontSize="12" Foreground="#64748B" Margin="0,4,0,0"/>
                         </StackPanel>
-
-                        <!-- Metric Highlights Cards (CPU, RAM, Baterai, Audio) -->
-                        <Grid Grid.Row="1" Margin="0,0,0,16">
+                        <Grid Grid.Row="1">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-
-                            <Border Grid.Column="0" Style="{StaticResource DashCard}" Margin="0,0,8,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="120"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource DashCard}">
                                 <StackPanel>
-                                    <TextBlock Text="PENGGUNAAN RAM" Foreground="#64748B" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock x:Name="DashRamVal" Text="86%" Foreground="#00D2FF" FontSize="24" FontWeight="Bold" Margin="0,4,0,0"/>
-                                    <TextBlock Text="Memori Fisik Aktif" Foreground="#8EA2C6" FontSize="9.5" Margin="0,2,0,0"/>
+                                    <TextBlock Text="BEBAN MEMORI RAM" FontSize="11" FontWeight="Bold" Foreground="#00D2FF"/>
+                                    <TextBlock x:Name="DashRamVal" Text="48%" FontSize="32" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,6,0,0"/>
+                                    <TextBlock Text="Kernel32 GlobalMemoryStatusEx" FontSize="11" Foreground="#64748B"/>
                                 </StackPanel>
                             </Border>
-
-                            <Border Grid.Column="1" Style="{StaticResource DashCard}" Margin="0,0,8,0">
+                            <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource DashCard}">
                                 <StackPanel>
-                                    <TextBlock Text="STATUS BATERAI" Foreground="#64748B" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock x:Name="DashBatVal" Text="88%" Foreground="#10B981" FontSize="24" FontWeight="Bold" Margin="0,4,0,0"/>
-                                    <TextBlock x:Name="DashBatStatus" Text="Mengisi Daya ⚡" Foreground="#8EA2C6" FontSize="9.5" Margin="0,2,0,0"/>
+                                    <TextBlock Text="BATERAI LAPTOP" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
+                                    <TextBlock x:Name="DashBatVal" Text="85%" FontSize="32" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,6,0,0"/>
+                                    <TextBlock x:Name="DashBatStatus" Text="Mengisi Daya" FontSize="11" Foreground="#64748B"/>
                                 </StackPanel>
                             </Border>
-
-                            <Border Grid.Column="2" Style="{StaticResource DashCard}" Margin="0,0,8,0">
+                            <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Style="{StaticResource DashCard}">
                                 <StackPanel>
-                                    <TextBlock Text="VOLUME MASTER" Foreground="#64748B" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock x:Name="DashVolVal" Text="75%" Foreground="#38BDF8" FontSize="24" FontWeight="Bold" Margin="0,4,0,0"/>
-                                    <TextBlock x:Name="DashMuteStatus" Text="Audio Bersuara" Foreground="#8EA2C6" FontSize="9.5" Margin="0,2,0,0"/>
-                                </StackPanel>
-                            </Border>
-
-                            <Border Grid.Column="3" Style="{StaticResource DashCard}">
-                                <StackPanel>
-                                    <TextBlock Text="MODE FOKUS" Foreground="#64748B" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock x:Name="DashPomoVal" Text="25:00" Foreground="#FBBF24" FontSize="24" FontWeight="Bold" Margin="0,4,0,0"/>
-                                    <TextBlock Text="Pomodoro Siap" Foreground="#8EA2C6" FontSize="9.5" Margin="0,2,0,0"/>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-
-                        <!-- Quick Shortcuts Grid -->
-                        <Grid Grid.Row="2">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="1.4*"/>
-                                <ColumnDefinition Width="1*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- Left: Recent Tasks & Notes Preview -->
-                            <Border Grid.Column="0" Style="{StaticResource DashCard}" Margin="0,0,10,0">
-                                <StackPanel>
-                                    <TextBlock Text="DAFTAR TUGAS AKTIF" Foreground="#00D2FF" FontSize="11" FontWeight="Bold" Margin="0,0,0,10"/>
-                                    <TextBlock Text="✓ Desain UI bertema Ocean Azure Glass (Selesai)" Foreground="#64748B" FontSize="10.5" Margin="0,0,0,6"/>
-                                    <TextBlock Text="✓ Integrasi hardware: Wi-Fi flyout &amp; audio slider (Selesai)" Foreground="#64748B" FontSize="10.5" Margin="0,0,0,6"/>
-                                    <TextBlock Text="• Selesaikan integrasi 15 destinasi Dashboard Oceru" Foreground="#FFFFFF" FontSize="10.5" FontWeight="SemiBold"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- Right: Dynamic Island Quick Settings -->
-                            <Border Grid.Column="1" Style="{StaticResource DashCard}">
-                                <StackPanel>
-                                    <TextBlock Text="AKSI CEPAT NOTCH" Foreground="#00D2FF" FontSize="11" FontWeight="Bold" Margin="0,0,0,10"/>
-                                    <Button x:Name="BtnQuickLock" Content="🔒 Kunci Layar Windows" Style="{StaticResource DashPrimaryBtn}" Margin="0,0,0,6"/>
-                                    <Button x:Name="BtnQuickSleep" Content="🌙 Mode Tidur (Sleep)" Style="{StaticResource DashPrimaryBtn}" Background="#1E3150" Margin="0,0,0,6"/>
-                                    <Button x:Name="BtnQuickRestart" Content="⟳ Restart Laptop (Konfirmasi)" Style="{StaticResource DashPrimaryBtn}" Background="#1E3150"/>
+                                    <TextBlock Text="MEDIA AKTIF" FontSize="11" FontWeight="Bold" Foreground="#C084FC"/>
+                                    <TextBlock Text="Paper Sky - Lumen Coast" FontSize="16" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,8,0,2"/>
+                                    <TextBlock Text="Sinkronisasi otomatis dengan Carousel Notch di atas layar." FontSize="12" Foreground="#64748B"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -1303,307 +1199,49 @@ $dashXaml = @'
                     <!-- PAGE 2: DYNAMIC ISLAND CUSTOMIZATION -->
                     <Grid x:Name="PageIsland" Visibility="Collapsed">
                         <StackPanel>
-                            <TextBlock Text="Kustomisasi Dynamic Island" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Atur posisi, ukuran, transparansi, dan perilaku animasi notch di atas layar." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Border Style="{StaticResource DashCard}" Margin="0,0,0,12">
-                                <StackPanel>
-                                    <TextBlock Text="PRATINJAU NOTCH (PREVIEW)" Foreground="#00D2FF" FontSize="11" FontWeight="Bold" Margin="0,0,0,10"/>
-                                    <Border Background="#070B14" BorderBrush="#00D2FF" BorderThickness="1" CornerRadius="0,0,18,18" Width="200" Height="36" HorizontalAlignment="Center" Margin="0,10">
-                                        <Grid VerticalAlignment="Center" Margin="12,0">
-                                            <TextBlock Text="☀️ 28°" Foreground="#FDE68A" FontSize="10" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                            <TextBlock Text="23:50" Foreground="#FFFFFF" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            <TextBlock Text="⚡ 88%" Foreground="#10B981" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </Border>
-                                </StackPanel>
-                            </Border>
-
+                            <TextBlock Text="Kustomisasi Dynamic Island" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/>
+                            <TextBlock Text="Atur perilaku, ukuran, dan animasi notch di desktop Anda." FontSize="12" Foreground="#64748B" Margin="0,4,0,16"/>
                             <Border Style="{StaticResource DashCard}">
                                 <StackPanel>
-                                    <TextBlock Text="PENGATURAN PERILAKU" Foreground="#00D2FF" FontSize="11" FontWeight="Bold" Margin="0,0,0,10"/>
-                                    <CheckBox Content="Aktifkan Animasi Mata Berkedip (Resting Eyes) saat Idle" IsChecked="True" Foreground="#FFFFFF" Margin="0,0,0,8"/>
-                                    <CheckBox Content="Otomatis Mengecilkan Notch (Auto-Collapse) setelah 5 detik" IsChecked="True" Foreground="#FFFFFF" Margin="0,0,0,8"/>
-                                    <CheckBox Content="Tampilkan Animasi Toast saat Perangkat Terhubung / Terputus" IsChecked="True" Foreground="#FFFFFF"/>
+                                    <TextBlock Text="Bentuk Notch: Concave Wings (Ear Bezel)" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF"/>
+                                    <TextBlock Text="Lengkungan kurva bezier aerodinamis menyatu dengan bezel atas layar monitor." FontSize="12" Foreground="#64748B" Margin="0,4,0,0"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
                     </Grid>
 
-                    <!-- PAGE 3: MEDIA & LIRIK -->
-                    <Grid x:Name="PageMedia" Visibility="Collapsed">
-                        <StackPanel>
-                            <TextBlock Text="Media &amp; Lirik Sinkron" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Pemutar musik terintegrasi dengan mesin audio YouTube dan tampilan lirik karaoke." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Border Style="{StaticResource DashCard}">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Border Grid.Column="0" CornerRadius="12" Width="70" Height="70" Background="#0284C7">
-                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE189;" FontSize="28" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                    <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="Never Gonna Give You Up" Foreground="#FFFFFF" FontSize="14" FontWeight="Bold"/>
-                                        <TextBlock Text="Rick Astley • YouTube Music Audio" Foreground="#94A3B8" FontSize="11" Margin="0,2,0,8"/>
-                                        <ProgressBar Value="42" Maximum="100" Height="4" Background="#162238" Foreground="#00D2FF" BorderThickness="0" Margin="0,0,0,10"/>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Button Content="⏮ Sebelumnya" Style="{StaticResource DashPrimaryBtn}" Background="#13223D" Margin="0,0,6,0"/>
-                                            <Button Content="▶ Putar Musik" Style="{StaticResource DashPrimaryBtn}" Margin="0,0,6,0"/>
-                                            <Button Content="⏭ Selanjutnya" Style="{StaticResource DashPrimaryBtn}" Background="#13223D"/>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Grid>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- PAGE 4: FOKUS POMODORO -->
-                    <Grid x:Name="PagePomo" Visibility="Collapsed">
-                        <StackPanel>
-                            <TextBlock Text="Fokus Pomodoro" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Tingkatkan produktivitas dengan teknik interval fokus dan istirahat." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Border Style="{StaticResource DashCard}" Padding="30">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="25:00" Foreground="#00D2FF" FontSize="56" FontWeight="Bold" FontFamily="Segoe UI, Consolas" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="INTERVAL FOKUS AKTIF" Foreground="#10B981" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,16"/>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="▶ Mulai Sesi" Style="{StaticResource DashPrimaryBtn}" Margin="0,0,8,0"/>
-                                        <Button Content="⟳ Reset" Style="{StaticResource DashPrimaryBtn}" Background="#13223D" Margin="0,0,8,0"/>
-                                        <Button Content="☕ Istirahat 5m" Style="{StaticResource DashPrimaryBtn}" Background="#13223D"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
-
+                    <!-- PAGE 3: MEDIA -->
+                    <Grid x:Name="PageMedia" Visibility="Collapsed"><TextBlock Text="Pemutar Media &amp; Lirik" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/></Grid>
+                    <!-- PAGE 4: POMODORO -->
+                    <Grid x:Name="PagePomo" Visibility="Collapsed"><TextBlock Text="Pengatur Fokus Pomodoro" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/></Grid>
                     <!-- PAGE 5: STOPWATCH -->
-                    <Grid x:Name="PageStopwatch" Visibility="Collapsed">
-                        <StackPanel>
-                            <TextBlock Text="Stopwatch" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Penghitung waktu presisi milidetik dengan pencatat putaran (Lap)." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Border Style="{StaticResource DashCard}" Padding="30">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock x:Name="DashStopwatchText" Text="00:00.0" Foreground="#FFFFFF" FontSize="52" FontWeight="Bold" FontFamily="Segoe UI, Consolas" HorizontalAlignment="Center"/>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
-                                        <Button x:Name="BtnDashSwStart" Content="▶ Mulai" Style="{StaticResource DashPrimaryBtn}" Margin="0,0,8,0"/>
-                                        <Button x:Name="BtnDashSwLap" Content="🏁 Catat Putaran (Lap)" Style="{StaticResource DashPrimaryBtn}" Background="#13223D" Margin="0,0,8,0"/>
-                                        <Button x:Name="BtnDashSwReset" Content="⟳ Reset" Style="{StaticResource DashPrimaryBtn}" Background="#13223D"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- PAGE 6: COUNTDOWN TIMER -->
-                    <Grid x:Name="PageCountdown" Visibility="Collapsed">
-                        <StackPanel>
-                            <TextBlock Text="Hitung Mundur (Countdown)" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Atur waktu hitung mundur khusus untuk deadline atau pengingat." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Border Style="{StaticResource DashCard}" Padding="30">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="05:00" Foreground="#38BDF8" FontSize="52" FontWeight="Bold" FontFamily="Segoe UI, Consolas" HorizontalAlignment="Center"/>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
-                                        <Button Content="▶ Mulai Hitung Mundur" Style="{StaticResource DashPrimaryBtn}" Margin="0,0,8,0"/>
-                                        <Button Content="⟳ Reset 5 Menit" Style="{StaticResource DashPrimaryBtn}" Background="#13223D"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
-
+                    <Grid x:Name="PageStopwatch" Visibility="Collapsed"><TextBlock Text="Stopwatch Presisi" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/></Grid>
+                    <!-- PAGE 6: COUNTDOWN -->
+                    <Grid x:Name="PageCountdown" Visibility="Collapsed"><TextBlock Text="Countdown Timer" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/></Grid>
                     <!-- PAGE 7: MONITOR SISTEM -->
-                    <Grid x:Name="PageSysMon" Visibility="Collapsed">
-                        <StackPanel>
-                            <TextBlock Text="Monitor Sistem &amp; Perangkat Keras" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Status kesehatan RAM, CPU, Baterai laptop, dan Konektivitas real-time." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Grid Margin="0,0,0,12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Style="{StaticResource DashCard}" Margin="0,0,8,0">
-                                    <StackPanel>
-                                        <TextBlock Text="MEMORI RAM FISIK" Foreground="#64748B" FontSize="10" FontWeight="Bold"/>
-                                        <TextBlock x:Name="DashSysMonRam" Text="86% Digunakan" Foreground="#00D2FF" FontSize="20" FontWeight="Bold" Margin="0,4,0,0"/>
-                                        <ProgressBar Value="86" Maximum="100" Height="8" Background="#162238" Foreground="#00D2FF" BorderThickness="0" Margin="0,8,0,0"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border Grid.Column="1" Style="{StaticResource DashCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="BATERAI LAPTOP" Foreground="#64748B" FontSize="10" FontWeight="Bold"/>
-                                        <TextBlock x:Name="DashSysMonBat" Text="88% (Online ⚡)" Foreground="#10B981" FontSize="20" FontWeight="Bold" Margin="0,4,0,0"/>
-                                        <ProgressBar Value="88" Maximum="100" Height="8" Background="#162238" Foreground="#10B981" BorderThickness="0" Margin="0,8,0,0"/>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
-                        </StackPanel>
-                    </Grid>
-
+                    <Grid x:Name="PageSysMon" Visibility="Collapsed"><TextBlock Text="Monitor Hardware Mendalam" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/></Grid>
                     <!-- PAGE 8: NOTIFIKASI -->
-                    <Grid x:Name="PageNotif" Visibility="Collapsed">
-                        <StackPanel>
-                            <TextBlock Text="Pusat Notifikasi" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Riwayat peringatan baterai, konektivitas perangkat, dan catatan sistem." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Border Style="{StaticResource DashCard}" Margin="0,0,0,8">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE73E;" FontSize="16" Foreground="#10B981" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="Oceru Dynamic Island Aktif" Foreground="#FFFFFF" FontWeight="Bold" FontSize="11"/>
-                                        <TextBlock Text="Sistem berjalan mulus di tepi atas layar dengan tema Ocean Azure Glass." Foreground="#8EA2C6" FontSize="10" Margin="0,2,0,0"/>
-                                    </StackPanel>
-                                </Grid>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- PAGE 9: CATATAN (NOTES) -->
-                    <Grid x:Name="PageNotes" Visibility="Collapsed">
-                        <StackPanel>
-                            <TextBlock Text="Catatan Cepat (Notes)" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Tulis ide, memo, atau referensi dan simpan otomatis di laptopmu." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Border Style="{StaticResource DashCard}">
-                                <StackPanel>
-                                    <TextBox x:Name="DashNoteBox" Text="Desain antarmuka Ocean Azure Glass dengan integrasi kontrol hardware Windows."
-                                             Background="#09101E" BorderBrush="#1E3150" Foreground="#FFFFFF"
-                                             TextWrapping="Wrap" AcceptsReturn="True" Height="140" Padding="10" FontSize="11"/>
-                                    <Button x:Name="BtnSaveNote" Content="💾 Simpan Catatan" Style="{StaticResource DashPrimaryBtn}" Margin="0,10,0,0" HorizontalAlignment="Right"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- PAGE 10: DAFTAR TUGAS (TO-DO) -->
-                    <Grid x:Name="PageTodo" Visibility="Collapsed">
-                        <StackPanel>
-                            <TextBlock Text="Daftar Tugas (To-Do)" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Kelola pekerjaan dan checklist harian langsung dari desktop." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Border Style="{StaticResource DashCard}">
-                                <StackPanel>
-                                    <TextBlock Text="✓ Desain antarmuka Ocean Azure Glass" Foreground="#64748B" TextDecorations="Strikethrough" FontSize="11" Margin="0,0,0,6"/>
-                                    <TextBlock Text="✓ Integrasi kontrol Wi-Fi, Bluetooth, dan Audio Mute" Foreground="#64748B" TextDecorations="Strikethrough" FontSize="11" Margin="0,0,0,6"/>
-                                    <TextBlock Text="• Selesaikan kustomisasi dan penyesuaian tema" Foreground="#FFFFFF" FontSize="11"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- PAGE 11: PAPAN KLIP (CLIPBOARD) -->
-                    <Grid x:Name="PageClip" Visibility="Collapsed">
-                        <StackPanel>
-                            <TextBlock Text="Papan Klip (Clipboard Manager)" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Riwayat teks yang Anda salin, siap dipakai kembali dengan satu klik." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Border Style="{StaticResource DashCard}">
-                                <StackPanel>
-                                    <Border Background="#09101E" BorderBrush="#1E3150" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,6">
-                                        <TextBlock Text="https://github.com/cubadakanda/dynamic-island" Foreground="#00D2FF" FontSize="11"/>
-                                    </Border>
-                                    <Border Background="#09101E" BorderBrush="#1E3150" BorderThickness="1" CornerRadius="8" Padding="10,8">
-                                        <TextBlock Text="Oceru Dynamic Island Desktop" Foreground="#E2E8F0" FontSize="11"/>
-                                    </Border>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
-
+                    <Grid x:Name="PageNotif" Visibility="Collapsed"><TextBlock Text="Pusat Riwayat Notifikasi" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/></Grid>
+                    <!-- PAGE 9: CATATAN -->
+                    <Grid x:Name="PageNotes" Visibility="Collapsed"><TextBlock Text="Catatan Cepat" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/></Grid>
+                    <!-- PAGE 10: TO-DO -->
+                    <Grid x:Name="PageTodo" Visibility="Collapsed"><TextBlock Text="Daftar Tugas Harian" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/></Grid>
+                    <!-- PAGE 11: PAPAN KLIP -->
+                    <Grid x:Name="PageClip" Visibility="Collapsed"><TextBlock Text="Riwayat Papan Klip" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/></Grid>
                     <!-- PAGE 12: PENGATURAN CEPAT -->
-                    <Grid x:Name="PageQuickSet" Visibility="Collapsed">
-                        <StackPanel>
-                            <TextBlock Text="Pengaturan Cepat (Quick Settings Matrix)" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Semua pintasan hardware dan preferensi sistem terpusat." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Button x:Name="BtnQsWifi" Content="📶 Buka Panel Wi-Fi" Style="{StaticResource DashPrimaryBtn}" Margin="0,0,6,0"/>
-                                <Button x:Name="BtnQsBt" Content="🎧 Buka Pengaturan Bluetooth" Style="{StaticResource DashPrimaryBtn}" Grid.Column="1" Background="#13223D"/>
-                            </Grid>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- PAGE 13: PELUNCUR CEPAT (QUICK LAUNCHER) -->
-                    <Grid x:Name="PageQuickLaunch" Visibility="Collapsed">
-                        <StackPanel>
-                            <TextBlock Text="Peluncur Cepat (Quick Launcher)" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Buka aplikasi favorit secara instan tanpa perlu mencari di menu Start." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Border Style="{StaticResource DashCard}">
-                                <WrapPanel>
-                                    <Button x:Name="BtnQkChrome" Content="🌐 Google Chrome" Style="{StaticResource DashPrimaryBtn}" Background="#13223D" Margin="0,0,8,8"/>
-                                    <Button x:Name="BtnQkExplorer" Content="📁 File Explorer" Style="{StaticResource DashPrimaryBtn}" Background="#13223D" Margin="0,0,8,8"/>
-                                    <Button x:Name="BtnQkTerminal" Content="💻 PowerShell" Style="{StaticResource DashPrimaryBtn}" Background="#13223D" Margin="0,0,8,8"/>
-                                    <Button x:Name="BtnQkTaskMgr" Content="⚡ Task Manager" Style="{StaticResource DashPrimaryBtn}" Background="#13223D" Margin="0,0,8,8"/>
-                                    <Button x:Name="BtnQkSettings" Content="⚙️ Windows Settings" Style="{StaticResource DashPrimaryBtn}" Background="#13223D" Margin="0,0,8,8"/>
-                                </WrapPanel>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- PAGE 14: PENGATURAN (SETTINGS) -->
-                    <Grid x:Name="PageSettings" Visibility="Collapsed">
-                        <StackPanel>
-                            <TextBlock Text="Pengaturan Oceru" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Konfigurasi tema, transparansi, integrasi startup, dan pintasan keyboard." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Border Style="{StaticResource DashCard}" Margin="0,0,0,10">
-                                <StackPanel>
-                                    <TextBlock Text="TEMA VISUAL APLIKASI" Foreground="#00D2FF" FontSize="11" FontWeight="Bold" Margin="0,0,0,8"/>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Button x:Name="BtnThemeSetDark" Content="Ocean Dark (Midnight Navy)" Style="{StaticResource DashPrimaryBtn}" Margin="0,0,8,0"/>
-                                        <Button x:Name="BtnThemeSetGlass" Content="Aero Glassmorphism" Style="{StaticResource DashPrimaryBtn}" Background="#13223D" Margin="0,0,8,0"/>
-                                        <Button x:Name="BtnThemeSetCyber" Content="Neon Cyberpunk" Style="{StaticResource DashPrimaryBtn}" Background="#13223D"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-
-                            <Border Style="{StaticResource DashCard}">
-                                <StackPanel>
-                                    <TextBlock Text="INTEGRASI SISTEM" Foreground="#00D2FF" FontSize="11" FontWeight="Bold" Margin="0,0,0,8"/>
-                                    <CheckBox Content="Jalankan otomatis saat Windows login (Auto-Start)" IsChecked="True" Foreground="#FFFFFF" Margin="0,0,0,6"/>
-                                    <CheckBox Content="Selalu di depan aplikasi lain (Always On Top)" IsChecked="True" Foreground="#FFFFFF" Margin="0,0,0,6"/>
-                                    <CheckBox Content="Heningkan notifikasi saat Mode Game aktif" IsChecked="True" Foreground="#FFFFFF"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- PAGE 15: TENTANG OCERU (ABOUT) -->
+                    <Grid x:Name="PageQuickSet" Visibility="Collapsed"><TextBlock Text="Pusat Aksi Cepat" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/></Grid>
+                    <!-- PAGE 13: PELUNCUR CEPAT -->
+                    <Grid x:Name="PageQuickLaunch" Visibility="Collapsed"><TextBlock Text="Peluncur Cepat Aplikasi" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/></Grid>
+                    <!-- PAGE 14: PENGATURAN -->
+                    <Grid x:Name="PageSettings" Visibility="Collapsed"><TextBlock Text="Pengaturan Aplikasi" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/></Grid>
+                    <!-- PAGE 15: TENTANG OCERU -->
                     <Grid x:Name="PageAbout" Visibility="Collapsed">
                         <StackPanel>
-                            <TextBlock Text="Tentang Oceru Dynamic Island" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-                            <TextBlock Text="Informasi lisensi, rilis, dan diagnostik lingkungan desktop Anda." Foreground="#8EA2C6" FontSize="11" Margin="0,0,0,16"/>
-                            
-                            <Border Style="{StaticResource DashCard}">
-                                <StackPanel>
-                                    <TextBlock Text="OCERU DESKTOP v1.0.0" Foreground="#00D2FF" FontSize="14" FontWeight="Bold"/>
-                                    <TextBlock Text="Bahasa Desain: Ocean Azure Glass" Foreground="#CBD5E1" FontSize="11" Margin="0,4,0,2"/>
-                                    <TextBlock Text="Pengembang: Orizzdev" Foreground="#8EA2C6" FontSize="10.5" Margin="0,0,0,10"/>
-                                    <Separator Background="#1E3150" Margin="0,0,0,10"/>
-                                    <TextBlock Text="Diagnostik Sistem:" Foreground="#64748B" FontSize="9.5" FontWeight="Bold" Margin="0,0,0,4"/>
-                                    <TextBlock Text="• Windows Platform: Windows 10/11 64-bit" Foreground="#8EA2C6" FontSize="10"/>
-                                    <TextBlock Text="• Engine: Windows Presentation Foundation (WPF Direct3D Acceleration)" Foreground="#8EA2C6" FontSize="10"/>
-                                    <TextBlock Text="• Status Runtime: Aktif &amp; Terhubung ke Hardware API" Foreground="#10B981" FontSize="10" FontWeight="SemiBold"/>
-                                </StackPanel>
-                            </Border>
+                            <TextBlock Text="Tentang Oceru" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF"/>
+                            <TextBlock Text="Oceru Dynamic Island Desktop v2.0.0" FontSize="14" Foreground="#00D2FF" Margin="0,8,0,0"/>
+                            <TextBlock Text="Desain: Ocean Azure Glass" FontSize="12" Foreground="#94A3B8" Margin="0,4,0,0"/>
                         </StackPanel>
                     </Grid>
-
                 </Grid>
             </Grid>
         </Grid>
@@ -1618,117 +1256,152 @@ $window = [System.Windows.Markup.XamlReader]::Load($reader1)
 $reader2 = [System.Xml.XmlReader]::Create([System.IO.StringReader]::new($dashXaml))
 $dashWindow = [System.Windows.Markup.XamlReader]::Load($reader2)
 
-$window.Left = $leftPos
+# Start by Default in Resting Cat Eyes Mode at Top-Center
+$window.Left = $eyesLeftPos
 $window.Top = 0
+$global:islandMode = "eyes" # "eyes", "status", "expanded"
+$global:statusIdleTicks = 0
+$global:outsideTicks = 0
 
-# Grab Handles: Island Window
-$notch = $window.FindName("NotchBorder")
-$compactIdleView = $window.FindName("CompactIdleView")
-$compactRestingView = $window.FindName("CompactRestingView")
-$compactMediaView = $window.FindName("CompactMediaView")
-$compactTimerView = $window.FindName("CompactTimerView")
-$toastView = $window.FindName("ToastView")
-$toastIcon = $window.FindName("ToastIcon")
-$toastText = $window.FindName("ToastText")
-$expandedView = $window.FindName("ExpandedView")
+# Grab Handles: Island Window Views
+$eyesGrid = $window.FindName("EyesGrid")
+$statusGrid = $window.FindName("StatusGrid")
+$expandedGrid = $window.FindName("ExpandedGrid")
 
+# Handles: Resting Eyes
 $leftEye = $window.FindName("LeftEye")
 $rightEye = $window.FindName("RightEye")
-$clockText = $window.FindName("ClockText")
-$weatherSmallText = $window.FindName("WeatherSmallText")
-$dndIconCompact = $window.FindName("DndIconCompact")
-$collapsedBatIcon = $window.FindName("CollapsedBatIcon")
-$collapsedBatPct = $window.FindName("CollapsedBatPct")
-$compactTrackText = $window.FindName("CompactTrackText")
-$compactWaveText = $window.FindName("CompactWaveText")
-$compactTimerIcon = $window.FindName("CompactTimerIcon")
-$compactTimerText = $window.FindName("CompactTimerText")
+$leftPupilTransform = $window.FindName("LeftPupilTransform")
+$rightPupilTransform = $window.FindName("RightPupilTransform")
 
-$expandedToastPill = $window.FindName("ExpandedToastPill")
-$expandedToastIcon = $window.FindName("ExpandedToastIcon")
-$expandedToastText = $window.FindName("ExpandedToastText")
-$btnLaunchDashboard = $window.FindName("BtnLaunchDashboard")
-$btnHeaderBt = $window.FindName("BtnHeaderBt")
-$btBadge = $window.FindName("BtBadge")
-$headerBatIcon = $window.FindName("HeaderBatIcon")
-$headerBatText = $window.FindName("HeaderBatText")
-$dateText = $window.FindName("DateText")
+# Handles: Compact Status Bar (Clock, Weather, Battery)
+$compactClockText = $window.FindName("CompactClockText")
+$compactBatPct = $window.FindName("CompactBatPct")
+$compactBatIcon = $window.FindName("CompactBatIcon")
 
-# Tabs Handles
-$btnControl = $window.FindName("BtnControl")
-$btnMusic = $window.FindName("BtnMusic")
-$btnLyrics = $window.FindName("BtnLyrics")
-$btnPomo = $window.FindName("BtnPomo")
-$btnClip = $window.FindName("BtnClip")
-$btnTodo = $window.FindName("BtnTodo")
-$btnShelf = $window.FindName("BtnShelf")
-$shelfBadgeCount = $window.FindName("ShelfBadgeCount")
+# Handles: Expanded Header
+$headerTitleText = $window.FindName("HeaderTitleText")
+$headerDateText = $window.FindName("HeaderDateText")
+$headerTimeText = $window.FindName("HeaderTimeText")
+$headerWavePanel = $window.FindName("HeaderWavePanel")
+$waveBar1 = $window.FindName("WaveBar1")
+$waveBar2 = $window.FindName("WaveBar2")
+$waveBar3 = $window.FindName("WaveBar3")
+$waveBar4 = $window.FindName("WaveBar4")
 
-$lblControl = $window.FindName("LblControl")
-$lblMusic = $window.FindName("LblMusic")
-$lblLyrics = $window.FindName("LblLyrics")
-$lblPomo = $window.FindName("LblPomo")
-$lblClip = $window.FindName("LblClip")
-$lblTodo = $window.FindName("LblTodo")
-$lblShelf = $window.FindName("LblShelf")
+# Carousel Cards
+$cardMusic = $window.FindName("CardMusic")
+$cardPomo = $window.FindName("CardPomo")
+$cardNotesTodo = $window.FindName("CardNotesTodo")
+$cardClipShelf = $window.FindName("CardClipShelf")
+$cardSysWater = $window.FindName("CardSysWater")
+$cardQuick = $window.FindName("CardQuick")
+$allCards = @($cardMusic, $cardPomo, $cardNotesTodo, $cardClipShelf, $cardSysWater, $cardQuick)
 
-$paneControl = $window.FindName("PaneControl")
-$paneMusic = $window.FindName("PaneMusic")
-$paneLyrics = $window.FindName("PaneLyrics")
-$panePomo = $window.FindName("PanePomo")
-$paneClip = $window.FindName("PaneClip")
-$paneTodo = $window.FindName("PaneTodo")
-$paneShelf = $window.FindName("PaneShelf")
+$bottomPomoRow = $window.FindName("BottomPomoRow")
 
-# Control Center Controls
-$cardWifi = $window.FindName("CardWifi")
-$cardBt = $window.FindName("CardBt")
-$cardMute = $window.FindName("CardMute")
-$iconMute = $window.FindName("IconMute")
-$statusMute = $window.FindName("StatusMute")
-$lblVolPct = $window.FindName("LblVolPct")
-$sliderVol = $window.FindName("SliderVol")
-$btnVolDown = $window.FindName("BtnVolDown")
-$btnVolUp = $window.FindName("BtnVolUp")
+# Pagination Dots (6 Dots for 6 Cards)
+$dot0 = $window.FindName("Dot0")
+$dot1 = $window.FindName("Dot1")
+$dot2 = $window.FindName("Dot2")
+$dot3 = $window.FindName("Dot3")
+$dot4 = $window.FindName("Dot4")
+$dot5 = $window.FindName("Dot5")
+$dotBars = @($dot0, $dot1, $dot2, $dot3, $dot4, $dot5)
 
-$btnToggleDnd = $window.FindName("BtnToggleDnd")
-$bgDnd = $window.FindName("BgDnd")
-$lblDnd = $window.FindName("LblDnd")
+# Card 0: Music Handles
+$musicPlayerView = $window.FindName("MusicPlayerView")
+$musicLyricsView = $window.FindName("MusicLyricsView")
+$musicTitle = $window.FindName("MusicTitle")
+$musicArtist = $window.FindName("MusicArtist")
+$musicCurrentTime = $window.FindName("MusicCurrentTime")
+$musicRemainingTime = $window.FindName("MusicRemainingTime")
+$musicProgressBar = $window.FindName("MusicProgressBar")
+$btnMusicNextCard = $window.FindName("BtnMusicNextCard")
+$btnToggleLyrics = $window.FindName("BtnToggleLyrics")
+$btnBackFromLyrics = $window.FindName("BtnBackFromLyrics")
+$btnMusicPrev = $window.FindName("BtnMusicPrev")
+$btnMusicPlayPause = $window.FindName("BtnMusicPlayPause")
+$musicPlayPauseIcon = $window.FindName("MusicPlayPauseIcon")
+$btnMusicNext = $window.FindName("BtnMusicNext")
 
-$btnToggleGame = $window.FindName("BtnToggleGame")
-$bgGame = $window.FindName("BgGame")
-$lblGame = $window.FindName("LblGame")
+# Card 1: Pomodoro Handles
+$btnPomoPrevCard = $window.FindName("BtnPomoPrevCard")
+$btnPomoNextCard = $window.FindName("BtnPomoNextCard")
+$pomoSubtitle = $window.FindName("PomoSubtitle")
+$pomoDisplayTime = $window.FindName("PomoDisplayTime")
+$btnPomoReset = $window.FindName("BtnPomoReset")
+$btnPomoShortBreak = $window.FindName("BtnPomoShortBreak")
+$btnPomoPlay = $window.FindName("BtnPomoPlay")
+$pomoPlayPauseIcon = $window.FindName("PomoPlayPauseIcon")
+$btnPomoFocusTime = $window.FindName("BtnPomoFocusTime")
 
-$btnSysBright = $window.FindName("BtnSysBright")
+# Card 2: Notes & Todo Handles
+$btnNotesPrevCard = $window.FindName("BtnNotesPrevCard")
+$btnNotesNextCard = $window.FindName("BtnNotesNextCard")
+$inputNoteText = $window.FindName("InputNoteText")
+$btnSaveNote = $window.FindName("BtnSaveNote")
+$todoStatusCount = $window.FindName("TodoStatusCount")
+$cbTask1 = $window.FindName("CbTask1")
+$cbTask2 = $window.FindName("CbTask2")
+$cbTask3 = $window.FindName("CbTask3")
+
+# Card 3: Clipboard & Shelf Handles
+$btnClipPrevCard = $window.FindName("BtnClipPrevCard")
+$btnClipNextCard = $window.FindName("BtnClipNextCard")
+$btnCopyClip1 = $window.FindName("BtnCopyClip1")
+$btnCopyClip2 = $window.FindName("BtnCopyClip2")
+$shelfDropBorder = $window.FindName("ShelfDropBorder")
+$shelfFileCount = $window.FindName("ShelfFileCount")
+
+# Card 4: System & Water Handles
+$btnSysPrevCard = $window.FindName("BtnSysPrevCard")
+$btnSysNextCard = $window.FindName("BtnSysNextCard")
+$sysRamText = $window.FindName("SysRamText")
+$sysBatStatusText = $window.FindName("SysBatStatusText")
 $btnSysTaskMgr = $window.FindName("BtnSysTaskMgr")
-$btnSysLock = $window.FindName("BtnSysLock")
-$btnSysSleep = $window.FindName("BtnSysSleep")
-$btnSysRestart = $window.FindName("BtnSysRestart")
-$lblRestart = $window.FindName("LblRestart")
-$btnThemeSwitch = $window.FindName("BtnThemeSwitch")
-$lblTheme = $window.FindName("LblTheme")
+$waterAmountText = $window.FindName("WaterAmountText")
+$waterProgressBar = $window.FindName("WaterProgressBar")
+$btnAddWater = $window.FindName("BtnAddWater")
+
+# Card 5: Quick Settings Handles
+$btnQuickPrevCard = $window.FindName("BtnQuickPrevCard")
+$btnQuickNextCard = $window.FindName("BtnQuickNextCard")
+$btnQuickWifi = $window.FindName("BtnQuickWifi")
+$btnQuickBt = $window.FindName("BtnQuickBt")
+$btnQuickDnd = $window.FindName("BtnQuickDnd")
+$quickStatusDnd = $window.FindName("QuickStatusDnd")
+$btnQuickGame = $window.FindName("BtnQuickGame")
+$quickStatusGame = $window.FindName("QuickStatusGame")
+$btnQuickMute = $window.FindName("BtnQuickMute")
+$quickIconMute = $window.FindName("QuickIconMute")
+$quickSliderVol = $window.FindName("QuickSliderVol")
+$quickVolPctText = $window.FindName("QuickVolPctText")
+$btnQuickLock = $window.FindName("BtnQuickLock")
+$btnQuickSleep = $window.FindName("BtnQuickSleep")
+$btnQuickRestart = $window.FindName("BtnQuickRestart")
+$quickLblRestart = $window.FindName("QuickLblRestart")
+$btnSysLaunchDash = $window.FindName("BtnSysLaunchDash")
+
+# Toast Feedback Handles
+$toastFeedbackPill = $window.FindName("ToastFeedbackPill")
+$toastFeedbackIcon = $window.FindName("ToastFeedbackIcon")
+$toastFeedbackText = $window.FindName("ToastFeedbackText")
 
 # Grab Handles: Dashboard Window
 $dashTitleBar = $dashWindow.FindName("DashTitleBar")
 $btnDashMin = $dashWindow.FindName("BtnDashMin")
 $btnDashClose = $dashWindow.FindName("BtnDashClose")
 
-$navOverview = $dashWindow.FindName("NavOverview")
-$navIsland = $dashWindow.FindName("NavIsland")
-$navMedia = $dashWindow.FindName("NavMedia")
-$navPomo = $dashWindow.FindName("NavPomo")
-$navStopwatch = $dashWindow.FindName("NavStopwatch")
-$navCountdown = $dashWindow.FindName("NavCountdown")
-$navSysMon = $dashWindow.FindName("NavSysMon")
-$navNotif = $dashWindow.FindName("NavNotif")
-$navNotes = $dashWindow.FindName("NavNotes")
-$navTodo = $dashWindow.FindName("NavTodo")
-$navClip = $dashWindow.FindName("NavClip")
-$navQuickSet = $dashWindow.FindName("NavQuickSet")
-$navQuickLaunch = $dashWindow.FindName("NavQuickLaunch")
-$navSettings = $dashWindow.FindName("NavSettings")
-$navAbout = $dashWindow.FindName("NavAbout")
+$dashTitleBar.Add_MouseLeftButtonDown({ $dashWindow.DragMove() })
+$btnDashMin.Add_Click({ $dashWindow.WindowState = [System.Windows.WindowState]::Minimized })
+$btnDashClose.Add_Click({ $dashWindow.Hide() })
 
+$dashRamVal = $dashWindow.FindName("DashRamVal")
+$dashBatVal = $dashWindow.FindName("DashBatVal")
+$dashBatStatus = $dashWindow.FindName("DashBatStatus")
+
+# Dashboard Sidebar Navigation Wireup (15 destinations)
 $dashPages = @(
     $dashWindow.FindName("PageOverview"),
     $dashWindow.FindName("PageIsland"),
@@ -1748,29 +1421,30 @@ $dashPages = @(
 )
 
 $dashNavBtns = @(
-    $navOverview, $navIsland, $navMedia, $navPomo, $navStopwatch, $navCountdown,
-    $navSysMon, $navNotif, $navNotes, $navTodo, $navClip, $navQuickSet,
-    $navQuickLaunch, $navSettings, $navAbout
+    $dashWindow.FindName("NavOverview"),
+    $dashWindow.FindName("NavIsland"),
+    $dashWindow.FindName("NavMedia"),
+    $dashWindow.FindName("NavPomo"),
+    $dashWindow.FindName("NavStopwatch"),
+    $dashWindow.FindName("NavCountdown"),
+    $dashWindow.FindName("NavSysMon"),
+    $dashWindow.FindName("NavNotif"),
+    $dashWindow.FindName("NavNotes"),
+    $dashWindow.FindName("NavTodo"),
+    $dashWindow.FindName("NavClip"),
+    $dashWindow.FindName("NavQuickSet"),
+    $dashWindow.FindName("NavQuickLaunch"),
+    $dashWindow.FindName("NavSettings"),
+    $dashWindow.FindName("NavAbout")
 )
 
-# Dragging & Title Bar Events for Dashboard Window
-$dashTitleBar.Add_MouseLeftButtonDown({
-    param($s, $e)
-    $dashWindow.DragMove()
-})
-
-$btnDashMin.Add_Click({ $dashWindow.WindowState = [System.Windows.WindowState]::Minimized })
-$btnDashClose.Add_Click({ $dashWindow.Hide() })
-
-# Dashboard Switch View Function
-function SwitchDashPage($pageIndex) {
+function SwitchDashPage($index) {
     for ($i = 0; $i -lt $dashPages.Count; $i++) {
-        if ($i -eq $pageIndex) {
-            $dashPages[$i].Visibility = [System.Windows.Visibility]::Visible
-            $dashNavBtns[$i].Style = $dashWindow.FindResource("ActiveSidebarNavBtn")
-        } else {
-            $dashPages[$i].Visibility = [System.Windows.Visibility]::Collapsed
-            $dashNavBtns[$i].Style = $dashWindow.FindResource("SidebarNavBtn")
+        if ($dashPages[$i]) {
+            $dashPages[$i].Visibility = if ($i -eq $index) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
+        }
+        if ($dashNavBtns[$i]) {
+            $dashNavBtns[$i].Style = if ($i -eq $index) { $dashWindow.Resources["ActiveSidebarNavBtn"] } else { $dashWindow.Resources["SidebarNavBtn"] }
         }
     }
 }
@@ -1780,471 +1454,364 @@ for ($idx = 0; $idx -lt $dashNavBtns.Count; $idx++) {
     $dashNavBtns[$currentIdx].Add_Click([scriptblock]::Create("SwitchDashPage $currentIdx"))
 }
 
-# Open Dashboard Helper
 function Show-OceruDashboard($pageIndex = 0) {
     SwitchDashPage $pageIndex
     $dashWindow.Show()
     $dashWindow.Activate()
 }
 
-$btnLaunchDashboard.Add_Click({ Show-OceruDashboard 0 })
-$menuOpenDashboard = $window.FindName("MenuOpenDashboard")
-if ($menuOpenDashboard) { $menuOpenDashboard.Add_Click({ Show-OceruDashboard 0 }) }
+# TRANSITION CONTROLLER FOR 3 DYNAMIC ISLAND MODES
+function Set-IslandMode($mode) {
+    if ($global:islandMode -eq $mode) { return }
+    $global:islandMode = $mode
 
-# Music & Lyrics Elements
-$btnPlay = $window.FindName("BtnPlay")
-$btnPrev = $window.FindName("BtnPrev")
-$btnNext = $window.FindName("BtnNext")
-$playIcon = $window.FindName("PlayIcon")
-$trackTitle = $window.FindName("TrackTitle")
-$trackArtist = $window.FindName("TrackArtist")
-$trackProgress = $window.FindName("TrackProgress")
-$ytInput = $window.FindName("YtInput")
-$musicLyricMini = $window.FindName("MusicLyricMini")
-$lyricLineActive = $window.FindName("LyricLineActive")
-$lyricLinePast = $window.FindName("LyricLinePast")
-$lyricLineNext = $window.FindName("LyricLineNext")
-$waveAnimText = $window.FindName("WaveAnimText")
-$audioWebEngine = $window.FindName("AudioWebEngine")
-
-# Timer Elements
-$pomoTimer = $window.FindName("PomoTimer")
-$pomoStatus = $window.FindName("PomoStatus")
-$btnPill5 = $window.FindName("BtnPill5")
-$btnPill10 = $window.FindName("BtnPill10")
-$btnPill15 = $window.FindName("BtnPill15")
-$btnPill25 = $window.FindName("BtnPill25")
-$btnPill45 = $window.FindName("BtnPill45")
-$btnPomoStart = $window.FindName("BtnPomoStart")
-$btnPomoReset = $window.FindName("BtnPomoReset")
-$btnPomoMode = $window.FindName("BtnPomoMode")
-
-# Clipboard Elements
-$btnClipItem1 = $window.FindName("BtnClipItem1")
-$btnClipItem2 = $window.FindName("BtnClipItem2")
-$btnClipItem3 = $window.FindName("BtnClipItem3")
-
-# Todo Elements
-$todoInput = $window.FindName("TodoInput")
-$todoListPanel = $window.FindName("TodoListPanel")
-$todoCounterText = $window.FindName("TodoCounterText")
-$chk1 = $window.FindName("Chk1")
-$chk2 = $window.FindName("Chk2")
-$chk3 = $window.FindName("Chk3")
-$txt1 = $window.FindName("Txt1")
-$txt2 = $window.FindName("Txt2")
-$txt3 = $window.FindName("Txt3")
-
-# Shelf Elements
-$shelfPlaceholder = $window.FindName("ShelfPlaceholder")
-$shelfItemsList = $window.FindName("ShelfItemsList")
-
-# Context Menu
-function ReloadIsland {
-    $script = Join-Path $PSScriptRoot "run-island.ps1"
-    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$script`""
-    $window.Close()
+    if ($mode -eq "eyes") {
+        # Standalone Resting Cat Eyes Pill
+        $window.Width = $eyesWidth
+        $window.Height = $eyesHeight
+        $window.Left = $eyesLeftPos
+        $eyesGrid.Visibility = [System.Windows.Visibility]::Visible
+        $statusGrid.Visibility = [System.Windows.Visibility]::Collapsed
+        $expandedGrid.Visibility = [System.Windows.Visibility]::Collapsed
+    }
+    elseif ($mode -eq "status") {
+        # Compact Status Bar with Clock, Weather, and Battery
+        $window.Width = $statusWidth
+        $window.Height = $statusHeight
+        $window.Left = $statusLeftPos
+        $eyesGrid.Visibility = [System.Windows.Visibility]::Collapsed
+        $statusGrid.Visibility = [System.Windows.Visibility]::Visible
+        $expandedGrid.Visibility = [System.Windows.Visibility]::Collapsed
+        $global:statusIdleTicks = 0
+    }
+    elseif ($mode -eq "expanded") {
+        # Full Feature Carousel Notch
+        $window.Width = $expandedWidth
+        $window.Height = $expandedHeight
+        $window.Left = $expandedLeftPos
+        $eyesGrid.Visibility = [System.Windows.Visibility]::Collapsed
+        $statusGrid.Visibility = [System.Windows.Visibility]::Collapsed
+        $expandedGrid.Visibility = [System.Windows.Visibility]::Visible
+        $global:outsideTicks = 0
+    }
 }
 
-$menuReload = $window.FindName("MenuReload")
-if ($menuReload) { $menuReload.Add_Click({ ReloadIsland }) }
+# Mouse enter/click event fallbacks
+$eyesGrid.Add_MouseEnter({ Set-IslandMode "expanded" })
+$eyesGrid.Add_MouseLeftButtonUp({ Set-IslandMode "expanded" })
+$statusGrid.Add_MouseEnter({ Set-IslandMode "expanded" })
+$statusGrid.Add_MouseLeftButtonUp({ Set-IslandMode "expanded" })
 
-$menuOpenFolder = $window.FindName("MenuOpenFolder")
-if ($menuOpenFolder) { $menuOpenFolder.Add_Click({ [System.Diagnostics.Process]::Start("explorer.exe", $PSScriptRoot) }) }
-
-$menuOpenWifi = $window.FindName("MenuOpenWifi")
-if ($menuOpenWifi) { $menuOpenWifi.Add_Click({ [System.Diagnostics.Process]::Start("explorer.exe", "ms-availablenetworks:") }) }
-
-$menuOpenBt = $window.FindName("MenuOpenBt")
-if ($menuOpenBt) { $menuOpenBt.Add_Click({ [System.Diagnostics.Process]::Start("explorer.exe", "ms-settings:bluetooth") }) }
-
-$menuExit = $window.FindName("MenuExit")
-if ($menuExit) { $menuExit.Add_Click({ $window.Close(); $dashWindow.Close() }) }
-
-$window.Add_KeyDown({
-    param($s, $e)
-    if ($e.Key -eq [System.Windows.Input.Key]::F5 -or ($e.Key -eq [System.Windows.Input.Key]::R -and [System.Windows.Input.Keyboard]::Modifiers -eq [System.Windows.Input.ModifierKeys]::Control)) {
-        ReloadIsland
-    }
-})
-
-$window.Add_Closed({
-    if (Test-Path $pidPath) { Remove-Item $pidPath -Force -ErrorAction SilentlyContinue }
-    $dashWindow.Close()
-})
-
-# State Variables
-$global:isExpanded = $false
-$global:isToastActive = $false
-$global:currentTab = "control"
-$global:restartArmed = $false
-$global:idleSeconds = 0
-
-# Timers
-$idleCheckTimer = New-Object System.Windows.Threading.DispatcherTimer
-$idleCheckTimer.Interval = [TimeSpan]::FromSeconds(1)
-
-$blinkTimer = New-Object System.Windows.Threading.DispatcherTimer
-$blinkTimer.Interval = [TimeSpan]::FromMilliseconds(3800)
-
-$leaveTimer = New-Object System.Windows.Threading.DispatcherTimer
-$leaveTimer.Interval = [TimeSpan]::FromMilliseconds(320)
-
+# ACTION FEEDBACK TOAST HELPER
 $toastTimer = New-Object System.Windows.Threading.DispatcherTimer
-$toastTimer.Interval = [TimeSpan]::FromMilliseconds(2800)
-
-$expandedToastTimer = New-Object System.Windows.Threading.DispatcherTimer
-$expandedToastTimer.Interval = [TimeSpan]::FromMilliseconds(2200)
-
-# Instant Visual Feedback Helper
-function ShowActionFeedback($message, $glyphChar, $colorHex) {
-    # 1. Update in-notch expanded feedback pill
-    $expandedToastText.Text = $message
-    $expandedToastIcon.Text = $glyphChar
-    $expandedToastPill.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString($colorHex)
-    $expandedToastPill.Visibility = [System.Windows.Visibility]::Visible
-
-    $expandedToastTimer.Stop()
-    $expandedToastTimer.Start()
-
-    # 2. Update collapsed toast view
-    $toastText.Text = $message
-    $toastIcon.Text = $glyphChar
-    $toastIcon.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString($colorHex)
-
-    if (-not $global:isExpanded) {
-        $global:isToastActive = $true
-        $compactIdleView.Visibility = [System.Windows.Visibility]::Collapsed
-        $compactRestingView.Visibility = [System.Windows.Visibility]::Collapsed
-        $compactMediaView.Visibility = [System.Windows.Visibility]::Collapsed
-        $compactTimerView.Visibility = [System.Windows.Visibility]::Collapsed
-        $toastView.Visibility = [System.Windows.Visibility]::Visible
-
-        $wAnim = New-Object System.Windows.Media.Animation.DoubleAnimation(185, 280, [TimeSpan]::FromMilliseconds(220))
-        $wAnim.DecelerationRatio = 0.8
-        $notch.BeginAnimation([System.Windows.FrameworkElement]::WidthProperty, $wAnim)
-
-        $toastTimer.Stop()
-        $toastTimer.Start()
-    }
-}
-
-$expandedToastTimer.Add_Tick({
-    $expandedToastTimer.Stop()
-    $expandedToastPill.Visibility = [System.Windows.Visibility]::Collapsed
-})
-
+$toastTimer.Interval = [TimeSpan]::FromSeconds(2.5)
 $toastTimer.Add_Tick({
     $toastTimer.Stop()
-    $global:isToastActive = $false
-    if (-not $global:isExpanded) {
-        $wAnim = New-Object System.Windows.Media.Animation.DoubleAnimation(280, 185, [TimeSpan]::FromMilliseconds(220))
-        $wAnim.DecelerationRatio = 0.8
-        $notch.BeginAnimation([System.Windows.FrameworkElement]::WidthProperty, $wAnim)
-        $toastView.Visibility = [System.Windows.Visibility]::Collapsed
-        UpdateCompactView
-    }
+    $toastFeedbackPill.Visibility = [System.Windows.Visibility]::Collapsed
 })
 
-# Animation Helpers
-function AnimateExpand {
-    if ($global:isExpanded) { return }
-    $global:isExpanded = $true
-
-    $wAnim = New-Object System.Windows.Media.Animation.DoubleAnimation(185, 660, [TimeSpan]::FromMilliseconds(260))
-    $wAnim.DecelerationRatio = 0.85
-    $hAnim = New-Object System.Windows.Media.Animation.DoubleAnimation(32, 230, [TimeSpan]::FromMilliseconds(260))
-    $hAnim.DecelerationRatio = 0.85
-
-    $notch.BeginAnimation([System.Windows.FrameworkElement]::WidthProperty, $wAnim)
-    $notch.BeginAnimation([System.Windows.FrameworkElement]::HeightProperty, $hAnim)
-    $notch.CornerRadius = New-Object System.Windows.CornerRadius(0, 0, 24, 24)
-
-    $compactIdleView.Visibility = [System.Windows.Visibility]::Collapsed
-    $compactRestingView.Visibility = [System.Windows.Visibility]::Collapsed
-    $compactMediaView.Visibility = [System.Windows.Visibility]::Collapsed
-    $compactTimerView.Visibility = [System.Windows.Visibility]::Collapsed
-    $toastView.Visibility = [System.Windows.Visibility]::Collapsed
-    $expandedView.Visibility = [System.Windows.Visibility]::Visible
+function ShowActionFeedback($text, $iconChar = [char]0xE73E, $accentHex = "#00D2FF") {
+    $toastFeedbackText.Text = $text
+    $toastFeedbackIcon.Text = [string]$iconChar
+    $toastFeedbackIcon.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString($accentHex)
+    $toastFeedbackPill.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString($accentHex)
+    $toastFeedbackPill.Visibility = [System.Windows.Visibility]::Visible
+    $toastTimer.Stop()
+    $toastTimer.Start()
 }
 
-function AnimateCollapse {
-    if (-not $global:isExpanded) { return }
-    $global:isExpanded = $false
+# CAROUSEL STATE & NAVIGATION (6 CARDS)
+$global:activeCardIndex = 0
 
-    $wAnim = New-Object System.Windows.Media.Animation.DoubleAnimation(660, 185, [TimeSpan]::FromMilliseconds(240))
-    $wAnim.DecelerationRatio = 0.85
-    $hAnim = New-Object System.Windows.Media.Animation.DoubleAnimation(230, 32, [TimeSpan]::FromMilliseconds(240))
-    $hAnim.DecelerationRatio = 0.85
+function SwitchCarouselCard($index) {
+    if ($index -lt 0) { $index = 5 }
+    if ($index -gt 5) { $index = 0 }
+    $global:activeCardIndex = $index
 
-    $notch.BeginAnimation([System.Windows.FrameworkElement]::WidthProperty, $wAnim)
-    $notch.BeginAnimation([System.Windows.FrameworkElement]::HeightProperty, $hAnim)
-    $notch.CornerRadius = New-Object System.Windows.CornerRadius(0, 0, 18, 18)
+    # Update Header Title
+    $titles = @("", "Pomodoro", "Catatan & Tugas", "Papan Klip & Shelf", "Monitor & Air", "Kontrol Cepat")
+    $headerTitleText.Text = $titles[$index]
 
-    $expandedView.Visibility = [System.Windows.Visibility]::Collapsed
-    if ($global:isToastActive) {
-        $toastView.Visibility = [System.Windows.Visibility]::Visible
-    } else {
-        UpdateCompactView
+    # Switch Cards Visibility
+    for ($i = 0; $i -lt $allCards.Count; $i++) {
+        $allCards[$i].Visibility = if ($i -eq $index) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
+    }
+
+    # Pomodoro Bottom Action Row (Only on Card 1)
+    $bottomPomoRow.Visibility = if ($index -eq 1) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
+
+    # Update 6 Pagination Dots
+    for ($i = 0; $i -lt $dotBars.Count; $i++) {
+        if ($i -eq $index) {
+            $dotBars[$i].Width = 16
+            $dotBars[$i].Height = 3
+            $dotBars[$i].CornerRadius = [System.Windows.CornerRadius]::new(1.5)
+            $dotBars[$i].Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
+        } else {
+            $dotBars[$i].Width = 3.5
+            $dotBars[$i].Height = 3.5
+            $dotBars[$i].CornerRadius = [System.Windows.CornerRadius]::new(1.75)
+            $dotBars[$i].Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#48484A")
+        }
     }
 }
 
-# Dynamic Compact View Logic
-function UpdateCompactView {
-    if ($global:isExpanded -or $global:isToastActive) { return }
+# Nav Buttons Wiring
+$btnMusicNextCard.Add_Click({ SwitchCarouselCard(1) })
+$btnPomoPrevCard.Add_Click({ SwitchCarouselCard(0) })
+$btnPomoNextCard.Add_Click({ SwitchCarouselCard(2) })
+$btnNotesPrevCard.Add_Click({ SwitchCarouselCard(1) })
+$btnNotesNextCard.Add_Click({ SwitchCarouselCard(3) })
+$btnClipPrevCard.Add_Click({ SwitchCarouselCard(2) })
+$btnClipNextCard.Add_Click({ SwitchCarouselCard(4) })
+$btnSysPrevCard.Add_Click({ SwitchCarouselCard(3) })
+$btnSysNextCard.Add_Click({ SwitchCarouselCard(5) })
+$btnQuickPrevCard.Add_Click({ SwitchCarouselCard(4) })
+$btnQuickNextCard.Add_Click({ SwitchCarouselCard(0) })
 
-    $compactIdleView.Visibility = [System.Windows.Visibility]::Collapsed
-    $compactRestingView.Visibility = [System.Windows.Visibility]::Collapsed
-    $compactMediaView.Visibility = [System.Windows.Visibility]::Collapsed
-    $compactTimerView.Visibility = [System.Windows.Visibility]::Collapsed
+$dot0.Add_MouseLeftButtonDown({ SwitchCarouselCard(0) })
+$dot1.Add_MouseLeftButtonDown({ SwitchCarouselCard(1) })
+$dot2.Add_MouseLeftButtonDown({ SwitchCarouselCard(2) })
+$dot3.Add_MouseLeftButtonDown({ SwitchCarouselCard(3) })
+$dot4.Add_MouseLeftButtonDown({ SwitchCarouselCard(4) })
+$dot5.Add_MouseLeftButtonDown({ SwitchCarouselCard(5) })
 
-    # 1. Timer Active Mode
-    if ($global:OceruState.pomodoro.isRunning) {
-        $compactTimerIcon.Text = [char]0xE916
-        $compactTimerIcon.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#10B981")
-        $compactTimerText.Text = [TimeSpan]::FromSeconds($global:OceruState.pomodoro.remainingSeconds).ToString("mm\:ss")
-        $compactTimerView.Visibility = [System.Windows.Visibility]::Visible
-        return
-    }
+# CARD 0: MUSIC PLAYER WIRING
+$playlist = @(
+    @{ title = "Paper Sky"; artist = "Lumen Coast - Summer Flows" },
+    @{ title = "Midnight Echoes"; artist = "Azure Horizon - Chillout" },
+    @{ title = "Ocean Waves"; artist = "Deep Blue Sound - Calm" }
+)
+$global:trackIndex = 0
 
-    # 2. Media Playing Mode
+function UpdateMusicDisplay {
+    $track = $playlist[$global:trackIndex]
+    $musicTitle.Text = $track.title
+    $musicArtist.Text = $track.artist
+    $global:OceruState.currentMedia.title = $track.title
+    $global:OceruState.currentMedia.artist = $track.artist
+    Save-OceruState
+}
+
+$btnMusicPlayPause.Add_Click({
+    $global:OceruState.currentMedia.isPlaying = -not $global:OceruState.currentMedia.isPlaying
     if ($global:OceruState.currentMedia.isPlaying) {
-        $compactTrackText.Text = $global:OceruState.currentMedia.title
-        $compactMediaView.Visibility = [System.Windows.Visibility]::Visible
-        return
-    }
-
-    # 3. Resting Eyes Mode (Idle > 5 seconds)
-    if ($global:idleSeconds -ge 5) {
-        $compactRestingView.Visibility = [System.Windows.Visibility]::Visible
-        return
-    }
-
-    # 4. Default Idle View
-    $compactIdleView.Visibility = [System.Windows.Visibility]::Visible
-}
-
-# Mouse Hover Handlers
-$notch.Add_MouseEnter({
-    $leaveTimer.Stop()
-    $global:idleSeconds = 0
-    AnimateExpand
-})
-
-$notch.Add_MouseLeave({
-    $leaveTimer.Start()
-})
-
-$leaveTimer.Add_Tick({
-    $leaveTimer.Stop()
-    AnimateCollapse
-})
-
-# Idle Check Timer
-$idleCheckTimer.Add_Tick({
-    if (-not $global:isExpanded -and -not $global:isToastActive) {
-        $global:idleSeconds++
-        UpdateCompactView
+        $musicPlayPauseIcon.Text = [char]0xE769
+        ShowActionFeedback "Memutar Musik" ([char]0xE768) "#00D2FF"
     } else {
-        $global:idleSeconds = 0
+        $musicPlayPauseIcon.Text = [char]0xE768
+        ShowActionFeedback "Musik Dijeda" ([char]0xE769) "#94A3B8"
     }
-})
-$idleCheckTimer.Start()
-
-# Blink Timer
-$blinkTimer.Add_Tick({
-    if ($compactRestingView.Visibility -eq [System.Windows.Visibility]::Visible) {
-        $blinkAnim = New-Object System.Windows.Media.Animation.DoubleAnimation(10, 2, [TimeSpan]::FromMilliseconds(120))
-        $blinkAnim.AutoReverse = $true
-        $leftEye.BeginAnimation([System.Windows.FrameworkElement]::HeightProperty, $blinkAnim)
-        $rightEye.BeginAnimation([System.Windows.FrameworkElement]::HeightProperty, $blinkAnim)
-    }
-})
-$blinkTimer.Start()
-
-# Tab Switching (Zero Scrollbars, Perfect Proportions!)
-function ResetTabButtons {
-    $btnControl.Style = $window.FindResource("NavIconBtn")
-    $btnMusic.Style = $window.FindResource("NavIconBtn")
-    $btnLyrics.Style = $window.FindResource("NavIconBtn")
-    $btnPomo.Style = $window.FindResource("NavIconBtn")
-    $btnClip.Style = $window.FindResource("NavIconBtn")
-    $btnTodo.Style = $window.FindResource("NavIconBtn")
-    $btnShelf.Style = $window.FindResource("NavIconBtn")
-
-    $btnControl.Width = 32
-    $btnMusic.Width = 32
-    $btnLyrics.Width = 32
-    $btnPomo.Width = 32
-    $btnClip.Width = 32
-    $btnTodo.Width = 32
-    $btnShelf.Width = 32
-
-    $lblControl.Visibility = [System.Windows.Visibility]::Collapsed
-    $lblMusic.Visibility = [System.Windows.Visibility]::Collapsed
-    $lblLyrics.Visibility = [System.Windows.Visibility]::Collapsed
-    $lblPomo.Visibility = [System.Windows.Visibility]::Collapsed
-    $lblClip.Visibility = [System.Windows.Visibility]::Collapsed
-    $lblTodo.Visibility = [System.Windows.Visibility]::Collapsed
-    $lblShelf.Visibility = [System.Windows.Visibility]::Collapsed
-
-    $paneControl.Visibility = [System.Windows.Visibility]::Collapsed
-    $paneMusic.Visibility = [System.Windows.Visibility]::Collapsed
-    $paneLyrics.Visibility = [System.Windows.Visibility]::Collapsed
-    $panePomo.Visibility = [System.Windows.Visibility]::Collapsed
-    $paneClip.Visibility = [System.Windows.Visibility]::Collapsed
-    $paneTodo.Visibility = [System.Windows.Visibility]::Collapsed
-    $paneShelf.Visibility = [System.Windows.Visibility]::Collapsed
-}
-
-function SwitchTab($tab) {
-    $global:currentTab = $tab
-    ResetTabButtons
-
-    if ($tab -eq "control") {
-        $btnControl.Style = $window.FindResource("ActiveNavBtn")
-        $btnControl.Width = [double]::NaN
-        $lblControl.Visibility = [System.Windows.Visibility]::Visible
-        $paneControl.Visibility = [System.Windows.Visibility]::Visible
-    } elseif ($tab -eq "music") {
-        $btnMusic.Style = $window.FindResource("ActiveNavBtn")
-        $btnMusic.Width = [double]::NaN
-        $lblMusic.Visibility = [System.Windows.Visibility]::Visible
-        $paneMusic.Visibility = [System.Windows.Visibility]::Visible
-    } elseif ($tab -eq "lyrics") {
-        $btnLyrics.Style = $window.FindResource("ActiveNavBtn")
-        $btnLyrics.Width = [double]::NaN
-        $lblLyrics.Visibility = [System.Windows.Visibility]::Visible
-        $paneLyrics.Visibility = [System.Windows.Visibility]::Visible
-    } elseif ($tab -eq "pomo") {
-        $btnPomo.Style = $window.FindResource("ActiveNavBtn")
-        $btnPomo.Width = [double]::NaN
-        $lblPomo.Visibility = [System.Windows.Visibility]::Visible
-        $panePomo.Visibility = [System.Windows.Visibility]::Visible
-    } elseif ($tab -eq "clip") {
-        $btnClip.Style = $window.FindResource("ActiveNavBtn")
-        $btnClip.Width = [double]::NaN
-        $lblClip.Visibility = [System.Windows.Visibility]::Visible
-        $paneClip.Visibility = [System.Windows.Visibility]::Visible
-    } elseif ($tab -eq "todo") {
-        $btnTodo.Style = $window.FindResource("ActiveNavBtn")
-        $btnTodo.Width = [double]::NaN
-        $lblTodo.Visibility = [System.Windows.Visibility]::Visible
-        $paneTodo.Visibility = [System.Windows.Visibility]::Visible
-    } elseif ($tab -eq "shelf") {
-        $btnShelf.Style = $window.FindResource("ActiveNavBtn")
-        $btnShelf.Width = [double]::NaN
-        $lblShelf.Visibility = [System.Windows.Visibility]::Visible
-        $paneShelf.Visibility = [System.Windows.Visibility]::Visible
-    }
-}
-
-$btnControl.Add_Click({ SwitchTab("control") })
-$btnMusic.Add_Click({ SwitchTab("music") })
-$btnLyrics.Add_Click({ SwitchTab("lyrics") })
-$btnPomo.Add_Click({ SwitchTab("pomo") })
-$btnClip.Add_Click({ SwitchTab("clip") })
-$btnTodo.Add_Click({ SwitchTab("todo") })
-$btnShelf.Add_Click({ SwitchTab("shelf") })
-
-# 1. REAL HARDWARE WI-FI ACTION
-$cardWifi.Add_Click({
-    ShowActionFeedback "Membuka Panel Wi-Fi..." ([char]0xE701) "#0284C7"
-    [System.Diagnostics.Process]::Start("explorer.exe", "ms-availablenetworks:")
+    Save-OceruState
 })
 
-# 2. REAL HARDWARE BLUETOOTH ACTION
-function OpenBluetoothSettings {
-    ShowActionFeedback "Membuka Bluetooth..." ([char]0xE7F6) "#0284C7"
-    [System.Diagnostics.Process]::Start("explorer.exe", "ms-settings:bluetooth")
-}
-$cardBt.Add_Click({ OpenBluetoothSettings })
-$btnHeaderBt.Add_Click({ OpenBluetoothSettings })
+$btnMusicNext.Add_Click({
+    $global:trackIndex = ($global:trackIndex + 1) % $playlist.Count
+    UpdateMusicDisplay
+    ShowActionFeedback "Lagu Berikutnya" ([char]0xE893) "#00D2FF"
+})
 
-# 3. REAL HARDWARE AUDIO & VOLUME SLIDER
-$cardMute.Add_Click({
-    $global:OceruState.isMuted = -not $global:OceruState.isMuted
-    try { [Win32Helper]::ToggleMute() } catch {}
+$btnMusicPrev.Add_Click({
+    $global:trackIndex = ($global:trackIndex - 1 + $playlist.Count) % $playlist.Count
+    UpdateMusicDisplay
+    ShowActionFeedback "Lagu Sebelumnya" ([char]0xE892) "#00D2FF"
+})
 
-    if ($global:OceruState.isMuted) {
-        $iconMute.Text = [char]0xE74F
-        $statusMute.Text = "Bisu (Muted)"
-        ShowActionFeedback "Audio Dibisukan" ([char]0xE74F) "#DC2626"
+$btnToggleLyrics.Add_Click({
+    $musicPlayerView.Visibility = [System.Windows.Visibility]::Collapsed
+    $musicLyricsView.Visibility = [System.Windows.Visibility]::Visible
+})
+
+$btnBackFromLyrics.Add_Click({
+    $musicLyricsView.Visibility = [System.Windows.Visibility]::Collapsed
+    $musicPlayerView.Visibility = [System.Windows.Visibility]::Visible
+})
+
+# CARD 1: POMODORO FOCUS TIMER WIRING
+$pomoEngine = New-Object System.Windows.Threading.DispatcherTimer
+$pomoEngine.Interval = [TimeSpan]::FromSeconds(1)
+
+$pomoEngine.Add_Tick({
+    if ($global:OceruState.pomodoro.remainingSeconds -gt 0) {
+        $global:OceruState.pomodoro.remainingSeconds = [int]$global:OceruState.pomodoro.remainingSeconds - 1
+        $timeStr = [TimeSpan]::FromSeconds($global:OceruState.pomodoro.remainingSeconds).ToString("mm\:ss")
+        $pomoDisplayTime.Text = $timeStr
     } else {
-        $iconMute.Text = [char]0xE767
-        $statusMute.Text = "Volume Suara"
-        ShowActionFeedback "Audio Bersuara" ([char]0xE767) "#10B981"
+        $pomoEngine.Stop()
+        $global:OceruState.pomodoro.isRunning = $false
+        $pomoPlayPauseIcon.Text = [char]0xE768
+        ShowActionFeedback "Waktu Fokus Selesai!" ([char]0xE916) "#10B981"
+        try { [System.Media.SystemSounds]::Beep.Play() } catch {}
     }
-    Save-OceruState
 })
 
-$btnVolDown.Add_Click({
-    try { [Win32Helper]::VolumeDown() } catch {}
-    $global:OceruState.volume = [Math]::Max(0, $global:OceruState.volume - 2)
-    $sliderVol.Value = $global:OceruState.volume
-    $lblVolPct.Text = "$($global:OceruState.volume)%"
-    ShowActionFeedback "Volume $($global:OceruState.volume)%" ([char]0xE74F) "#38BDF8"
-    Save-OceruState
-})
-
-$btnVolUp.Add_Click({
-    try { [Win32Helper]::VolumeUp() } catch {}
-    $global:OceruState.volume = [Math]::Min(100, $global:OceruState.volume + 2)
-    $sliderVol.Value = $global:OceruState.volume
-    $lblVolPct.Text = "$($global:OceruState.volume)%"
-    ShowActionFeedback "Volume $($global:OceruState.volume)%" ([char]0xE767) "#38BDF8"
-    Save-OceruState
-})
-
-$sliderVol.Add_ValueChanged({
-    $val = [Math]::Round($sliderVol.Value)
-    $lblVolPct.Text = "$val%"
-    $global:OceruState.volume = $val
-})
-
-# 4. MODES & SHORTCUTS (DND, Gaming, Brightness, Task Manager)
-$btnToggleDnd.Add_Click({
-    $global:OceruState.dndEnabled = -not $global:OceruState.dndEnabled
-    if ($global:OceruState.dndEnabled) {
-        $bgDnd.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#7C3AED")
-        $lblDnd.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#C084FC")
-        $dndIconCompact.Visibility = [System.Windows.Visibility]::Visible
-        ShowActionFeedback "Jangan Ganggu Aktif" ([char]0xE708) "#7C3AED"
+$btnPomoPlay.Add_Click({
+    $global:OceruState.pomodoro.isRunning = -not $global:OceruState.pomodoro.isRunning
+    if ($global:OceruState.pomodoro.isRunning) {
+        $pomoEngine.Start()
+        $pomoPlayPauseIcon.Text = [char]0xE769
+        ShowActionFeedback "Fokus Berjalan" ([char]0xE916) "#FF5252"
     } else {
-        $bgDnd.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#1E1736")
-        $lblDnd.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#CBD5E1")
-        $dndIconCompact.Visibility = [System.Windows.Visibility]::Collapsed
-        ShowActionFeedback "Jangan Ganggu Nonaktif" ([char]0xE708) "#64748B"
+        $pomoEngine.Stop()
+        $pomoPlayPauseIcon.Text = [char]0xE768
+        ShowActionFeedback "Fokus Dijeda" ([char]0xE769) "#94A3B8"
     }
     Save-OceruState
 })
 
-$btnToggleGame.Add_Click({
-    $global:OceruState.gamingMode = -not $global:OceruState.gamingMode
-    if ($global:OceruState.gamingMode) {
-        $bgGame.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#059669")
-        $lblGame.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#34D399")
-        ShowActionFeedback "Mode Game Aktif" ([char]0xE7FC) "#059669"
-    } else {
-        $bgGame.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#112920")
-        $lblGame.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#CBD5E1")
-        ShowActionFeedback "Mode Game Nonaktif" ([char]0xE7FC) "#64748B"
-    }
+$btnPomoReset.Add_Click({
+    $pomoEngine.Stop()
+    $global:OceruState.pomodoro.isRunning = $false
+    $pomoPlayPauseIcon.Text = [char]0xE768
+    $global:OceruState.pomodoro.remainingSeconds = [int]$global:OceruState.pomodoro.totalSeconds
+    $pomoDisplayTime.Text = [TimeSpan]::FromSeconds($global:OceruState.pomodoro.remainingSeconds).ToString("mm\:ss")
+    ShowActionFeedback "Timer Direset" ([char]0xE72C) "#FF5252"
     Save-OceruState
 })
 
-$btnSysBright.Add_Click({
-    ShowActionFeedback "Membuka Kecerahan..." ([char]0xE706) "#FBBF24"
-    [System.Diagnostics.Process]::Start("explorer.exe", "ms-settings:display")
+$btnPomoShortBreak.Add_Click({
+    $pomoEngine.Stop()
+    $global:OceruState.pomodoro.isRunning = $false
+    $pomoPlayPauseIcon.Text = [char]0xE768
+    $global:OceruState.pomodoro.totalSeconds = 300
+    $global:OceruState.pomodoro.remainingSeconds = 300
+    $pomoSubtitle.Text = "Short break"
+    $pomoDisplayTime.Text = "05:00"
+    ShowActionFeedback "Mode: Istirahat Singkat (5m)" ([char]0xE916) "#10B981"
+    Save-OceruState
 })
 
+$btnPomoFocusTime.Add_Click({
+    $pomoEngine.Stop()
+    $global:OceruState.pomodoro.isRunning = $false
+    $pomoPlayPauseIcon.Text = [char]0xE768
+    $global:OceruState.pomodoro.totalSeconds = 1500
+    $global:OceruState.pomodoro.remainingSeconds = 1500
+    $pomoSubtitle.Text = "Focus time"
+    $pomoDisplayTime.Text = "25:00"
+    ShowActionFeedback "Mode: Waktu Fokus (25m)" ([char]0xE916) "#FF5252"
+    Save-OceruState
+})
+
+# CARD 2: NOTES & TO-DO WIRING
+$btnSaveNote.Add_Click({
+    $txt = $inputNoteText.Text.Trim()
+    if ($txt) {
+        $newNote = [PSCustomObject]@{ id = [DateTime]::Now.Ticks; title = "Catatan Baru"; content = $txt }
+        $global:OceruState.notes += $newNote
+        Save-OceruState
+        ShowActionFeedback "Catatan Disimpan!" ([char]0xE70B) "#00D2FF"
+    }
+})
+
+function UpdateTodoProgress {
+    $done = 0
+    if ($cbTask1.IsChecked) { $done++ }
+    if ($cbTask2.IsChecked) { $done++ }
+    if ($cbTask3.IsChecked) { $done++ }
+    $todoStatusCount.Text = " ($done/3)"
+}
+$cbTask1.Add_Click({ UpdateTodoProgress })
+$cbTask2.Add_Click({ UpdateTodoProgress })
+$cbTask3.Add_Click({ UpdateTodoProgress })
+
+# CARD 3: CLIPBOARD & FILE SHELF WIRING
+$btnCopyClip1.Add_Click({
+    try {
+        [System.Windows.Clipboard]::SetText("https://github.com/cubadakanda/dynamic-island")
+        ShowActionFeedback "Tautan Disalin!" ([char]0xE77F) "#00D2FF"
+    } catch {}
+})
+
+$btnCopyClip2.Add_Click({
+    try {
+        [System.Windows.Clipboard]::SetText("Oceru Dynamic Island Desktop")
+        ShowActionFeedback "Teks Disalin!" ([char]0xE77F) "#00D2FF"
+    } catch {}
+})
+
+$global:shelfFiles = @()
+$shelfDropBorder.Add_Drop({
+    param($s, $e)
+    if ($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)) {
+        $dropped = $e.Data.GetData([System.Windows.DataFormats]::FileDrop)
+        foreach ($f in $dropped) { $global:shelfFiles += $f }
+        $shelfFileCount.Text = "$($global:shelfFiles.Count) file tersimpan"
+        ShowActionFeedback "$($dropped.Count) File Ditambahkan!" ([char]0xE8B7) "#F59E0B"
+    }
+})
+
+# CARD 4: SYSTEM MONITOR & WATER WIRING
 $btnSysTaskMgr.Add_Click({
     ShowActionFeedback "Membuka Task Manager..." ([char]0xE9D9) "#38BDF8"
     [System.Diagnostics.Process]::Start("taskmgr.exe")
 })
 
-# 5. REAL HARDWARE LOCK & SLEEP
-$btnSysLock.Add_Click({
+$global:waterCurrent = 1250
+$btnAddWater.Add_Click({
+    $global:waterCurrent = [Math]::Min(2000, $global:waterCurrent + 250)
+    $waterAmountText.Text = " ($($global:waterCurrent) ml)"
+    $pct = $global:waterCurrent / 2000
+    $waterProgressBar.Width = [Math]::Round(110 * $pct)
+    ShowActionFeedback "+250 ml Air Minum (Total $($global:waterCurrent) ml)" ([char]0xE73E) "#38BDF8"
+})
+
+# CARD 5: QUICK SETTINGS & AUDIO MASTER WIRING
+$btnQuickWifi.Add_Click({
+    ShowActionFeedback "Membuka Panel Wi-Fi..." ([char]0xE701) "#0284C7"
+    [System.Diagnostics.Process]::Start("explorer.exe", "ms-availablenetworks:")
+})
+
+$btnQuickBt.Add_Click({
+    ShowActionFeedback "Membuka Bluetooth..." ([char]0xE702) "#0284C7"
+    [System.Diagnostics.Process]::Start("explorer.exe", "ms-settings:bluetooth")
+})
+
+$btnQuickDnd.Add_Click({
+    $global:OceruState.dndEnabled = -not $global:OceruState.dndEnabled
+    if ($global:OceruState.dndEnabled) {
+        $quickStatusDnd.Text = "Aktif"
+        ShowActionFeedback "Jangan Ganggu Aktif" ([char]0xE708) "#A855F7"
+    } else {
+        $quickStatusDnd.Text = "DND"
+        ShowActionFeedback "Jangan Ganggu Nonaktif" ([char]0xE708) "#64748B"
+    }
+    Save-OceruState
+})
+
+$btnQuickGame.Add_Click({
+    $global:OceruState.gamingMode = -not $global:OceruState.gamingMode
+    if ($global:OceruState.gamingMode) {
+        $quickStatusGame.Text = "Aktif"
+        ShowActionFeedback "Mode Game Aktif" ([char]0xE7FC) "#10B981"
+    } else {
+        $quickStatusGame.Text = "Game"
+        ShowActionFeedback "Mode Game Nonaktif" ([char]0xE7FC) "#64748B"
+    }
+    Save-OceruState
+})
+
+$btnQuickMute.Add_Click({
+    $global:OceruState.isMuted = -not $global:OceruState.isMuted
+    try { [Win32Helper]::ToggleMute() } catch {}
+
+    if ($global:OceruState.isMuted) {
+        $quickIconMute.Text = [char]0xE74F
+        ShowActionFeedback "Audio Dibisukan" ([char]0xE74F) "#DC2626"
+    } else {
+        $quickIconMute.Text = [char]0xE767
+        ShowActionFeedback "Audio Aktif" ([char]0xE767) "#10B981"
+    }
+    Save-OceruState
+})
+
+$quickSliderVol.Add_ValueChanged({
+    $val = [Math]::Round($quickSliderVol.Value)
+    $quickVolPctText.Text = "$val%"
+    $global:OceruState.volume = $val
+})
+
+$btnQuickLock.Add_Click({
     ShowActionFeedback "Mengunci Layar..." ([char]0xE72E) "#38BDF8"
     try {
         [Win32Helper]::LockWorkStation() | Out-Null
@@ -2253,26 +1820,24 @@ $btnSysLock.Add_Click({
     }
 })
 
-$btnSysSleep.Add_Click({
+$btnQuickSleep.Add_Click({
     ShowActionFeedback "Masuk Mode Tidur..." ([char]0xE708) "#C084FC"
     Start-Process "rundll32.exe" -ArgumentList "powrprof.dll,SetSuspendState 0,1,0"
 })
 
-# 6. RESTART WITH SAFE CONFIRMATION
+$global:restartArmed = $false
 $restartTimer = New-Object System.Windows.Threading.DispatcherTimer
 $restartTimer.Interval = [TimeSpan]::FromSeconds(4)
 $restartTimer.Add_Tick({
     $restartTimer.Stop()
     $global:restartArmed = $false
-    $lblRestart.Text = "Restart"
-    $btnSysRestart.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#0C1527")
+    $quickLblRestart.Text = "Restart"
 })
 
-$btnSysRestart.Add_Click({
+$btnQuickRestart.Add_Click({
     if (-not $global:restartArmed) {
         $global:restartArmed = $true
-        $lblRestart.Text = "Yakin? (Klik)"
-        $btnSysRestart.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#991B1B")
+        $quickLblRestart.Text = "Yakin?"
         ShowActionFeedback "Klik lagi untuk Restart!" ([char]0xE777) "#EF4444"
         $restartTimer.Start()
     } else {
@@ -2282,528 +1847,217 @@ $btnSysRestart.Add_Click({
     }
 })
 
-# 7. VISUAL THEME SWITCHER
-function ApplyTheme($theme) {
-    $global:OceruState.theme = $theme
-    if ($theme -eq "ocean-dark") {
-        $notch.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#070B14")
-        $notch.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#172640")
-        $lblTheme.Text = "Ocean Dark"
-        ShowActionFeedback "Tema: Ocean Dark" ([char]0xE790) "#0284C7"
-    } elseif ($theme -eq "glass") {
-        $notch.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#E60C1B2E")
-        $notch.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00D2FF")
-        $lblTheme.Text = "Aero Glass"
-        ShowActionFeedback "Tema: Aero Glass" ([char]0xE790) "#00D2FF"
-    } elseif ($theme -eq "cyber") {
-        $notch.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#0D0518")
-        $notch.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FF007F")
-        $lblTheme.Text = "Cyberpunk"
-        ShowActionFeedback "Tema: Cyberpunk" ([char]0xE790) "#FF007F"
-    }
-    Save-OceruState
-}
-
-$btnThemeSwitch.Add_Click({
-    if ($global:OceruState.theme -eq "ocean-dark") { ApplyTheme("glass") }
-    elseif ($global:OceruState.theme -eq "glass") { ApplyTheme("cyber") }
-    else { ApplyTheme("ocean-dark") }
+$btnSysLaunchDash.Add_Click({
+    ShowActionFeedback "Membuka Dashboard Oceru..." ([char]0xE737) "#00D2FF"
+    Show-OceruDashboard 0
 })
 
-# Context Menu Themes
-$ctxDark = $window.FindName("CtxThemeDark")
-if ($ctxDark) { $ctxDark.Add_Click({ ApplyTheme("ocean-dark") }) }
-$ctxGlass = $window.FindName("CtxThemeGlass")
-if ($ctxGlass) { $ctxGlass.Add_Click({ ApplyTheme("glass") }) }
-$ctxCyber = $window.FindName("CtxThemeCyber")
-if ($ctxCyber) { $ctxCyber.Add_Click({ ApplyTheme("cyber") }) }
+# RIGHT-CLICK CONTEXT MENU ON NOTCH
+$menu = New-Object System.Windows.Controls.ContextMenu
+$itemDash = New-Object System.Windows.Controls.MenuItem
+$itemDash.Header = "Buka Dashboard (15 Destinasi)"
+$itemDash.Add_Click({ Show-OceruDashboard 0 })
 
-# 8. MUSIC & LYRICS CONTROLLER
-$lyricsList = @(
-    "Never gonna give you up... never gonna let you down",
-    "Never gonna run around and desert you",
-    "Never gonna make you cry, never gonna say goodbye",
-    "Never gonna tell a lie and hurt you",
-    "We've known each other for so long, your heart's been aching"
-)
-$lyricIndex = 0
-
-$btnPlay.Add_Click({
-    $global:OceruState.currentMedia.isPlaying = -not $global:OceruState.currentMedia.isPlaying
-    if ($global:OceruState.currentMedia.isPlaying) {
-        $playIcon.Text = [char]0xE769 # Pause icon
-        $btnPlay.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#EAB308")
-        ShowActionFeedback "Memutar Musik" ([char]0xE189) "#00D2FF"
-    } else {
-        $playIcon.Text = [char]0xE768 # Play icon
-        $btnPlay.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#0284C7")
-        ShowActionFeedback "Musik Dijeda" ([char]0xE768) "#94A3B8"
-    }
-    UpdateCompactView
-    Save-OceruState
+$itemReload = New-Object System.Windows.Controls.MenuItem
+$itemReload.Header = "Muat Ulang / Reload (F5)"
+$itemReload.Add_Click({
+    $dashWindow.Close()
+    $window.Close()
+    Start-Process "powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`""
 })
 
-$btnNext.Add_Click({
-    $global:lyricIndex = ($global:lyricIndex + 1) % $lyricsList.Count
-    $musicLyricMini.Text = $lyricsList[$global:lyricIndex]
-    $lyricLineActive.Text = $lyricsList[$global:lyricIndex]
-    ShowActionFeedback "Lagu Berikutnya" ([char]0xE893) "#60A5FA"
+$itemExit = New-Object System.Windows.Controls.MenuItem
+$itemExit.Header = "Tutup Oceru Dynamic Island"
+$itemExit.Add_Click({
+    $dashWindow.Close()
+    $window.Close()
+    [System.Windows.Application]::Current.Shutdown()
 })
 
-$btnPrev.Add_Click({
-    $global:lyricIndex = ($global:lyricIndex - 1 + $lyricsList.Count) % $lyricsList.Count
-    $musicLyricMini.Text = $lyricsList[$global:lyricIndex]
-    $lyricLineActive.Text = $lyricsList[$global:lyricIndex]
-    ShowActionFeedback "Lagu Sebelumnya" ([char]0xE892) "#60A5FA"
-})
+$menu.Items.Add($itemDash) | Out-Null
+$menu.Items.Add($itemReload) | Out-Null
+$menu.Items.Add($itemExit) | Out-Null
+$window.ContextMenu = $menu
 
-$ytInput.Add_GotFocus({
-    if ($ytInput.Text -eq "Cari / paste link YouTube...") {
-        $ytInput.Text = ""
-        $ytInput.Foreground = [System.Windows.Media.Brushes]::White
-    }
-})
-
-$ytInput.Add_LostFocus({
-    if ([string]::IsNullOrWhiteSpace($ytInput.Text)) {
-        $ytInput.Text = "Cari / paste link YouTube..."
-        $ytInput.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
-    }
-})
-
-$ytInput.Add_KeyDown({
+# HOTKEYS (F5 Reload, Esc Collapse)
+$window.Add_KeyDown({
     param($s, $e)
-    if ($e.Key -eq [System.Windows.Input.Key]::Enter) {
-        if (-not [string]::IsNullOrWhiteSpace($ytInput.Text) -and $ytInput.Text -ne "Cari / paste link YouTube...") {
-            $inputQuery = $ytInput.Text
-            $trackTitle.Text = $inputQuery
-            $global:OceruState.currentMedia.title = $inputQuery
-            $global:OceruState.currentMedia.isPlaying = $true
-            $playIcon.Text = [char]0xE769
-            $btnPlay.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#EAB308")
-            ShowActionFeedback "Memutar Audio YouTube!" ([char]0xE189) "#00D2FF"
-            UpdateCompactView
+    if ($e.Key -eq [System.Windows.Input.Key]::F5) {
+        $dashWindow.Close()
+        $window.Close()
+        Start-Process "powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`""
+    } elseif ($e.Key -eq [System.Windows.Input.Key]::Escape) {
+        if ($global:islandMode -eq "expanded") {
+            Set-IslandMode "status"
+        }
+    }
+})
 
-            if ($inputQuery -match "^https?://") {
-                try {
-                    $audioWebEngine.Navigate($inputQuery)
-                } catch {
-                    [System.Diagnostics.Process]::Start("explorer.exe", $inputQuery)
+# FAST DISPATCHER LOOP: EYE TRACKING & THREE-MODE AUTO TRANSITIONS (40ms)
+$global:eyeBlinkTick = 0
+
+$fastEyeTimer = New-Object System.Windows.Threading.DispatcherTimer
+$fastEyeTimer.Interval = [TimeSpan]::FromMilliseconds(40)
+
+$fastEyeTimer.Add_Tick({
+    try {
+        $cursorPos = [System.Windows.Forms.Cursor]::Position
+
+        # -----------------------------------------------------------------
+        # MODE 1: RESTING CAT EYES PILL (Standalone, Watching Cursor)
+        # -----------------------------------------------------------------
+        if ($global:islandMode -eq "eyes") {
+            $dx = $cursorPos.X - $global:notchCenterX
+            $dy = $cursorPos.Y - 18
+
+            # Calculate normalized direction offsets for pupils
+            $normX = [Math]::Max(-1.0, [Math]::Min(1.0, $dx / ($screenWidth / 2)))
+            $normY = [Math]::Max(-0.2, [Math]::Min(1.0, $dy / $screenHeight))
+
+            $targetX = [Math]::Round($normX * 3.8, 1)
+            $targetY = [Math]::Round($normY * 2.5, 1)
+
+            $leftPupilTransform.X = $targetX
+            $leftPupilTransform.Y = $targetY
+            $rightPupilTransform.X = $targetX
+            $rightPupilTransform.Y = $targetY
+
+            # Natural eye blinking every ~3.6s
+            $global:eyeBlinkTick = ($global:eyeBlinkTick + 1) % 90
+            if ($global:eyeBlinkTick -eq 0) {
+                $leftEye.Height = 2
+                $rightEye.Height = 2
+            } elseif ($global:eyeBlinkTick -eq 3) {
+                $leftEye.Height = 16
+                $rightEye.Height = 16
+            }
+
+            # Instant hover detection on Eyes Pill to Expand
+            $inEyes = ($cursorPos.X -ge ($eyesLeftPos - 6)) -and 
+                      ($cursorPos.X -le ($eyesLeftPos + $eyesWidth + 6)) -and 
+                      ($cursorPos.Y -ge 0) -and 
+                      ($cursorPos.Y -le ($eyesHeight + 8))
+            
+            if ($inEyes) {
+                Set-IslandMode "expanded"
+            }
+        }
+        # -----------------------------------------------------------------
+        # MODE 2: COMPACT STATUS BAR (Weather, Clock, Battery)
+        # -----------------------------------------------------------------
+        elseif ($global:islandMode -eq "status") {
+            # Hover detection on Status Bar to Expand
+            $inStatus = ($cursorPos.X -ge ($statusLeftPos - 6)) -and 
+                        ($cursorPos.X -le ($statusLeftPos + $statusWidth + 6)) -and 
+                        ($cursorPos.Y -ge 0) -and 
+                        ($cursorPos.Y -le ($statusHeight + 8))
+            
+            if ($inStatus) {
+                Set-IslandMode "expanded"
+            } else {
+                # Inactivity timer: when mouse is resting/not on the island,
+                # automatically morph into the standalone Resting Cat Eyes pill!
+                $global:statusIdleTicks++
+                # 85 ticks * 40ms = ~3.4 seconds of inactivity
+                if ($global:statusIdleTicks -ge 85) {
+                    Set-IslandMode "eyes"
+                }
+            }
+        }
+        # -----------------------------------------------------------------
+        # MODE 3: EXPANDED CAROUSEL NOTCH (No collapse button!)
+        # -----------------------------------------------------------------
+        elseif ($global:islandMode -eq "expanded") {
+            $inExpanded = ($cursorPos.X -ge ($expandedLeftPos - 10)) -and 
+                          ($cursorPos.X -le ($expandedLeftPos + $expandedWidth + 10)) -and 
+                          ($cursorPos.Y -ge 0) -and 
+                          ($cursorPos.Y -le ($expandedHeight + 14))
+
+            if (-not $inExpanded) {
+                $global:outsideTicks++
+                # 7 ticks * 40ms = 280ms auto-collapse delay
+                if ($global:outsideTicks -ge 7) {
+                    # When closing, return to the status bar (Clock, Weather, Battery)!
+                    Set-IslandMode "status"
                 }
             } else {
-                $searchUrl = "https://www.youtube.com/results?search_query=" + [System.Uri]::EscapeDataString($inputQuery)
-                [System.Diagnostics.Process]::Start("explorer.exe", $searchUrl)
+                $global:outsideTicks = 0
             }
-            Save-OceruState
         }
-    }
-})
-
-# 9. POMODORO FOCUS TIMER
-$pomoTimerEngine = New-Object System.Windows.Threading.DispatcherTimer
-$pomoTimerEngine.Interval = [TimeSpan]::FromSeconds(1)
-
-$pomoTimerEngine.Add_Tick({
-    if ($global:OceruState.pomodoro.remainingSeconds -gt 0) {
-        $global:OceruState.pomodoro.remainingSeconds = [int]$global:OceruState.pomodoro.remainingSeconds - 1
-        $timeStr = [TimeSpan]::FromSeconds($global:OceruState.pomodoro.remainingSeconds).ToString("mm\:ss")
-        $pomoTimer.Text = $timeStr
-        $compactTimerText.Text = $timeStr
-    } else {
-        $pomoTimerEngine.Stop()
-        $global:OceruState.pomodoro.isRunning = $false
-        ShowActionFeedback "Waktu Fokus Selesai!" ([char]0xE916) "#10B981"
-        UpdateCompactView
-    }
-})
-
-function SetTimerMinutes($mins) {
-    $global:OceruState.pomodoro.remainingSeconds = $mins * 60
-    $pomoTimer.Text = [TimeSpan]::FromSeconds($global:OceruState.pomodoro.remainingSeconds).ToString("mm\:ss")
-    ShowActionFeedback "Timer: $mins Menit" ([char]0xE916) "#38BDF8"
-    Save-OceruState
-}
-
-$btnPill5.Add_Click({ SetTimerMinutes(5) })
-$btnPill10.Add_Click({ SetTimerMinutes(10) })
-$btnPill15.Add_Click({ SetTimerMinutes(15) })
-$btnPill25.Add_Click({ SetTimerMinutes(25) })
-$btnPill45.Add_Click({ SetTimerMinutes(45) })
-
-$btnPomoStart.Add_Click({
-    $global:OceruState.pomodoro.isRunning = -not $global:OceruState.pomodoro.isRunning
-    if ($global:OceruState.pomodoro.isRunning) {
-        $btnPomoStart.Content = "Jeda"
-        $btnPomoStart.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#EAB308")
-        $pomoTimerEngine.Start()
-        ShowActionFeedback "Timer Dimulai!" ([char]0xE916) "#10B981"
-    } else {
-        $btnPomoStart.Content = "Mulai"
-        $btnPomoStart.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#10B981")
-        $pomoTimerEngine.Stop()
-        ShowActionFeedback "Timer Dijeda" ([char]0xE916) "#94A3B8"
-    }
-    UpdateCompactView
-    Save-OceruState
-})
-
-$btnPomoReset.Add_Click({
-    $pomoTimerEngine.Stop()
-    $global:OceruState.pomodoro.isRunning = $false
-    $btnPomoStart.Content = "Mulai"
-    $btnPomoStart.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#10B981")
-    $global:OceruState.pomodoro.remainingSeconds = if ($global:OceruState.pomodoro.mode -eq "focus") { 25 * 60 } else { 5 * 60 }
-    $pomoTimer.Text = [TimeSpan]::FromSeconds($global:OceruState.pomodoro.remainingSeconds).ToString("mm\:ss")
-    ShowActionFeedback "Timer Direset" ([char]0xE916) "#60A5FA"
-    UpdateCompactView
-    Save-OceruState
-})
-
-$btnPomoMode.Add_Click({
-    $pomoTimerEngine.Stop()
-    $global:OceruState.pomodoro.isRunning = $false
-    $btnPomoStart.Content = "Mulai"
-    $btnPomoStart.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#10B981")
-    if ($global:OceruState.pomodoro.mode -eq "focus") {
-        $global:OceruState.pomodoro.mode = "break"
-        $pomoStatus.Text = "WAKTU ISTIRAHAT"
-        $pomoStatus.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#38BDF8")
-        $btnPomoMode.Content = "Mode Fokus"
-        $global:OceruState.pomodoro.remainingSeconds = 5 * 60
-        ShowActionFeedback "Mode Istirahat (5m)" ([char]0xE916) "#38BDF8"
-    } else {
-        $global:OceruState.pomodoro.mode = "focus"
-        $pomoStatus.Text = "FOKUS AKTIF"
-        $pomoStatus.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#10B981")
-        $btnPomoMode.Content = "Istirahat"
-        $global:OceruState.pomodoro.remainingSeconds = 25 * 60
-        ShowActionFeedback "Mode Fokus (25m)" ([char]0xE916) "#10B981"
-    }
-    $pomoTimer.Text = [TimeSpan]::FromSeconds($global:OceruState.pomodoro.remainingSeconds).ToString("mm\:ss")
-    UpdateCompactView
-    Save-OceruState
-})
-
-# 10. CLIPBOARD MANAGER (1-Click Re-Copy)
-function CopyClipText($text) {
-    try {
-        [System.Windows.Clipboard]::SetText($text)
-        ShowActionFeedback "Tersalin ke Clipboard!" ([char]0xE8C8) "#00D2FF"
     } catch {}
-}
+})
+$fastEyeTimer.Start()
 
-$btnClipItem1.Add_Click({ CopyClipText("https://github.com/cubadakanda/dynamic-island") })
-$btnClipItem2.Add_Click({ CopyClipText("Oceru Dynamic Island Desktop") })
-$btnClipItem3.Add_Click({ CopyClipText("Never Gonna Give You Up - Rick Astley") })
+# SECONDARY DISPATCHER LOOP (Equalizer, Clock, RAM, Battery, Music Progress)
+$global:waveTick = 0
+$global:musicProgressSec = 193
 
-# 11. TO-DO MANAGER
-function UpdateTodoCount {
-    $total = 0
-    $done = 0
-    foreach ($child in $todoListPanel.Children) {
-        if ($child -is [System.Windows.Controls.Border]) {
-            $sp = $child.Child
-            if ($sp -and $sp.Children.Count -ge 2) {
-                $cb = $sp.Children[0]
-                $total++
-                if ($cb.IsChecked) { $done++ }
-            }
+$mainTimer = New-Object System.Windows.Threading.DispatcherTimer
+$mainTimer.Interval = [TimeSpan]::FromMilliseconds(300)
+
+$mainTimer.Add_Tick({
+    $now = [DateTime]::Now
+    $headerDateText.Text = $now.ToString("ddd d MMM yyyy ")
+    $headerTimeText.Text = $now.ToString("HH:mm")
+
+    # Update real-time clock in Compact Status Bar
+    if ($compactClockText) {
+        $compactClockText.Text = $now.ToString("HH:mm")
+    }
+
+    # Soundwave Bouncing Equalizer Simulation
+    if ($global:OceruState.currentMedia.isPlaying) {
+        $global:waveTick = ($global:waveTick + 1) % 4
+        if ($global:waveTick -eq 0) {
+            $waveBar1.Height = 12; $waveBar2.Height = 6; $waveBar3.Height = 14; $waveBar4.Height = 8
+        } elseif ($global:waveTick -eq 1) {
+            $waveBar1.Height = 7; $waveBar2.Height = 15; $waveBar3.Height = 8; $waveBar4.Height = 13
+        } elseif ($global:waveTick -eq 2) {
+            $waveBar1.Height = 14; $waveBar2.Height = 9; $waveBar3.Height = 16; $waveBar4.Height = 6
+        } else {
+            $waveBar1.Height = 8; $waveBar2.Height = 14; $waveBar3.Height = 10; $waveBar4.Height = 12
         }
-    }
-    $todoCounterText.Text = "$done dari $total selesai"
-}
 
-$chk1.Add_Click({
-    if ($chk1.IsChecked) {
-        $txt1.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
-        $txt1.TextDecorations = [System.Windows.TextDecorations]::Strikethrough
+        # Music Progress Bar
+        $global:musicProgressSec = ($global:musicProgressSec + 1) % 256
+        $pct = [Math]::Max(0.05, [Math]::Min(1.0, $global:musicProgressSec / 256))
+        $musicProgressBar.Width = [Math]::Round(200 * $pct)
+        $curSpan = [TimeSpan]::FromSeconds($global:musicProgressSec)
+        $remSpan = [TimeSpan]::FromSeconds(256 - $global:musicProgressSec)
+        $musicCurrentTime.Text = $curSpan.ToString("mm\:ss")
+        $musicRemainingTime.Text = "-" + $remSpan.ToString("mm\:ss")
     } else {
-        $txt1.Foreground = [System.Windows.Media.Brushes]::White
-        $txt1.TextDecorations = $null
+        $waveBar1.Height = 4; $waveBar2.Height = 4; $waveBar3.Height = 4; $waveBar4.Height = 4
     }
-    UpdateTodoCount
-})
 
-$chk2.Add_Click({
-    if ($chk2.IsChecked) {
-        $txt2.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
-        $txt2.TextDecorations = [System.Windows.TextDecorations]::Strikethrough
-    } else {
-        $txt2.Foreground = [System.Windows.Media.Brushes]::White
-        $txt2.TextDecorations = $null
-    }
-    UpdateTodoCount
-})
-
-$chk3.Add_Click({
-    if ($chk3.IsChecked) {
-        $txt3.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
-        $txt3.TextDecorations = [System.Windows.TextDecorations]::Strikethrough
-    } else {
-        $txt3.Foreground = [System.Windows.Media.Brushes]::White
-        $txt3.TextDecorations = $null
-    }
-    UpdateTodoCount
-})
-
-$todoInput.Add_GotFocus({
-    if ($todoInput.Text -eq "Tulis catatan / tugas baru lalu tekan Enter...") {
-        $todoInput.Text = ""
-        $todoInput.Foreground = [System.Windows.Media.Brushes]::White
-    }
-})
-
-$todoInput.Add_LostFocus({
-    if ([string]::IsNullOrWhiteSpace($todoInput.Text)) {
-        $todoInput.Text = "Tulis catatan / tugas baru lalu tekan Enter..."
-        $todoInput.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
-    }
-})
-
-$todoInput.Add_KeyDown({
-    param($s, $e)
-    if ($e.Key -eq [System.Windows.Input.Key]::Enter) {
-        if (-not [string]::IsNullOrWhiteSpace($todoInput.Text) -and $todoInput.Text -ne "Tulis catatan / tugas baru lalu tekan Enter...") {
-            $taskText = $todoInput.Text
-
-            $b = New-Object System.Windows.Controls.Border
-            $b.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#09101E")
-            $b.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#192A45")
-            $b.BorderThickness = New-Object System.Windows.Thickness(1)
-            $b.CornerRadius = New-Object System.Windows.CornerRadius(6)
-            $b.Padding = New-Object System.Windows.Thickness(7, 3, 7, 3)
-            $b.Margin = New-Object System.Windows.Thickness(0, 0, 0, 3)
-
-            $sp = New-Object System.Windows.Controls.StackPanel
-            $sp.Orientation = [System.Windows.Controls.Orientation]::Horizontal
-
-            $tb = New-Object System.Windows.Controls.TextBlock
-            $tb.Text = $taskText
-            $tb.Foreground = [System.Windows.Media.Brushes]::White
-            $tb.FontSize = 9.5
-            $tb.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
-
-            $cb = New-Object System.Windows.Controls.CheckBox
-            $cb.IsChecked = $false
-            $cb.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
-            $cb.Margin = New-Object System.Windows.Thickness(0, 0, 7, 0)
-            $cb.Tag = $tb
-
-            $cb.Add_Click({
-                param($sender, $eventArgs)
-                $targetTb = $sender.Tag
-                if ($sender.IsChecked) {
-                    $targetTb.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
-                    $targetTb.TextDecorations = [System.Windows.TextDecorations]::Strikethrough
-                } else {
-                    $targetTb.Foreground = [System.Windows.Media.Brushes]::White
-                    $targetTb.TextDecorations = $null
-                }
-                UpdateTodoCount
-            })
-
-            $sp.Children.Add($cb) | Out-Null
-            $sp.Children.Add($tb) | Out-Null
-            $b.Child = $sp
-            $todoListPanel.Children.Add($b) | Out-Null
-
-            $todoInput.Text = ""
-            UpdateTodoCount
-            ShowActionFeedback "Tugas Ditambahkan!" ([char]0xE73E) "#10B981"
-        }
-    }
-})
-
-# 12. DRAG AND DROP FILE SHELF
-$stagedCount = 0
-$notch.Add_DragEnter({
-    param($s, $e)
-    AnimateExpand
-    SwitchTab("shelf")
-    $e.Effects = [System.Windows.DragDropEffects]::Copy
-    $e.Handled = $true
-})
-
-$notch.Add_Drop({
-    param($s, $e)
-    if ($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)) {
-        $files = $e.Data.GetData([System.Windows.DataFormats]::FileDrop)
-        $shelfPlaceholder.Visibility = [System.Windows.Visibility]::Collapsed
-        
-        foreach ($file in $files) {
-            $global:stagedCount++
-            $shelfBadgeCount.Text = "($global:stagedCount)"
-            $name = [System.IO.Path]::GetFileName($file)
-            
-            $card = New-Object System.Windows.Controls.Border
-            $card.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#0C1527")
-            $card.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#1E3150")
-            $card.BorderThickness = New-Object System.Windows.Thickness(1)
-            $card.CornerRadius = New-Object System.Windows.CornerRadius(6)
-            $card.Padding = New-Object System.Windows.Thickness(8, 4, 8, 4)
-            $card.Margin = New-Object System.Windows.Thickness(0, 0, 8, 0)
-            $card.Cursor = [System.Windows.Input.Cursors]::Hand
-
-            $sp = New-Object System.Windows.Controls.StackPanel
-            $sp.Orientation = [System.Windows.Controls.Orientation]::Horizontal
-
-            $icon = New-Object System.Windows.Controls.TextBlock
-            $icon.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe MDL2 Assets")
-            $icon.Text = [char]0xE8A5
-            $icon.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00D2FF")
-            $icon.FontSize = 11
-            $icon.Margin = New-Object System.Windows.Thickness(0, 0, 6, 0)
-
-            $tb = New-Object System.Windows.Controls.TextBlock
-            $tb.Text = $name
-            $tb.Foreground = [System.Windows.Media.Brushes]::White
-            $tb.FontSize = 10
-
-            $sp.Children.Add($icon) | Out-Null
-            $sp.Children.Add($tb) | Out-Null
-            $card.Child = $sp
-
-            $shelfItemsList.Children.Add($card) | Out-Null
-        }
-        ShowActionFeedback "$($files.Count) File Ditambahkan!" ([char]0xED25) "#00D2FF"
-    }
-})
-
-# 13. DASHBOARD SHORTCUT ACTIONS
-$btnQuickLock = $dashWindow.FindName("BtnQuickLock")
-if ($btnQuickLock) { $btnQuickLock.Add_Click({ [Win32Helper]::LockWorkStation() }) }
-
-$btnQuickSleep = $dashWindow.FindName("BtnQuickSleep")
-if ($btnQuickSleep) { $btnQuickSleep.Add_Click({ Start-Process "rundll32.exe" -ArgumentList "powrprof.dll,SetSuspendState 0,1,0" }) }
-
-$btnQuickRestart = $dashWindow.FindName("BtnQuickRestart")
-if ($btnQuickRestart) { $btnQuickRestart.Add_Click({ Start-Process "shutdown.exe" -ArgumentList "/r /t 2 /c `"Restart via Oceru Dashboard`"" }) }
-
-$dashNoteBox = $dashWindow.FindName("DashNoteBox")
-$btnSaveNote = $dashWindow.FindName("BtnSaveNote")
-if ($btnSaveNote -and $dashNoteBox) {
-    $btnSaveNote.Add_Click({
-        $global:OceruState.notes[0].content = $dashNoteBox.Text
-        $global:OceruState.notes[0].updatedAt = (Get-Date).ToString("yyyy-MM-dd HH:mm")
-        Save-OceruState
-        ShowActionFeedback "Catatan Tersimpan!" ([char]0xE73E) "#10B981"
-    })
-}
-
-# Quick Launcher Handlers
-$btnQkChrome = $dashWindow.FindName("BtnQkChrome")
-if ($btnQkChrome) { $btnQkChrome.Add_Click({ Start-Process "chrome.exe" -ErrorAction SilentlyContinue }) }
-$btnQkExplorer = $dashWindow.FindName("BtnQkExplorer")
-if ($btnQkExplorer) { $btnQkExplorer.Add_Click({ Start-Process "explorer.exe" }) }
-$btnQkTerminal = $dashWindow.FindName("BtnQkTerminal")
-if ($btnQkTerminal) { $btnQkTerminal.Add_Click({ Start-Process "powershell.exe" }) }
-$btnQkTaskMgr = $dashWindow.FindName("BtnQkTaskMgr")
-if ($btnQkTaskMgr) { $btnQkTaskMgr.Add_Click({ Start-Process "taskmgr.exe" }) }
-$btnQkSettings = $dashWindow.FindName("BtnQkSettings")
-if ($btnQkSettings) { $btnQkSettings.Add_Click({ Start-Process "ms-settings:" }) }
-
-$btnQsWifi = $dashWindow.FindName("BtnQsWifi")
-if ($btnQsWifi) { $btnQsWifi.Add_Click({ [System.Diagnostics.Process]::Start("explorer.exe", "ms-availablenetworks:") }) }
-$btnQsBt = $dashWindow.FindName("BtnQsBt")
-if ($btnQsBt) { $btnQsBt.Add_Click({ [System.Diagnostics.Process]::Start("explorer.exe", "ms-settings:bluetooth") }) }
-
-$btnThemeSetDark = $dashWindow.FindName("BtnThemeSetDark")
-if ($btnThemeSetDark) { $btnThemeSetDark.Add_Click({ ApplyTheme("ocean-dark") }) }
-$btnThemeSetGlass = $dashWindow.FindName("BtnThemeSetGlass")
-if ($btnThemeSetGlass) { $btnThemeSetGlass.Add_Click({ ApplyTheme("glass") }) }
-$btnThemeSetCyber = $dashWindow.FindName("BtnThemeSetCyber")
-if ($btnThemeSetCyber) { $btnThemeSetCyber.Add_Click({ ApplyTheme("cyber") }) }
-
-# 14. REAL-TIME HARDWARE & SYSTEM MONITOR (1 Second Interval)
-$dashRamVal = $dashWindow.FindName("DashRamVal")
-$dashBatVal = $dashWindow.FindName("DashBatVal")
-$dashBatStatus = $dashWindow.FindName("DashBatStatus")
-$dashVolVal = $dashWindow.FindName("DashVolVal")
-$dashMuteStatus = $dashWindow.FindName("DashMuteStatus")
-$dashSysMonRam = $dashWindow.FindName("DashSysMonRam")
-$dashSysMonBat = $dashWindow.FindName("DashSysMonBat")
-
-$musicProgressVal = 42
-$waveState = 0
-$monitorTimer = New-Object System.Windows.Threading.DispatcherTimer
-$monitorTimer.Interval = [TimeSpan]::FromSeconds(1)
-
-$monitorTimer.Add_Tick({
-    $now = Get-Date
-    $clockText.Text = $now.ToString("HH:mm")
-    $dateText.Text = $now.ToString("HH:mm")
-
-    # 1. Real-time RAM Load (Fast Kernel32 GlobalMemoryStatusEx)
+    # RAM Monitoring via Kernel32
     try {
         $ram = [Win32Helper]::GetRamLoad()
+        $sysRamText.Text = "$ram%"
         $dashRamVal.Text = "$ram%"
-        $dashSysMonRam.Text = "$ram% Digunakan"
     } catch {}
 
-    # 2. Real-time Battery Check
+    # Battery Monitoring
     try {
         $power = [System.Windows.Forms.SystemInformation]::PowerStatus
         $batPct = [Math]::Round($power.BatteryLifePercent * 100)
         $isOnline = $power.PowerLineStatus -eq "Online"
 
-        $collapsedBatPct.Text = "$batPct%"
-        $headerBatText.Text = "$batPct%"
+        $compactBatPct.Text = "$batPct%"
         $dashBatVal.Text = "$batPct%"
-
         if ($isOnline) {
-            $collapsedBatIcon.Text = [char]0xEA93 # Lightning
-            $collapsedBatIcon.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#10B981")
-            $headerBatIcon.Text = [char]0xEA93
-            $dashBatStatus.Text = "Mengisi Daya ⚡"
-            $dashSysMonBat.Text = "$batPct% (Mengisi Daya ⚡)"
+            $compactBatIcon.Text = [char]0xEA93
+            $sysBatStatusText.Text = "Baterai $batPct% - Mengisi Daya"
+            $dashBatStatus.Text = "Mengisi Daya"
         } else {
-            $collapsedBatIcon.Text = [char]0xEBAA # Battery
-            $collapsedBatIcon.Foreground = if ($batPct -lt 20) { [System.Windows.Media.BrushConverter]::new().ConvertFromString("#EF4444") } else { [System.Windows.Media.BrushConverter]::new().ConvertFromString("#38BDF8") }
-            $headerBatIcon.Text = [char]0xEBAA
-            $dashBatStatus.Text = "Baterai Laptop"
-            $dashSysMonBat.Text = "$batPct% (Baterai)"
+            $compactBatIcon.Text = [char]0xEBAA
+            $sysBatStatusText.Text = "Baterai $batPct% - Daya Laptop"
+            $dashBatStatus.Text = "Daya Baterai"
         }
     } catch {}
-
-    # 3. Audio & Volume Display
-    $dashVolVal.Text = "$($global:OceruState.volume)%"
-    $dashMuteStatus.Text = if ($global:OceruState.isMuted) { "Audio Bisu (Muted)" } else { "Audio Normal" }
-
-    # 4. Music Equalizer & Lyric Simulation
-    if ($global:OceruState.currentMedia.isPlaying) {
-        $global:musicProgressVal = ($global:musicProgressVal + 1) % 100
-        $trackProgress.Value = $global:musicProgressVal
-
-        if ($global:musicProgressVal % 4 -eq 0) {
-            $global:lyricIndex = ($global:lyricIndex + 1) % $lyricsList.Count
-            $activeLyric = $lyricsList[$global:lyricIndex]
-            $pastLyric = $lyricsList[($global:lyricIndex - 1 + $lyricsList.Count) % $lyricsList.Count]
-            $nextLyric = $lyricsList[($global:lyricIndex + 1) % $lyricsList.Count]
-
-            $musicLyricMini.Text = $activeLyric
-            $lyricLineActive.Text = $activeLyric
-            $lyricLinePast.Text = $pastLyric
-            $lyricLineNext.Text = $nextLyric
-
-            $global:waveState = ($global:waveState + 1) % 3
-            if ($global:waveState -eq 0) {
-                $waveAnimText.Text = " |||"
-                $compactWaveText.Text = "|||"
-            } elseif ($global:waveState -eq 1) {
-                $waveAnimText.Text = " | |"
-                $compactWaveText.Text = "| |"
-            } else {
-                $waveAnimText.Text = " || "
-                $compactWaveText.Text = "|| "
-            }
-        }
-    }
 })
 
-$monitorTimer.Start()
-
-# Apply saved theme on start
-ApplyTheme($global:OceruState.theme)
+$mainTimer.Start()
 
 # Run Island Application Window
 $window.ShowDialog() | Out-Null
