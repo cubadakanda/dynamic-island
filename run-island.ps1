@@ -288,25 +288,10 @@ $islandXaml = @'
 
     <Grid x:Name="MasterGrid">
         <!-- ======================================================== -->
-        <!-- RESPONSIVE LIQUID BACKGROUND NOTCH WITH CONCAVE EARS      -->
-        <!-- Stretches and morphs smoothly at any width/height!       -->
+        <!-- PURE OBSIDIAN GLASS SILHOUETTE (No blur/halo/contour!)   -->
+        <!-- Crisp luxury capsule finish with subtle glass stroke     -->
         <!-- ======================================================== -->
-        <Grid Margin="14,0,14,0">
-            <!-- Left Concave Ear (Curves from screen bezel into notch) -->
-            <Path Fill="#000000" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-14,0,0,0"
-                  Data="M 0,0 C 7,0 14,7 14,14 L 14,0 Z"/>
-            
-            <!-- Center Notch Body (Stretches fluidly in real time) -->
-            <Border x:Name="NotchBody" Background="#000000" CornerRadius="0,0,18,18">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="0.65" Color="#000000"/>
-                </Border.Effect>
-            </Border>
-
-            <!-- Right Concave Ear (Curves from notch into screen bezel) -->
-            <Path Fill="#000000" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,-14,0"
-                  Data="M 14,0 C 7,0 0,7 0,14 L 0,0 Z"/>
-        </Grid>
+        <Border x:Name="NotchBody" Background="#000000" BorderBrush="#1C273C" BorderThickness="1" CornerRadius="0,0,18,18"/>
 
         <!-- ======================================================== -->
         <!-- VIEW 1: RESTING CAT EYES PILL (Standalone, Eyes Only!)    -->
@@ -346,7 +331,7 @@ $islandXaml = @'
         <!-- ======================================================== -->
         <!-- VIEW 2: COMPACT STATUS BAR (Weather, Clock, Battery)     -->
         <!-- ======================================================== -->
-        <Grid x:Name="StatusGrid" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Center" Cursor="Hand" Margin="22,0,22,0" Opacity="0">
+        <Grid x:Name="StatusGrid" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Center" Cursor="Hand" Margin="16,0,16,0" Opacity="0">
             <!-- Left: Weather -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
                 <TextBlock Text="&#xE706;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,4,0" VerticalAlignment="Center"/>
@@ -368,7 +353,7 @@ $islandXaml = @'
         <!-- ======================================================== -->
         <!-- VIEW 3: EXPANDED CAROUSEL VIEW (Full Notch)              -->
         <!-- ======================================================== -->
-        <Grid x:Name="ExpandedGrid" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="26,0,26,0" Opacity="0">
+        <Grid x:Name="ExpandedGrid" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="20,0,20,0" Opacity="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="34"/>  <!-- Top Status / Header Row -->
                 <RowDefinition Height="114"/> <!-- Main Carousel Card Body -->
@@ -1194,8 +1179,8 @@ $dashXaml = @'
                             <TextBlock Text="Atur perilaku, ukuran, dan animasi notch di desktop Anda." FontSize="12" Foreground="#64748B" Margin="0,4,0,16"/>
                             <Border Style="{StaticResource DashCard}">
                                 <StackPanel>
-                                    <TextBlock Text="Bentuk Notch: Concave Wings (Ear Bezel)" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF"/>
-                                    <TextBlock Text="Lengkungan kurva bezier aerodinamis menyatu dengan bezel atas layar monitor." FontSize="12" Foreground="#64748B" Margin="0,4,0,0"/>
+                                    <TextBlock Text="Bentuk Notch: Pure Obsidian Glass Capsule" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF"/>
+                                    <TextBlock Text="Kapsul minimalis modern tanpa bayangan tepi atau kontur berlebih, menyatu bersih dan elegan." FontSize="12" Foreground="#64748B" Margin="0,4,0,0"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -1472,10 +1457,9 @@ $global:fromR = 18
 $global:toR = 18
 
 function Set-IslandMode($mode) {
-    if ($global:islandMode -eq $mode -and -not $global:animTimer.IsEnabled) { return }
-    $prevMode = $global:islandMode
-    $global:islandMode = $mode
+    if ($global:targetMode -eq $mode) { return }
     $global:targetMode = $mode
+    $global:islandMode = $mode
 
     # Capture current live dimensions as starting point (enables seamless reversal!)
     $global:fromW = $window.Width
@@ -1488,7 +1472,7 @@ function Set-IslandMode($mode) {
         $global:toH = $eyesHeight
         $global:toL = $eyesLeftPos
         $global:toR = 18
-        $global:animDuration = 240
+        $global:animDuration = 260
         $eyesGrid.Visibility = [System.Windows.Visibility]::Visible
     }
     elseif ($mode -eq "status") {
@@ -1496,7 +1480,7 @@ function Set-IslandMode($mode) {
         $global:toH = $statusHeight
         $global:toL = $statusLeftPos
         $global:toR = 18
-        $global:animDuration = 240
+        $global:animDuration = 260
         $global:statusIdleTicks = 0
         $statusGrid.Visibility = [System.Windows.Visibility]::Visible
     }
@@ -1504,8 +1488,8 @@ function Set-IslandMode($mode) {
         $global:toW = $expandedWidth
         $global:toH = $expandedHeight
         $global:toL = $expandedLeftPos
-        $global:toR = 26
-        $global:animDuration = 280
+        $global:toR = 24
+        $global:animDuration = 300
         $global:outsideTicks = 0
         $expandedGrid.Visibility = [System.Windows.Visibility]::Visible
     }
@@ -1518,8 +1502,8 @@ $global:animTimer.Add_Tick({
     $elapsed = $global:animSw.ElapsedMilliseconds
     $t = [Math]::Min(1.0, $elapsed / $global:animDuration)
 
-    # Quintic Ease-Out Curve: 1 - (1 - t)^5 (Natural spring deceleration)
-    $ease = 1.0 - [Math]::Pow(1.0 - $t, 5)
+    # Fluid Liquid Cubic Deceleration Curve: 1 - (1 - t)^2.8
+    $ease = 1.0 - [Math]::Pow(1.0 - $t, 2.8)
 
     # Interpolate Window Width, Height, Left, and Corner Radius in real time
     $curW = [Math]::Round($global:fromW + ($global:toW - $global:fromW) * $ease)
@@ -1534,36 +1518,36 @@ $global:animTimer.Add_Tick({
 
     # Cross-fading Opacities between active views during interpolation
     if ($global:targetMode -eq "expanded") {
-        # Fade out compact views in first 35%
-        $compactOp = [Math]::Max(0.0, 1.0 - ($t / 0.35))
+        # Smoothly fade out compact views
+        $compactOp = [Math]::Max(0.0, 1.0 - ($t / 0.28))
         $eyesGrid.Opacity = $compactOp
         $statusGrid.Opacity = $compactOp
 
-        # Fade in expanded view in second half
-        if ($t -ge 0.35) {
-            $expandedGrid.Opacity = [Math]::Min(1.0, ($t - 0.35) / 0.65)
+        # Smooth progressive fade in of expanded view
+        if ($t -ge 0.18) {
+            $expandedGrid.Opacity = [Math]::Min(1.0, ($t - 0.18) / 0.82)
         } else {
             $expandedGrid.Opacity = 0.0
         }
     }
     elseif ($global:targetMode -eq "status") {
         # Fade out expanded view
-        $expandedGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.4))
+        $expandedGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.35))
 
         # Fade in status view
-        if ($t -ge 0.3) {
-            $statusGrid.Opacity = [Math]::Min(1.0, ($t - 0.3) / 0.7)
+        if ($t -ge 0.2) {
+            $statusGrid.Opacity = [Math]::Min(1.0, ($t - 0.2) / 0.8)
         }
         $eyesGrid.Opacity = 0.0
     }
     elseif ($global:targetMode -eq "eyes") {
-        # Fade out other views
-        $statusGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.4))
+        # Fade out status view
+        $statusGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.35))
         $expandedGrid.Opacity = 0.0
 
         # Fade in eyes view
-        if ($t -ge 0.3) {
-            $eyesGrid.Opacity = [Math]::Min(1.0, ($t - 0.3) / 0.7)
+        if ($t -ge 0.2) {
+            $eyesGrid.Opacity = [Math]::Min(1.0, ($t - 0.2) / 0.8)
         }
     }
 
@@ -1598,6 +1582,8 @@ $eyesGrid.Add_MouseEnter({ Set-IslandMode "expanded" })
 $eyesGrid.Add_MouseLeftButtonUp({ Set-IslandMode "expanded" })
 $statusGrid.Add_MouseEnter({ Set-IslandMode "expanded" })
 $statusGrid.Add_MouseLeftButtonUp({ Set-IslandMode "expanded" })
+$notchBody.Add_MouseEnter({ if ($global:targetMode -ne "expanded") { Set-IslandMode "expanded" } })
+$notchBody.Add_MouseLeftButtonUp({ if ($global:targetMode -ne "expanded") { Set-IslandMode "expanded" } })
 
 # ACTION FEEDBACK TOAST HELPER
 $toastTimer = New-Object System.Windows.Threading.DispatcherTimer
@@ -2030,10 +2016,10 @@ $fastEyeTimer.Add_Tick({
             }
 
             # Instant hover detection on Eyes Pill to Expand
-            $inEyes = ($cursorPos.X -ge ($eyesLeftPos - 6)) -and 
-                      ($cursorPos.X -le ($eyesLeftPos + $eyesWidth + 6)) -and 
+            $inEyes = ($cursorPos.X -ge ($window.Left - 6)) -and 
+                      ($cursorPos.X -le ($window.Left + $window.Width + 6)) -and 
                       ($cursorPos.Y -ge 0) -and 
-                      ($cursorPos.Y -le ($eyesHeight + 8))
+                      ($cursorPos.Y -le ($window.Height + 8))
             
             if ($inEyes) {
                 Set-IslandMode "expanded"
@@ -2044,10 +2030,10 @@ $fastEyeTimer.Add_Tick({
         # -----------------------------------------------------------------
         elseif ($global:islandMode -eq "status") {
             # Hover detection on Status Bar to Expand
-            $inStatus = ($cursorPos.X -ge ($statusLeftPos - 6)) -and 
-                        ($cursorPos.X -le ($statusLeftPos + $statusWidth + 6)) -and 
+            $inStatus = ($cursorPos.X -ge ($window.Left - 6)) -and 
+                        ($cursorPos.X -le ($window.Left + $window.Width + 6)) -and 
                         ($cursorPos.Y -ge 0) -and 
-                        ($cursorPos.Y -le ($statusHeight + 8))
+                        ($cursorPos.Y -le ($window.Height + 8))
             
             if ($inStatus) {
                 Set-IslandMode "expanded"
@@ -2065,15 +2051,15 @@ $fastEyeTimer.Add_Tick({
         # MODE 3: EXPANDED CAROUSEL NOTCH (No collapse button!)
         # -----------------------------------------------------------------
         elseif ($global:islandMode -eq "expanded") {
-            $inExpanded = ($cursorPos.X -ge ($expandedLeftPos - 10)) -and 
-                          ($cursorPos.X -le ($expandedLeftPos + $expandedWidth + 10)) -and 
+            $inExpanded = ($cursorPos.X -ge ($window.Left - 10)) -and 
+                          ($cursorPos.X -le ($window.Left + $window.Width + 10)) -and 
                           ($cursorPos.Y -ge 0) -and 
-                          ($cursorPos.Y -le ($expandedHeight + 14))
+                          ($cursorPos.Y -le ($window.Height + 14))
 
             if (-not $inExpanded) {
                 $global:outsideTicks++
-                # 7 ticks * 40ms = 280ms auto-collapse delay
-                if ($global:outsideTicks -ge 7) {
+                # 6 ticks * 40ms = 240ms auto-collapse delay
+                if ($global:outsideTicks -ge 6) {
                     # When closing, return to the status bar (Clock, Weather, Battery)!
                     Set-IslandMode "status"
                 }
