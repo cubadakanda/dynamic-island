@@ -8,12 +8,12 @@
     "islandOpacity":  0.95,
     "autoCollapseSeconds":  5,
     "language":  "id",
-    "volume":  52,
+    "volume":  46,
     "isMuted":  false,
     "currentMedia":  {
-                         "title":  "Midnight Echoes",
-                         "artist":  "Azure Horizon - Chillout",
-                         "isPlaying":  false,
+                         "title":  "New West - Those Eyes (Mix Lyrics) Seafret, d4vd",
+                         "artist":  "Multiverse Song (YouTube / Chrome)",
+                         "isPlaying":  true,
                          "progress":  42
                      },
     "pomodoro":  {
@@ -39,6 +39,16 @@
                       "title":  "Catatan Proyek Oceru",
                       "content":  "Desain antarmuka Ocean Azure Glass dengan integrasi kontrol hardware Windows.",
                       "updatedAt":  "2026-10-24 23:30"
+                  },
+                  {
+                      "id":  639285221756653853,
+                      "title":  "Catatan Baru",
+                      "content":  "Meeting project Oceru jam 10 pagi..."
+                  },
+                  {
+                      "id":  639285221894795599,
+                      "title":  "Catatan Baru",
+                      "content":  "hallo gess"
                   }
               ],
     "tasks":  [
