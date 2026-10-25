@@ -175,7 +175,7 @@ $expandedLeftPos = [Math]::Round(($screenWidth - $expandedWidth) / 2)
 
 $global:notchCenterX = $screenWidth / 2
 
-# XAML 1: DYNAMIC ISLAND (RESTING CAT EYES + STATUS BAR + 6-CARD CAROUSEL)
+# XAML 1: DYNAMIC ISLAND (RESPONSIVE LIQUID NOTCH SILHOUETTE + SMOOTH INTERPOLATION)
 $islandXaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -286,19 +286,32 @@ $islandXaml = @'
         </Style>
     </Window.Resources>
 
-    <Grid>
+    <Grid x:Name="MasterGrid">
+        <!-- ======================================================== -->
+        <!-- RESPONSIVE LIQUID BACKGROUND NOTCH WITH CONCAVE EARS      -->
+        <!-- Stretches and morphs smoothly at any width/height!       -->
+        <!-- ======================================================== -->
+        <Grid Margin="14,0,14,0">
+            <!-- Left Concave Ear (Curves from screen bezel into notch) -->
+            <Path Fill="#000000" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-14,0,0,0"
+                  Data="M 0,0 C 7,0 14,7 14,14 L 14,0 Z"/>
+            
+            <!-- Center Notch Body (Stretches fluidly in real time) -->
+            <Border x:Name="NotchBody" Background="#000000" CornerRadius="0,0,18,18">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="0.65" Color="#000000"/>
+                </Border.Effect>
+            </Border>
+
+            <!-- Right Concave Ear (Curves from notch into screen bezel) -->
+            <Path Fill="#000000" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,-14,0"
+                  Data="M 14,0 C 7,0 0,7 0,14 L 0,0 Z"/>
+        </Grid>
+
         <!-- ======================================================== -->
         <!-- VIEW 1: RESTING CAT EYES PILL (Standalone, Eyes Only!)    -->
         <!-- ======================================================== -->
-        <Grid x:Name="EyesGrid" Visibility="Visible" HorizontalAlignment="Center" VerticalAlignment="Top" Width="88" Height="36" Cursor="Hand">
-            <!-- Sleek Concave Silhouette for 88px Pill -->
-            <Path x:Name="EyesNotchBg" Fill="#000000"
-                  Data="M 0,0 C 6,0 12,6 12,12 L 12,20 A 16,16 0 0 0 28,36 L 60,36 A 16,16 0 0 0 76,20 L 76,12 C 76,6 82,0 88,0 L 0,0 Z">
-                <Path.Effect>
-                    <DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270" Opacity="0.6" Color="#000000"/>
-                </Path.Effect>
-            </Path>
-
+        <Grid x:Name="EyesGrid" Visibility="Visible" HorizontalAlignment="Center" VerticalAlignment="Center" Cursor="Hand" Opacity="1">
             <!-- Centered Interactive Cat Eyes (Tracks Cursor Everywhere!) -->
             <StackPanel x:Name="CatEyesContainer" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <!-- Left Eye -->
@@ -333,603 +346,581 @@ $islandXaml = @'
         <!-- ======================================================== -->
         <!-- VIEW 2: COMPACT STATUS BAR (Weather, Clock, Battery)     -->
         <!-- ======================================================== -->
-        <Grid x:Name="StatusGrid" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Width="230" Height="36" Cursor="Hand">
-            <!-- Silhouette with Concave Ears for 230px Status Bar -->
-            <Path x:Name="StatusNotchBg" Fill="#000000"
-                  Data="M 0,0 C 6,0 12,6 12,12 L 12,20 A 16,16 0 0 0 28,36 L 202,36 A 16,16 0 0 0 218,20 L 218,12 C 218,6 224,0 230,0 L 0,0 Z">
-                <Path.Effect>
-                    <DropShadowEffect BlurRadius="14" ShadowDepth="3" Direction="270" Opacity="0.6" Color="#000000"/>
-                </Path.Effect>
-            </Path>
+        <Grid x:Name="StatusGrid" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Center" Cursor="Hand" Margin="22,0,22,0" Opacity="0">
+            <!-- Left: Weather -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <TextBlock Text="&#xE706;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                <TextBlock Text="28&#176;" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+            </StackPanel>
 
-            <!-- Status Content Row: Weather on Left, Clock in Center, Battery on Right -->
-            <Grid Margin="16,0,16,0">
-                <!-- Left: Weather -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                    <TextBlock Text="&#xE706;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="28&#176;" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
-                </StackPanel>
+            <!-- Center: REAL-TIME CLOCK (Replaces Eyes in Status Bar!) -->
+            <TextBlock x:Name="CompactClockText" Text="09:35" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-                <!-- Center: REAL-TIME CLOCK (Replaces Eyes in Status Bar!) -->
-                <TextBlock x:Name="CompactClockText" Text="09:35" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"
-                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
-                <!-- Right: Battery & Mode -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock x:Name="CompactBatPct" Text="85%" FontSize="11" Foreground="#CBD5E1" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="CompactBatIcon" Text="&#xEA93;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Grid>
+            <!-- Right: Battery & Mode -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBlock x:Name="CompactBatPct" Text="85%" FontSize="11" Foreground="#CBD5E1" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="CompactBatIcon" Text="&#xEA93;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" VerticalAlignment="Center"/>
+            </StackPanel>
         </Grid>
 
 
         <!-- ======================================================== -->
         <!-- VIEW 3: EXPANDED CAROUSEL VIEW (Full Notch)              -->
         <!-- ======================================================== -->
-        <Grid x:Name="ExpandedGrid" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Width="560" Height="205">
-            <!-- Background Notch Silhouette with Concave Ears -->
-            <Path x:Name="NotchBgPath" Fill="#000000"
-                  Data="M 0,0 C 10,0 20,10 20,20 L 20,162 A 28,28 0 0 0 48,190 L 512,190 A 28,28 0 0 0 540,162 L 540,20 C 540,10 550,0 560,0 L 0,0 Z">
-                <Path.Effect>
-                    <DropShadowEffect BlurRadius="25" ShadowDepth="6" Direction="270" Opacity="0.6" Color="#000000"/>
-                </Path.Effect>
-            </Path>
+        <Grid x:Name="ExpandedGrid" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="26,0,26,0" Opacity="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="34"/>  <!-- Top Status / Header Row -->
+                <RowDefinition Height="114"/> <!-- Main Carousel Card Body -->
+                <RowDefinition Height="38"/>  <!-- Bottom Action Buttons & Pagination -->
+            </Grid.RowDefinitions>
 
-            <!-- Main Interior Container -->
-            <Grid Margin="26,0,26,0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="34"/>  <!-- Top Status / Header Row -->
-                    <RowDefinition Height="114"/> <!-- Main Carousel Card Body -->
-                    <RowDefinition Height="38"/>  <!-- Bottom Action Buttons & Pagination -->
-                </Grid.RowDefinitions>
+            <!-- Center Top Sensor / Camera Dot -->
+            <Border Width="6" Height="6" CornerRadius="3" Background="#18181A"
+                    HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,3,0,0"/>
 
-                <!-- Center Top Sensor / Camera Dot -->
-                <Border Width="6" Height="6" CornerRadius="3" Background="#18181A"
-                        HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,3,0,0"/>
+            <!-- TOP HEADER ROW (NO COLLAPSE BUTTON!) -->
+            <Grid Grid.Row="0" Margin="10,6,10,0">
+                <!-- Left: Card Title -->
+                <TextBlock x:Name="HeaderTitleText" Text="" FontWeight="SemiBold" FontSize="15" Foreground="#FFFFFF"
+                           VerticalAlignment="Center" HorizontalAlignment="Left" Cursor="Hand"/>
 
-                <!-- TOP HEADER ROW (NO COLLAPSE BUTTON!) -->
-                <Grid Grid.Row="0" Margin="10,6,10,0">
-                    <!-- Left: Card Title -->
-                    <TextBlock x:Name="HeaderTitleText" Text="" FontWeight="SemiBold" FontSize="15" Foreground="#FFFFFF"
-                               VerticalAlignment="Center" HorizontalAlignment="Left" Cursor="Hand"/>
+                <!-- Center: Green Ring + Date & Time -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border Width="13" Height="13" CornerRadius="6.5" BorderThickness="2" BorderBrush="#10B981"
+                            Margin="0,0,7,0" Background="Transparent"/>
+                    <TextBlock x:Name="HeaderDateText" Text="Sun 25 Oct 2026 " FontSize="12" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="HeaderTimeText" Text="09:35" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                </StackPanel>
 
-                    <!-- Center: Green Ring + Date & Time -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <Border Width="13" Height="13" CornerRadius="6.5" BorderThickness="2" BorderBrush="#10B981"
-                                Margin="0,0,7,0" Background="Transparent"/>
-                        <TextBlock x:Name="HeaderDateText" Text="Sun 25 Oct 2026 " FontSize="12" Foreground="#CBD5E1" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="HeaderTimeText" Text="09:35" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                <!-- Right: Soundwave Equalizer Bars (Clean Header) -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <StackPanel x:Name="HeaderWavePanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0">
+                        <Border x:Name="WaveBar1" Width="2.5" Height="8" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
+                        <Border x:Name="WaveBar2" Width="2.5" Height="14" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
+                        <Border x:Name="WaveBar3" Width="2.5" Height="10" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
+                        <Border x:Name="WaveBar4" Width="2.5" Height="12" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
                     </StackPanel>
+                </StackPanel>
+            </Grid>
 
-                    <!-- Right: Soundwave Equalizer Bars (Collapse Button Removed as Requested!) -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <StackPanel x:Name="HeaderWavePanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0">
-                            <Border x:Name="WaveBar1" Width="2.5" Height="8" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
-                            <Border x:Name="WaveBar2" Width="2.5" Height="14" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
-                            <Border x:Name="WaveBar3" Width="2.5" Height="10" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
-                            <Border x:Name="WaveBar4" Width="2.5" Height="12" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Grid>
+            <!-- MAIN CAROUSEL CONTENT (6 CARDS) -->
+            <Grid Grid.Row="1" Margin="10,0,10,0">
+                
+                <!-- ============================================== -->
+                <!-- CARD 0: MUSIC PLAYER                           -->
+                <!-- ============================================== -->
+                <Grid x:Name="CardMusic" Visibility="Visible">
+                    <!-- Default Player Layout -->
+                    <Grid x:Name="MusicPlayerView" Visibility="Visible">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="68"/>
+                            <RowDefinition Height="20"/>
+                            <RowDefinition Height="26"/>
+                        </Grid.RowDefinitions>
 
-                <!-- MAIN CAROUSEL CONTENT (6 CARDS) -->
-                <Grid Grid.Row="1" Margin="10,0,10,0">
-                    
-                    <!-- ============================================== -->
-                    <!-- CARD 0: MUSIC PLAYER                           -->
-                    <!-- ============================================== -->
-                    <Grid x:Name="CardMusic" Visibility="Visible">
-                        <!-- Default Player Layout -->
-                        <Grid x:Name="MusicPlayerView" Visibility="Visible">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="68"/>
-                                <RowDefinition Height="20"/>
-                                <RowDefinition Height="26"/>
-                            </Grid.RowDefinitions>
-
-                            <Grid Grid.Row="0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="78"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="32"/>
-                                </Grid.ColumnDefinitions>
-
-                                <!-- Stylized Vinyl Album Art -->
-                                <Border Grid.Column="0" Width="68" Height="68" CornerRadius="14" Background="#DCEAF8"
-                                        HorizontalAlignment="Left" VerticalAlignment="Center" ClipToBounds="True">
-                                    <Grid>
-                                        <Border Height="1" Background="#CBDCF0" VerticalAlignment="Top" Margin="0,14,0,0"/>
-                                        <Border Height="1" Background="#CBDCF0" VerticalAlignment="Top" Margin="0,28,0,0"/>
-                                        <Border Height="1" Background="#CBDCF0" VerticalAlignment="Top" Margin="0,42,0,0"/>
-                                        <Border Height="1" Background="#CBDCF0" VerticalAlignment="Top" Margin="0,56,0,0"/>
-                                        <Border Width="46" Height="46" CornerRadius="23" BorderThickness="1.5" BorderBrush="#94C5EE"
-                                                HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <Border Width="38" Height="38" CornerRadius="19" Background="#0284C7"
-                                                    HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <Border Width="24" Height="24" CornerRadius="12" BorderThickness="1.5" BorderBrush="#BAE6FD"
-                                                        HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <Border Width="10" Height="10" CornerRadius="5" Background="#0369A1"/>
-                                                </Border>
-                                            </Border>
-                                        </Border>
-                                        <Path Data="M 14,8 L 54,60" Stroke="#FFFFFF" StrokeThickness="1.5" Opacity="0.9"/>
-                                    </Grid>
-                                </Border>
-
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0">
-                                    <TextBlock x:Name="MusicTitle" Text="Paper Sky" FontSize="16" FontWeight="SemiBold"
-                                               Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock x:Name="MusicArtist" Text="Lumen Coast - Summer Flows" FontSize="12"
-                                               Foreground="#8E8E93" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-
-                                <Button x:Name="BtnMusicNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}"
-                                        HorizontalAlignment="Right" VerticalAlignment="Center">
-                                    <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-                                </Button>
-                            </Grid>
-
-                            <!-- Seekbar -->
-                            <Grid Grid.Row="1" VerticalAlignment="Center">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="42"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="46"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock x:Name="MusicCurrentTime" Grid.Column="0" Text="03:13" FontSize="11" Foreground="#FFFFFF" VerticalAlignment="Center"/>
-                                <Grid Grid.Column="1" Margin="6,0" VerticalAlignment="Center">
-                                    <Border Height="4" CornerRadius="2" Background="#2C2C2E"/>
-                                    <Border x:Name="MusicProgressBar" Height="4" CornerRadius="2" Background="#FFFFFF" HorizontalAlignment="Left" Width="150"/>
-                                </Grid>
-                                <TextBlock x:Name="MusicRemainingTime" Grid.Column="2" Text="-01:03" FontSize="11" Foreground="#8E8E93"
-                                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                            </Grid>
-
-                            <!-- Controls Row -->
-                            <Grid Grid.Row="2">
-                                <Button x:Name="BtnToggleLyrics" Style="{StaticResource CircleNavBtn}" Width="26" Height="26"
-                                        HorizontalAlignment="Left" VerticalAlignment="Center" ToolTip="Lihat Lirik Lagu">
-                                    <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#8E8E93"/>
-                                </Button>
-
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <Button x:Name="BtnMusicPrev" Style="{StaticResource MediaControlBtn}" Margin="0,0,24,0">
-                                        <TextBlock Text="&#xE892;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#FFFFFF"/>
-                                    </Button>
-                                    <Button x:Name="BtnMusicPlayPause" Style="{StaticResource MediaControlBtn}" Margin="0,0,24,0">
-                                        <TextBlock x:Name="MusicPlayPauseIcon" Text="&#xE769;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#FFFFFF"/>
-                                    </Button>
-                                    <Button x:Name="BtnMusicNext" Style="{StaticResource MediaControlBtn}">
-                                        <TextBlock Text="&#xE893;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#FFFFFF"/>
-                                    </Button>
-                                </StackPanel>
-                            </Grid>
-                        </Grid>
-
-                        <!-- Synced Lyrics View (Toggled via Lyrics button) -->
-                        <Grid x:Name="MusicLyricsView" Visibility="Collapsed">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="24"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <Button x:Name="BtnBackFromLyrics" Grid.Row="0" Style="{StaticResource CircleNavBtn}" Width="22" Height="22" HorizontalAlignment="Left">
-                                <TextBlock Text="&#xE72B;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#CBD5E1"/>
-                            </Button>
-                            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
-                                <TextBlock Text="Gliding high above the quiet morning sky..." FontSize="12" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,2"/>
-                                <TextBlock Text="Ocean breeze whispers what you left behind" FontSize="14" FontWeight="Bold" Foreground="#00D2FF" HorizontalAlignment="Center" Margin="0,2"/>
-                                <TextBlock Text="Folded wings of paper chasing summer light" FontSize="12" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,2"/>
-                            </StackPanel>
-                        </Grid>
-                    </Grid>
-
-
-                    <!-- ============================================== -->
-                    <!-- CARD 1: POMODORO FOCUS TIMER                   -->
-                    <!-- ============================================== -->
-                    <Grid x:Name="CardPomo" Visibility="Collapsed">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="32"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="32"/>
-                        </Grid.ColumnDefinitions>
-
-                        <Button x:Name="BtnPomoPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-                        </Button>
-
-                        <Grid Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Grid Grid.Row="0">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="90"/>
-                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="78"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="32"/>
                             </Grid.ColumnDefinitions>
 
-                            <!-- Circular Timer Dial -->
-                            <Grid Grid.Column="0" Width="82" Height="82" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Border Width="82" Height="82" CornerRadius="41" BorderThickness="2.5" BorderBrush="#222224" Background="#121214"/>
-                                <Border Width="82" Height="82" CornerRadius="41" BorderThickness="2.5" BorderBrush="#FF5252"
-                                        Opacity="0.85" Background="Transparent"/>
-                                <Border Width="6" Height="6" CornerRadius="3" Background="#FF5252" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0"/>
-                                <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#FF5252"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Grid>
-
-                            <!-- Timer Typography and Reset -->
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0">
-                                <TextBlock Text="Waktu Fokus" FontSize="12" Foreground="#A1A1AA" Margin="0,0,0,2"/>
-                                <TextBlock x:Name="PomoSubtitle" Text="Focus time" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                    <TextBlock x:Name="PomoDisplayTime" Text="25:00" FontFamily="Segoe UI, Consolas" FontSize="30" FontWeight="Bold" Foreground="#FFFFFF"/>
-                                    <Button x:Name="BtnPomoReset" Style="{StaticResource CircleNavBtn}" Width="24" Height="24" Margin="10,0,0,0" ToolTip="Reset Timer">
-                                        <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#A1A1AA"/>
-                                    </Button>
-                                </StackPanel>
-                            </StackPanel>
-                        </Grid>
-
-                        <Button x:Name="BtnPomoNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-                        </Button>
-                    </Grid>
-
-
-                    <!-- ============================================== -->
-                    <!-- CARD 2: CATATAN & TO-DO LIST                   -->
-                    <!-- ============================================== -->
-                    <Grid x:Name="CardNotesTodo" Visibility="Collapsed">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="32"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="32"/>
-                        </Grid.ColumnDefinitions>
-
-                        <Button x:Name="BtnNotesPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-                        </Button>
-
-                        <!-- Left Half: Quick Note Editor -->
-                        <Border Grid.Column="1" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="22"/>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="24"/>
-                                </Grid.RowDefinitions>
-                                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
-                                    <TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Catatan Cepat" FontSize="12" FontWeight="Bold" Foreground="#00D2FF" VerticalAlignment="Center"/>
-                                </StackPanel>
-                                <TextBox x:Name="InputNoteText" Grid.Row="1" Background="#070C18" Foreground="#FFFFFF" BorderBrush="#1B2F50"
-                                         FontSize="11" Margin="0,3" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Hidden"
-                                         Text="Meeting project Oceru jam 10 pagi..."/>
-                                <Button x:Name="BtnSaveNote" Grid.Row="2" Style="{StaticResource PillBtn}" Padding="8,2" HorizontalAlignment="Right">
-                                    <TextBlock Text="Simpan" FontSize="10" Foreground="#38BDF8"/>
-                                </Button>
-                            </Grid>
-                        </Border>
-
-                        <!-- Right Half: To-Do Checklist -->
-                        <Border Grid.Column="2" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="22"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
-                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Tugas Hari Ini" FontSize="12" FontWeight="Bold" Foreground="#10B981" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="TodoStatusCount" Text=" (2/3)" FontSize="11" Foreground="#94A3B8" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                                </StackPanel>
-                                <StackPanel Grid.Row="1" Margin="0,4,0,0">
-                                    <CheckBox x:Name="CbTask1" Content="Uji responsivitas Notch" IsChecked="True" Foreground="#CBD5E1" FontSize="11" Margin="0,2"/>
-                                    <CheckBox x:Name="CbTask2" Content="Sinkronisasi audio &amp; volume" IsChecked="True" Foreground="#CBD5E1" FontSize="11" Margin="0,2"/>
-                                    <CheckBox x:Name="CbTask3" Content="Cek catatan &amp; to-do list" IsChecked="False" Foreground="#CBD5E1" FontSize="11" Margin="0,2"/>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <Button x:Name="BtnNotesNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-                        </Button>
-                    </Grid>
-
-
-                    <!-- ============================================== -->
-                    <!-- CARD 3: PAPAN KLIP & FILE SHELF                -->
-                    <!-- ============================================== -->
-                    <Grid x:Name="CardClipShelf" Visibility="Collapsed">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="32"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="32"/>
-                        </Grid.ColumnDefinitions>
-
-                        <Button x:Name="BtnClipPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-                        </Button>
-
-                        <!-- Left: Clipboard History -->
-                        <Border Grid.Column="1" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="22"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
-                                    <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#C084FC" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Riwayat Salinan" FontSize="12" FontWeight="Bold" Foreground="#C084FC" VerticalAlignment="Center"/>
-                                </StackPanel>
-                                <StackPanel Grid.Row="1" Margin="0,4,0,0">
-                                    <Button x:Name="BtnCopyClip1" Style="{StaticResource QuickMiniBtn}" Margin="0,2" HorizontalContentAlignment="Left">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE71B;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#38BDF8" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                            <TextBlock Text="github.com/cubadakanda..." FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </Button>
-                                    <Button x:Name="BtnCopyClip2" Style="{StaticResource QuickMiniBtn}" Margin="0,2" HorizontalContentAlignment="Left">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                            <TextBlock Text="Oceru Dynamic Island" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </Button>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <!-- Right: File Shelf Drop Zone -->
-                        <Border x:Name="ShelfDropBorder" Grid.Column="2" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0" AllowDrop="True">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="22"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
-                                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="File Shelf (Tarik File)" FontSize="12" FontWeight="Bold" Foreground="#F59E0B" VerticalAlignment="Center"/>
-                                </StackPanel>
-                                <Border Grid.Row="1" BorderBrush="#2A3B58" BorderThickness="1" CornerRadius="8" Background="#070D18" Margin="0,3">
-                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <TextBlock Text="&#xED25;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                            <TextBlock Text="Lepas file di sini" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                        <TextBlock x:Name="ShelfFileCount" Text="0 file tersimpan" FontSize="10" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
-                        </Border>
-
-                        <Button x:Name="BtnClipNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-                        </Button>
-                    </Grid>
-
-
-                    <!-- ============================================== -->
-                    <!-- CARD 4: MONITOR SISTEM & WATER REMINDER        -->
-                    <!-- ============================================== -->
-                    <Grid x:Name="CardSysWater" Visibility="Collapsed">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="32"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="32"/>
-                        </Grid.ColumnDefinitions>
-
-                        <Button x:Name="BtnSysPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-                        </Button>
-
-                        <!-- Left: System Hardware -->
-                        <Border Grid.Column="1" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
-                            <StackPanel VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock x:Name="SysRamText" Text="48%" FontFamily="Segoe UI, Consolas" FontSize="28" FontWeight="Bold" Foreground="#FFFFFF"/>
-                                    <TextBlock Text=" RAM" FontSize="14" FontWeight="SemiBold" Foreground="#00D2FF" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
-                                </StackPanel>
-                                <TextBlock x:Name="SysBatStatusText" Text="Baterai 85% - Mengisi Daya" FontSize="11" Foreground="#8E8E93" Margin="0,2,0,0"/>
-                                <Button x:Name="BtnSysTaskMgr" Style="{StaticResource QuickMiniBtn}" Margin="0,6,0,0" HorizontalAlignment="Left">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#38BDF8" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Buka Task Manager" FontSize="10" Foreground="#38BDF8" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Right: Water Reminder -->
-                        <Border Grid.Column="2" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
-                            <StackPanel VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE798;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#38BDF8" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Air Minum" FontSize="12" FontWeight="Bold" Foreground="#38BDF8" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="WaterAmountText" Text=" (1.250 ml)" FontSize="11" Foreground="#94A3B8" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                                </StackPanel>
-                                <Grid Margin="0,6">
-                                    <Border Height="5" CornerRadius="2.5" Background="#162846"/>
-                                    <Border x:Name="WaterProgressBar" Height="5" CornerRadius="2.5" Background="#00D2FF" HorizontalAlignment="Left" Width="110"/>
+                            <!-- Stylized Vinyl Album Art -->
+                            <Border Grid.Column="0" Width="68" Height="68" CornerRadius="14" Background="#DCEAF8"
+                                    HorizontalAlignment="Left" VerticalAlignment="Center" ClipToBounds="True">
+                                <Grid>
+                                    <Border Height="1" Background="#CBDCF0" VerticalAlignment="Top" Margin="0,14,0,0"/>
+                                    <Border Height="1" Background="#CBDCF0" VerticalAlignment="Top" Margin="0,28,0,0"/>
+                                    <Border Height="1" Background="#CBDCF0" VerticalAlignment="Top" Margin="0,42,0,0"/>
+                                    <Border Height="1" Background="#CBDCF0" VerticalAlignment="Top" Margin="0,56,0,0"/>
+                                    <Border Width="46" Height="46" CornerRadius="23" BorderThickness="1.5" BorderBrush="#94C5EE"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Width="38" Height="38" CornerRadius="19" Background="#0284C7"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Border Width="24" Height="24" CornerRadius="12" BorderThickness="1.5" BorderBrush="#BAE6FD"
+                                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Border Width="10" Height="10" CornerRadius="5" Background="#0369A1"/>
+                                            </Border>
+                                        </Border>
+                                    </Border>
+                                    <Path Data="M 14,8 L 54,60" Stroke="#FFFFFF" StrokeThickness="1.5" Opacity="0.9"/>
                                 </Grid>
-                                <Button x:Name="BtnAddWater" Style="{StaticResource PillBtn}" Padding="8,3" HorizontalAlignment="Left">
-                                    <TextBlock Text="+ 250 ml (1 Gelas)" FontSize="10" Foreground="#E2E8F0"/>
-                                </Button>
+                            </Border>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0">
+                                <TextBlock x:Name="MusicTitle" Text="Paper Sky" FontSize="16" FontWeight="SemiBold"
+                                           Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="MusicArtist" Text="Lumen Coast - Summer Flows" FontSize="12"
+                                           Foreground="#8E8E93" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
-                        </Border>
 
-                        <Button x:Name="BtnSysNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-                        </Button>
-                    </Grid>
-
-
-                    <!-- ============================================== -->
-                    <!-- CARD 5: KONTROL CEPAT & AUDIO MASTER           -->
-                    <!-- ============================================== -->
-                    <Grid x:Name="CardQuick" Visibility="Collapsed">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="32"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="32"/>
-                        </Grid.ColumnDefinitions>
-
-                        <Button x:Name="BtnQuickPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-                        </Button>
-
-                        <Grid Grid.Column="1" VerticalAlignment="Center" Margin="8,0">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="32"/>
-                                <RowDefinition Height="34"/>
-                                <RowDefinition Height="32"/>
-                            </Grid.RowDefinitions>
-
-                            <!-- Row 0: Switches -->
-                            <Grid Grid.Row="0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Button x:Name="BtnQuickWifi" Grid.Column="0" Margin="2" Style="{StaticResource QuickMiniBtn}">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="&#xE701;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#38BDF8" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Wi-Fi" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                                <Button x:Name="BtnQuickBt" Grid.Column="1" Margin="2" Style="{StaticResource QuickMiniBtn}">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="&#xE702;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#38BDF8" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Bluetooth" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                                <Button x:Name="BtnQuickDnd" Grid.Column="2" Margin="2" Style="{StaticResource QuickMiniBtn}">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#A855F7" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                        <TextBlock x:Name="QuickStatusDnd" Text="DND" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                                <Button x:Name="BtnQuickGame" Grid.Column="3" Margin="2" Style="{StaticResource QuickMiniBtn}">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                        <TextBlock x:Name="QuickStatusGame" Text="Game" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                            </Grid>
-
-                            <!-- Row 1: Audio Slider -->
-                            <Grid Grid.Row="1" VerticalAlignment="Center" Margin="2,2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="30"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="34"/>
-                                </Grid.ColumnDefinitions>
-                                <Button x:Name="BtnQuickMute" Grid.Column="0" Style="{StaticResource QuickMiniBtn}" Padding="4,2">
-                                    <TextBlock x:Name="QuickIconMute" Text="&#xE767;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#38BDF8"/>
-                                </Button>
-                                <Slider x:Name="QuickSliderVol" Grid.Column="1" Minimum="0" Maximum="100" Value="72" VerticalAlignment="Center" Margin="8,0"/>
-                                <TextBlock x:Name="QuickVolPctText" Grid.Column="2" Text="72%" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
-                            </Grid>
-
-                            <!-- Row 2: Lock, Sleep, Restart, Dashboard -->
-                            <Grid Grid.Row="2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="1.4*"/>
-                                </Grid.ColumnDefinitions>
-                                <Button x:Name="BtnQuickLock" Grid.Column="0" Margin="2" Style="{StaticResource QuickMiniBtn}">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#CBD5E1" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Kunci" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                                <Button x:Name="BtnQuickSleep" Grid.Column="1" Margin="2" Style="{StaticResource QuickMiniBtn}">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#CBD5E1" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Tidur" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                                <Button x:Name="BtnQuickRestart" Grid.Column="2" Margin="2" Style="{StaticResource QuickMiniBtn}">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#EF4444" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                        <TextBlock x:Name="QuickLblRestart" Text="Restart" FontSize="11" Foreground="#EF4444" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                                <Button x:Name="BtnSysLaunchDash" Grid.Column="3" Margin="2" Style="{StaticResource PillBtn}" Padding="6,2">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="&#xE737;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#00D2FF" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Dashboard" FontSize="11" FontWeight="SemiBold" Foreground="#00D2FF" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                            </Grid>
+                            <Button x:Name="BtnMusicNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                            </Button>
                         </Grid>
 
-                        <Button x:Name="BtnQuickNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-                        </Button>
+                        <!-- Seekbar -->
+                        <Grid Grid.Row="1" VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="42"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="46"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="MusicCurrentTime" Grid.Column="0" Text="03:13" FontSize="11" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                            <Grid Grid.Column="1" Margin="6,0" VerticalAlignment="Center">
+                                <Border Height="4" CornerRadius="2" Background="#2C2C2E"/>
+                                <Border x:Name="MusicProgressBar" Height="4" CornerRadius="2" Background="#FFFFFF" HorizontalAlignment="Left" Width="150"/>
+                            </Grid>
+                            <TextBlock x:Name="MusicRemainingTime" Grid.Column="2" Text="-01:03" FontSize="11" Foreground="#8E8E93"
+                                       HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- Controls Row -->
+                        <Grid Grid.Row="2">
+                            <Button x:Name="BtnToggleLyrics" Style="{StaticResource CircleNavBtn}" Width="26" Height="26"
+                                    HorizontalAlignment="Left" VerticalAlignment="Center" ToolTip="Lihat Lirik Lagu">
+                                <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#8E8E93"/>
+                            </Button>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Button x:Name="BtnMusicPrev" Style="{StaticResource MediaControlBtn}" Margin="0,0,24,0">
+                                    <TextBlock Text="&#xE892;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#FFFFFF"/>
+                                </Button>
+                                <Button x:Name="BtnMusicPlayPause" Style="{StaticResource MediaControlBtn}" Margin="0,0,24,0">
+                                    <TextBlock x:Name="MusicPlayPauseIcon" Text="&#xE769;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#FFFFFF"/>
+                                </Button>
+                                <Button x:Name="BtnMusicNext" Style="{StaticResource MediaControlBtn}">
+                                    <TextBlock Text="&#xE893;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#FFFFFF"/>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
                     </Grid>
 
+                    <!-- Synced Lyrics View (Toggled via Lyrics button) -->
+                    <Grid x:Name="MusicLyricsView" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="24"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Button x:Name="BtnBackFromLyrics" Grid.Row="0" Style="{StaticResource CircleNavBtn}" Width="22" Height="22" HorizontalAlignment="Left">
+                            <TextBlock Text="&#xE72B;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#CBD5E1"/>
+                        </Button>
+                        <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="Gliding high above the quiet morning sky..." FontSize="12" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,2"/>
+                            <TextBlock Text="Ocean breeze whispers what you left behind" FontSize="14" FontWeight="Bold" Foreground="#00D2FF" HorizontalAlignment="Center" Margin="0,2"/>
+                            <TextBlock Text="Folded wings of paper chasing summer light" FontSize="12" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,2"/>
+                        </StackPanel>
+                    </Grid>
                 </Grid>
 
-                <!-- ROW 2: BOTTOM BUTTONS (CONTEXTUAL) & PAGINATION DOTS -->
-                <Grid Grid.Row="2" Margin="10,0,10,6">
-                    <!-- Pomodoro Bottom Buttons -->
-                    <Grid x:Name="BottomPomoRow" Visibility="Collapsed">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Button x:Name="BtnPomoShortBreak" Style="{StaticResource PillBtn}" Margin="0,0,10,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Short Break" FontSize="12" Foreground="#E2E8F0" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
-                            <Button x:Name="BtnPomoPlay" Width="66" Height="32" Background="#FF5252" Cursor="Hand"
-                                    BorderThickness="0" Margin="0,0,10,0">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="{TemplateBinding Background}" CornerRadius="16">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                                <TextBlock x:Name="PomoPlayPauseIcon" Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#FFFFFF"/>
-                            </Button>
-                            <Button x:Name="BtnPomoFocusTime" Style="{StaticResource PillBtn}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#FF5252" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Focus Time" FontSize="12" Foreground="#E2E8F0" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
+
+                <!-- ============================================== -->
+                <!-- CARD 1: POMODORO FOCUS TIMER                   -->
+                <!-- ============================================== -->
+                <Grid x:Name="CardPomo" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="32"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="32"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="BtnPomoPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    </Button>
+
+                    <Grid Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Circular Timer Dial -->
+                        <Grid Grid.Column="0" Width="82" Height="82" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="82" Height="82" CornerRadius="41" BorderThickness="2.5" BorderBrush="#222224" Background="#121214"/>
+                            <Border Width="82" Height="82" CornerRadius="41" BorderThickness="2.5" BorderBrush="#FF5252"
+                                    Opacity="0.85" Background="Transparent"/>
+                            <Border Width="6" Height="6" CornerRadius="3" Background="#FF5252" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                            <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#FF5252"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- Timer Typography and Reset -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0">
+                            <TextBlock Text="Waktu Fokus" FontSize="12" Foreground="#A1A1AA" Margin="0,0,0,2"/>
+                            <TextBlock x:Name="PomoSubtitle" Text="Focus time" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                <TextBlock x:Name="PomoDisplayTime" Text="25:00" FontFamily="Segoe UI, Consolas" FontSize="30" FontWeight="Bold" Foreground="#FFFFFF"/>
+                                <Button x:Name="BtnPomoReset" Style="{StaticResource CircleNavBtn}" Width="24" Height="24" Margin="10,0,0,0" ToolTip="Reset Timer">
+                                    <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#A1A1AA"/>
+                                </Button>
+                            </StackPanel>
                         </StackPanel>
                     </Grid>
 
-                    <!-- BOTTOM PAGINATION INDICATOR (6 DOTS FOR 6 CARDS) -->
-                    <StackPanel x:Name="PaginationPanel" Orientation="Horizontal" HorizontalAlignment="Center"
-                                VerticalAlignment="Bottom" Margin="0,0,0,2">
-                        <Border x:Name="Dot0" Width="16" Height="3" CornerRadius="1.5" Background="#FFFFFF" Margin="2.5,0" Cursor="Hand"/>
-                        <Border x:Name="Dot1" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
-                        <Border x:Name="Dot2" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
-                        <Border x:Name="Dot3" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
-                        <Border x:Name="Dot4" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
-                        <Border x:Name="Dot5" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
+                    <Button x:Name="BtnPomoNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    </Button>
+                </Grid>
+
+
+                <!-- ============================================== -->
+                <!-- CARD 2: CATATAN & TO-DO LIST                   -->
+                <!-- ============================================== -->
+                <Grid x:Name="CardNotesTodo" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="32"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="32"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="BtnNotesPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    </Button>
+
+                    <!-- Left Half: Quick Note Editor -->
+                    <Border Grid.Column="1" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="22"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="24"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                                <TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Catatan Cepat" FontSize="12" FontWeight="Bold" Foreground="#00D2FF" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBox x:Name="InputNoteText" Grid.Row="1" Background="#070C18" Foreground="#FFFFFF" BorderBrush="#1B2F50"
+                                     FontSize="11" Margin="0,3" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Hidden"
+                                     Text="Meeting project Oceru jam 10 pagi..."/>
+                            <Button x:Name="BtnSaveNote" Grid.Row="2" Style="{StaticResource PillBtn}" Padding="8,2" HorizontalAlignment="Right">
+                                <TextBlock Text="Simpan" FontSize="10" Foreground="#38BDF8"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <!-- Right Half: To-Do Checklist -->
+                    <Border Grid.Column="2" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="22"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                                <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Tugas Hari Ini" FontSize="12" FontWeight="Bold" Foreground="#10B981" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TodoStatusCount" Text=" (2/3)" FontSize="11" Foreground="#94A3B8" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Margin="0,4,0,0">
+                                <CheckBox x:Name="CbTask1" Content="Uji responsivitas Notch" IsChecked="True" Foreground="#CBD5E1" FontSize="11" Margin="0,2"/>
+                                <CheckBox x:Name="CbTask2" Content="Sinkronisasi audio &amp; volume" IsChecked="True" Foreground="#CBD5E1" FontSize="11" Margin="0,2"/>
+                                <CheckBox x:Name="CbTask3" Content="Cek catatan &amp; to-do list" IsChecked="False" Foreground="#CBD5E1" FontSize="11" Margin="0,2"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Button x:Name="BtnNotesNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    </Button>
+                </Grid>
+
+
+                <!-- ============================================== -->
+                <!-- CARD 3: PAPAN KLIP & FILE SHELF                -->
+                <!-- ============================================== -->
+                <Grid x:Name="CardClipShelf" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="32"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="32"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="BtnClipPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    </Button>
+
+                    <!-- Left: Clipboard History -->
+                    <Border Grid.Column="1" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="22"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                                <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#C084FC" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Riwayat Salinan" FontSize="12" FontWeight="Bold" Foreground="#C084FC" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Margin="0,4,0,0">
+                                <Button x:Name="BtnCopyClip1" Style="{StaticResource QuickMiniBtn}" Margin="0,2" HorizontalContentAlignment="Left">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE71B;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#38BDF8" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="github.com/cubadakanda..." FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="BtnCopyClip2" Style="{StaticResource QuickMiniBtn}" Margin="0,2" HorizontalContentAlignment="Left">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Oceru Dynamic Island" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Right: File Shelf Drop Zone -->
+                    <Border x:Name="ShelfDropBorder" Grid.Column="2" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0" AllowDrop="True">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="22"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="File Shelf (Tarik File)" FontSize="12" FontWeight="Bold" Foreground="#F59E0B" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Border Grid.Row="1" BorderBrush="#2A3B58" BorderThickness="1" CornerRadius="8" Background="#070D18" Margin="0,3">
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xED25;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Lepas file di sini" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="ShelfFileCount" Text="0 file tersimpan" FontSize="10" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Button x:Name="BtnClipNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    </Button>
+                </Grid>
+
+
+                <!-- ============================================== -->
+                <!-- CARD 4: MONITOR SISTEM & WATER REMINDER        -->
+                <!-- ============================================== -->
+                <Grid x:Name="CardSysWater" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="32"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="32"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="BtnSysPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    </Button>
+
+                    <!-- Left: System Hardware -->
+                    <Border Grid.Column="1" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                        <StackPanel VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="SysRamText" Text="48%" FontFamily="Segoe UI, Consolas" FontSize="28" FontWeight="Bold" Foreground="#FFFFFF"/>
+                                <TextBlock Text=" RAM" FontSize="14" FontWeight="SemiBold" Foreground="#00D2FF" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
+                            </StackPanel>
+                            <TextBlock x:Name="SysBatStatusText" Text="Baterai 85% - Mengisi Daya" FontSize="11" Foreground="#8E8E93" Margin="0,2,0,0"/>
+                            <Button x:Name="BtnSysTaskMgr" Style="{StaticResource QuickMiniBtn}" Margin="0,6,0,0" HorizontalAlignment="Left">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#38BDF8" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Buka Task Manager" FontSize="10" Foreground="#38BDF8" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Right: Water Reminder -->
+                    <Border Grid.Column="2" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                        <StackPanel VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE798;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#38BDF8" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Air Minum" FontSize="12" FontWeight="Bold" Foreground="#38BDF8" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="WaterAmountText" Text=" (1.250 ml)" FontSize="11" Foreground="#94A3B8" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Grid Margin="0,6">
+                                <Border Height="5" CornerRadius="2.5" Background="#162846"/>
+                                <Border x:Name="WaterProgressBar" Height="5" CornerRadius="2.5" Background="#00D2FF" HorizontalAlignment="Left" Width="110"/>
+                            </Grid>
+                            <Button x:Name="BtnAddWater" Style="{StaticResource PillBtn}" Padding="8,3" HorizontalAlignment="Left">
+                                <TextBlock Text="+ 250 ml (1 Gelas)" FontSize="10" Foreground="#E2E8F0"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <Button x:Name="BtnSysNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    </Button>
+                </Grid>
+
+
+                <!-- ============================================== -->
+                <!-- CARD 5: KONTROL CEPAT & AUDIO MASTER           -->
+                <!-- ============================================== -->
+                <Grid x:Name="CardQuick" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="32"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="32"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="BtnQuickPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    </Button>
+
+                    <Grid Grid.Column="1" VerticalAlignment="Center" Margin="8,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="32"/>
+                            <RowDefinition Height="34"/>
+                            <RowDefinition Height="32"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Row 0: Switches -->
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="BtnQuickWifi" Grid.Column="0" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xE701;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#38BDF8" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Wi-Fi" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="BtnQuickBt" Grid.Column="1" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xE702;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#38BDF8" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Bluetooth" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="BtnQuickDnd" Grid.Column="2" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#A855F7" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="QuickStatusDnd" Text="DND" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="BtnQuickGame" Grid.Column="3" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="QuickStatusGame" Text="Game" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <!-- Row 1: Audio Slider -->
+                        <Grid Grid.Row="1" VerticalAlignment="Center" Margin="2,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="30"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="34"/>
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="BtnQuickMute" Grid.Column="0" Style="{StaticResource QuickMiniBtn}" Padding="4,2">
+                                <TextBlock x:Name="QuickIconMute" Text="&#xE767;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#38BDF8"/>
+                            </Button>
+                            <Slider x:Name="QuickSliderVol" Grid.Column="1" Minimum="0" Maximum="100" Value="72" VerticalAlignment="Center" Margin="8,0"/>
+                            <TextBlock x:Name="QuickVolPctText" Grid.Column="2" Text="72%" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- Row 2: Lock, Sleep, Restart, Dashboard -->
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="1.4*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="BtnQuickLock" Grid.Column="0" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#CBD5E1" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Kunci" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="BtnQuickSleep" Grid.Column="1" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#CBD5E1" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Tidur" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="BtnQuickRestart" Grid.Column="2" Margin="2" Style="{StaticResource QuickMiniBtn}">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#EF4444" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="QuickLblRestart" Text="Restart" FontSize="11" Foreground="#EF4444" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="BtnSysLaunchDash" Grid.Column="3" Margin="2" Style="{StaticResource PillBtn}" Padding="6,2">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xE737;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#00D2FF" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Dashboard" FontSize="11" FontWeight="SemiBold" Foreground="#00D2FF" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Grid>
+
+                    <Button x:Name="BtnQuickNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    </Button>
+                </Grid>
+
+            </Grid>
+
+            <!-- ROW 2: BOTTOM BUTTONS (CONTEXTUAL) & PAGINATION DOTS -->
+            <Grid Grid.Row="2" Margin="10,0,10,6">
+                <!-- Pomodoro Bottom Buttons -->
+                <Grid x:Name="BottomPomoRow" Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Button x:Name="BtnPomoShortBreak" Style="{StaticResource PillBtn}" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Short Break" FontSize="12" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnPomoPlay" Width="66" Height="32" Background="#FF5252" Cursor="Hand"
+                                BorderThickness="0" Margin="0,0,10,0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="16">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <TextBlock x:Name="PomoPlayPauseIcon" Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#FFFFFF"/>
+                        </Button>
+                        <Button x:Name="BtnPomoFocusTime" Style="{StaticResource PillBtn}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#FF5252" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Focus Time" FontSize="12" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Grid>
 
-                <!-- FLOATING ACTION FEEDBACK TOAST PILL -->
-                <Border x:Name="ToastFeedbackPill" Grid.Row="0" Grid.RowSpan="2" HorizontalAlignment="Center"
-                        VerticalAlignment="Top" Margin="0,38,0,0" Background="#E6070B14" BorderBrush="#00D2FF"
-                        BorderThickness="1" CornerRadius="14" Padding="14,6" Visibility="Collapsed">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock x:Name="ToastFeedbackIcon" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-                                   Foreground="#00D2FF" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="ToastFeedbackText" Text="Berhasil" FontSize="12" FontWeight="SemiBold"
-                                   Foreground="#FFFFFF" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Border>
-
+                <!-- BOTTOM PAGINATION INDICATOR (6 DOTS FOR 6 CARDS) -->
+                <StackPanel x:Name="PaginationPanel" Orientation="Horizontal" HorizontalAlignment="Center"
+                            VerticalAlignment="Bottom" Margin="0,0,0,2">
+                    <Border x:Name="Dot0" Width="16" Height="3" CornerRadius="1.5" Background="#FFFFFF" Margin="2.5,0" Cursor="Hand"/>
+                    <Border x:Name="Dot1" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
+                    <Border x:Name="Dot2" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
+                    <Border x:Name="Dot3" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
+                    <Border x:Name="Dot4" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
+                    <Border x:Name="Dot5" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
+                </StackPanel>
             </Grid>
+
+            <!-- FLOATING ACTION FEEDBACK TOAST PILL -->
+            <Border x:Name="ToastFeedbackPill" Grid.Row="0" Grid.RowSpan="2" HorizontalAlignment="Center"
+                    VerticalAlignment="Top" Margin="0,38,0,0" Background="#E6070B14" BorderBrush="#00D2FF"
+                    BorderThickness="1" CornerRadius="14" Padding="14,6" Visibility="Collapsed">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="ToastFeedbackIcon" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                               Foreground="#00D2FF" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="ToastFeedbackText" Text="Berhasil" FontSize="12" FontWeight="SemiBold"
+                               Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
         </Grid>
     </Grid>
 </Window>
@@ -1260,10 +1251,12 @@ $dashWindow = [System.Windows.Markup.XamlReader]::Load($reader2)
 $window.Left = $eyesLeftPos
 $window.Top = 0
 $global:islandMode = "eyes" # "eyes", "status", "expanded"
+$global:targetMode = "eyes"
 $global:statusIdleTicks = 0
 $global:outsideTicks = 0
 
-# Grab Handles: Island Window Views
+# Grab Handles: Liquid Background & Views
+$notchBody = $window.FindName("NotchBody")
 $eyesGrid = $window.FindName("EyesGrid")
 $statusGrid = $window.FindName("StatusGrid")
 $expandedGrid = $window.FindName("ExpandedGrid")
@@ -1460,41 +1453,145 @@ function Show-OceruDashboard($pageIndex = 0) {
     $dashWindow.Activate()
 }
 
-# TRANSITION CONTROLLER FOR 3 DYNAMIC ISLAND MODES
+# =========================================================================
+# FLUID SPRING INTERPOLATION ENGINE FOR BUTTER-SMOOTH EXPAND & COLLAPSE
+# 60 FPS DispatcherTimer with Quintic Ease-Out Curve: 1 - (1 - t)^5
+# =========================================================================
+$global:animTimer = New-Object System.Windows.Threading.DispatcherTimer
+$global:animTimer.Interval = [TimeSpan]::FromMilliseconds(16) # ~60 FPS
+$global:animSw = [System.Diagnostics.Stopwatch]::new()
+$global:animDuration = 270
+
+$global:fromW = $eyesWidth
+$global:toW = $eyesWidth
+$global:fromH = $eyesHeight
+$global:toH = $eyesHeight
+$global:fromL = $eyesLeftPos
+$global:toL = $eyesLeftPos
+$global:fromR = 18
+$global:toR = 18
+
 function Set-IslandMode($mode) {
-    if ($global:islandMode -eq $mode) { return }
+    if ($global:islandMode -eq $mode -and -not $global:animTimer.IsEnabled) { return }
+    $prevMode = $global:islandMode
     $global:islandMode = $mode
+    $global:targetMode = $mode
+
+    # Capture current live dimensions as starting point (enables seamless reversal!)
+    $global:fromW = $window.Width
+    $global:fromH = $window.Height
+    $global:fromL = $window.Left
+    $global:fromR = $notchBody.CornerRadius.BottomLeft
 
     if ($mode -eq "eyes") {
-        # Standalone Resting Cat Eyes Pill
-        $window.Width = $eyesWidth
-        $window.Height = $eyesHeight
-        $window.Left = $eyesLeftPos
+        $global:toW = $eyesWidth
+        $global:toH = $eyesHeight
+        $global:toL = $eyesLeftPos
+        $global:toR = 18
+        $global:animDuration = 240
         $eyesGrid.Visibility = [System.Windows.Visibility]::Visible
-        $statusGrid.Visibility = [System.Windows.Visibility]::Collapsed
-        $expandedGrid.Visibility = [System.Windows.Visibility]::Collapsed
     }
     elseif ($mode -eq "status") {
-        # Compact Status Bar with Clock, Weather, and Battery
-        $window.Width = $statusWidth
-        $window.Height = $statusHeight
-        $window.Left = $statusLeftPos
-        $eyesGrid.Visibility = [System.Windows.Visibility]::Collapsed
-        $statusGrid.Visibility = [System.Windows.Visibility]::Visible
-        $expandedGrid.Visibility = [System.Windows.Visibility]::Collapsed
+        $global:toW = $statusWidth
+        $global:toH = $statusHeight
+        $global:toL = $statusLeftPos
+        $global:toR = 18
+        $global:animDuration = 240
         $global:statusIdleTicks = 0
+        $statusGrid.Visibility = [System.Windows.Visibility]::Visible
     }
     elseif ($mode -eq "expanded") {
-        # Full Feature Carousel Notch
-        $window.Width = $expandedWidth
-        $window.Height = $expandedHeight
-        $window.Left = $expandedLeftPos
-        $eyesGrid.Visibility = [System.Windows.Visibility]::Collapsed
-        $statusGrid.Visibility = [System.Windows.Visibility]::Collapsed
-        $expandedGrid.Visibility = [System.Windows.Visibility]::Visible
+        $global:toW = $expandedWidth
+        $global:toH = $expandedHeight
+        $global:toL = $expandedLeftPos
+        $global:toR = 26
+        $global:animDuration = 280
         $global:outsideTicks = 0
+        $expandedGrid.Visibility = [System.Windows.Visibility]::Visible
     }
+
+    $global:animSw.Restart()
+    $global:animTimer.Start()
 }
+
+$global:animTimer.Add_Tick({
+    $elapsed = $global:animSw.ElapsedMilliseconds
+    $t = [Math]::Min(1.0, $elapsed / $global:animDuration)
+
+    # Quintic Ease-Out Curve: 1 - (1 - t)^5 (Natural spring deceleration)
+    $ease = 1.0 - [Math]::Pow(1.0 - $t, 5)
+
+    # Interpolate Window Width, Height, Left, and Corner Radius in real time
+    $curW = [Math]::Round($global:fromW + ($global:toW - $global:fromW) * $ease)
+    $curH = [Math]::Round($global:fromH + ($global:toH - $global:fromH) * $ease)
+    $curL = [Math]::Round($global:fromL + ($global:toL - $global:fromL) * $ease)
+    $curR = [Math]::Round($global:fromR + ($global:toR - $global:fromR) * $ease)
+
+    $window.Width = $curW
+    $window.Height = $curH
+    $window.Left = $curL
+    $notchBody.CornerRadius = [System.Windows.CornerRadius]::new(0, 0, $curR, $curR)
+
+    # Cross-fading Opacities between active views during interpolation
+    if ($global:targetMode -eq "expanded") {
+        # Fade out compact views in first 35%
+        $compactOp = [Math]::Max(0.0, 1.0 - ($t / 0.35))
+        $eyesGrid.Opacity = $compactOp
+        $statusGrid.Opacity = $compactOp
+
+        # Fade in expanded view in second half
+        if ($t -ge 0.35) {
+            $expandedGrid.Opacity = [Math]::Min(1.0, ($t - 0.35) / 0.65)
+        } else {
+            $expandedGrid.Opacity = 0.0
+        }
+    }
+    elseif ($global:targetMode -eq "status") {
+        # Fade out expanded view
+        $expandedGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.4))
+
+        # Fade in status view
+        if ($t -ge 0.3) {
+            $statusGrid.Opacity = [Math]::Min(1.0, ($t - 0.3) / 0.7)
+        }
+        $eyesGrid.Opacity = 0.0
+    }
+    elseif ($global:targetMode -eq "eyes") {
+        # Fade out other views
+        $statusGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.4))
+        $expandedGrid.Opacity = 0.0
+
+        # Fade in eyes view
+        if ($t -ge 0.3) {
+            $eyesGrid.Opacity = [Math]::Min(1.0, ($t - 0.3) / 0.7)
+        }
+    }
+
+    # Completion Cleanup
+    if ($t -ge 1.0) {
+        $global:animTimer.Stop()
+        $window.Width = $global:toW
+        $window.Height = $global:toH
+        $window.Left = $global:toL
+        $notchBody.CornerRadius = [System.Windows.CornerRadius]::new(0, 0, $global:toR, $global:toR)
+
+        if ($global:targetMode -eq "expanded") {
+            $expandedGrid.Opacity = 1.0
+            $eyesGrid.Visibility = [System.Windows.Visibility]::Collapsed
+            $statusGrid.Visibility = [System.Windows.Visibility]::Collapsed
+        }
+        elseif ($global:targetMode -eq "status") {
+            $statusGrid.Opacity = 1.0
+            $eyesGrid.Visibility = [System.Windows.Visibility]::Collapsed
+            $expandedGrid.Visibility = [System.Windows.Visibility]::Collapsed
+        }
+        elseif ($global:targetMode -eq "eyes") {
+            $eyesGrid.Opacity = 1.0
+            $statusGrid.Visibility = [System.Windows.Visibility]::Collapsed
+            $expandedGrid.Visibility = [System.Windows.Visibility]::Collapsed
+        }
+    }
+})
 
 # Mouse enter/click event fallbacks
 $eyesGrid.Add_MouseEnter({ Set-IslandMode "expanded" })
