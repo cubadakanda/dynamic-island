@@ -412,11 +412,80 @@ $screenHeight = [System.Windows.SystemParameters]::PrimaryScreenHeight
 # Geometry for Hardware Notch (Option B - Tangential MacBook Shoulder Fillets):
 $shoulderPad = 8 # 8px tangential shoulder fillet for seamless bezel integration
 
-function Get-NotchPathData($totalW, $h, $s, $r) {
+function Get-NotchPathData($totalW, $h, $s, $r, $waveAmp = 0, $wavePhase = 0) {
+    $baseH = if ($h -gt 100) { 205 } else { $h }
     if ($s -le 0) {
-        return "M 0,0 L 0,$($h-$r) A $r,$r 0 0,0 $r,$h L $($totalW-$r),$h A $r,$r 0 0,0 $totalW,$($h-$r) L $totalW,0 Z"
+        $leftCorner = "M 0,0 L 0,$($baseH-$r) A $r,$r 0 0,0 $r,$baseH"
+        $rightCorner = "A $r,$r 0 0,0 $totalW,$($baseH-$r) L $totalW,0 Z"
+    } else {
+        $leftCorner = "M 0,0 A $s,$s 0 0,1 $s,$s L $s,$($baseH-$r) A $r,$r 0 0,0 $($s+$r),$baseH"
+        $rightCorner = "A $r,$r 0 0,0 $($totalW-$s),$($baseH-$r) L $($totalW-$s),$s A $s,$s 0 0,1 $totalW,0 Z"
     }
-    return "M 0,0 A $s,$s 0 0,1 $s,$s L $s,$($h-$r) A $r,$r 0 0,0 $($s+$r),$h L $($totalW-$s-$r),$h A $r,$r 0 0,0 $($totalW-$s),$($h-$r) L $($totalW-$s),$s A $s,$s 0 0,1 $totalW,0 Z"
+
+    $x0 = $s + $r
+    $x1 = $totalW - $s - $r
+    $span = $x1 - $x0
+
+    if ($waveAmp -le 0.5 -or $span -le 60) {
+        return "$leftCorner L $x1,$baseH $rightCorner"
+    }
+
+    # Dynamic Audio Waveform Bottom Rim (Reference Image 2 Scallops)
+    $N = if ($totalW -gt 400) { 12 } elseif ($totalW -gt 200) { 7 } else { 4 }
+    $wSeg = $span / $N
+    $bottomBuilder = [System.Text.StringBuilder]::new()
+
+    for ($i = 0; $i -lt $N; $i++) {
+        $xa = [Math]::Round($x0 + ($i * $wSeg), 1)
+        $xb = [Math]::Round($xa + $wSeg, 1)
+        $ti = ($i + 0.5) / $N
+        $env = [Math]::Sin($ti * [Math]::PI)
+        $bandBounce = 0.55 + 0.45 * [Math]::Sin(($i * 1.35) + $wavePhase)
+        $dip = [Math]::Round($waveAmp * $env * $bandBounce, 1)
+        
+        $cp1X = [Math]::Round($xa + ($wSeg * 0.28), 1)
+        $cp1Y = [Math]::Round($baseH + $dip, 1)
+        $cp2X = [Math]::Round($xb - ($wSeg * 0.28), 1)
+        $cp2Y = [Math]::Round($baseH + $dip, 1)
+        
+        $bottomBuilder.Append(" C $cp1X,$cp1Y $cp2X,$cp2Y $xb,$baseH") | Out-Null
+    }
+
+    return "$leftCorner $($bottomBuilder.ToString()) $rightCorner"
+}
+
+function Get-NotchBottomWavePathData($totalW, $h, $s, $r, $waveAmp = 0, $wavePhase = 0) {
+    $baseH = if ($h -gt 100) { 205 } else { $h }
+    $x0 = $s + $r
+    $x1 = $totalW - $s - $r
+    $span = $x1 - $x0
+
+    if ($waveAmp -le 0.5 -or $span -le 60) {
+        return "M $x0,$baseH L $x1,$baseH"
+    }
+
+    $N = if ($totalW -gt 400) { 12 } elseif ($totalW -gt 200) { 7 } else { 4 }
+    $wSeg = $span / $N
+    $sb = [System.Text.StringBuilder]::new()
+    $sb.Append("M $x0,$baseH") | Out-Null
+
+    for ($i = 0; $i -lt $N; $i++) {
+        $xa = [Math]::Round($x0 + ($i * $wSeg), 1)
+        $xb = [Math]::Round($xa + $wSeg, 1)
+        $ti = ($i + 0.5) / $N
+        $env = [Math]::Sin($ti * [Math]::PI)
+        $bandBounce = 0.55 + 0.45 * [Math]::Sin(($i * 1.35) + $wavePhase)
+        $dip = [Math]::Round($waveAmp * $env * $bandBounce, 1)
+        
+        $cp1X = [Math]::Round($xa + ($wSeg * 0.28), 1)
+        $cp1Y = [Math]::Round($baseH + $dip, 1)
+        $cp2X = [Math]::Round($xb - ($wSeg * 0.28), 1)
+        $cp2Y = [Math]::Round($baseH + $dip, 1)
+        
+        $sb.Append(" C $cp1X,$cp1Y $cp2X,$cp2Y $xb,$baseH") | Out-Null
+    }
+
+    return $sb.ToString()
 }
 
 $eyesBodyWidth = 88
@@ -431,7 +500,7 @@ $statusLeftPos = [Math]::Round(($screenWidth - $statusTotalWidth) / 2)
 
 $expandedBodyWidth = 560
 $expandedTotalWidth = $expandedBodyWidth + (2 * $shoulderPad) # 576
-$expandedHeight = 205
+$expandedHeight = 222
 $expandedLeftPos = [Math]::Round(($screenWidth - $expandedTotalWidth) / 2)
 
 $toastBodyWidth = 360
@@ -561,15 +630,15 @@ $islandXaml = @'
         <!-- SEAMLESS OBSIDIAN CAPSULE BODY                           -->
         <!-- Clean, unified pill with organic continuous curvature    -->
         <!-- ======================================================== -->
-        <!-- AUDIO-REACTIVE AMBILIGHT (Glow Halo along the bottom curved rim of the notch) -->
-        <Path x:Name="NotchAmbilightPath" Stroke="#00D2FF" StrokeThickness="2.5" Fill="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0" IsHitTestVisible="False">
+        <!-- HARDWARE NOTCH SINGLE VECTOR PATH (Option B MacBook Tangential Shoulder Fillet, Pure Obsidian - No Blue Edges!) -->
+        <Path x:Name="NotchSinglePath" Fill="#000000" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="Hand"/>
+
+        <!-- AUDIO WAVE BOTTOM CONTOUR STROKE (Exclusively for Music Player Card 0 when Music is Playing) -->
+        <Path x:Name="NotchWaveStrokePath" Stroke="#FF385C" StrokeThickness="2.2" Fill="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0" IsHitTestVisible="False">
             <Path.Effect>
-                <DropShadowEffect Color="#00D2FF" BlurRadius="16" ShadowDepth="0" Opacity="0.9"/>
+                <DropShadowEffect Color="#FF385C" BlurRadius="10" ShadowDepth="0" Opacity="0.95"/>
             </Path.Effect>
         </Path>
-
-        <!-- HARDWARE NOTCH SINGLE VECTOR PATH (Option B MacBook Tangential Shoulder Fillet) -->
-        <Path x:Name="NotchSinglePath" Fill="#000000" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="Hand"/>
 
 
 
@@ -583,33 +652,52 @@ $islandXaml = @'
         <!-- VIEW 1: RESTING CAT EYES PILL (Standalone, Eyes Only!)    -->
         <!-- ======================================================== -->
         <Grid x:Name="EyesGrid" Visibility="Visible" HorizontalAlignment="Center" VerticalAlignment="Center" Cursor="Hand" Opacity="1">
-            <!-- Centered Interactive Cat Eyes (Tracks Cursor Everywhere!) -->
+            <!-- Centered Interactive Heterochromia Cat Eyes (Odd-Eyed: Amber Gold & Sapphire Blue) -->
             <StackPanel x:Name="CatEyesContainer" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel.RenderTransform>
                     <TranslateTransform x:Name="CatEyesTransform" X="0" Y="0"/>
                 </StackPanel.RenderTransform>
-                <!-- Left Eye -->
-                <Border x:Name="LeftEye" Width="14" Height="16" CornerRadius="7" Background="#FFFFFF" Margin="0,0,8,0" ClipToBounds="True">
+                
+                <!-- Left Eye: Radiant Golden Amber / Topaz Iris (Heterochromia) -->
+                <Border x:Name="LeftEye" Width="15" Height="17" CornerRadius="7.5" Margin="0,0,9,0" ClipToBounds="True">
+                    <Border.Background>
+                        <RadialGradientBrush Center="0.45,0.45" GradientOrigin="0.45,0.45" RadiusX="0.65" RadiusY="0.65">
+                            <GradientStop Color="#FEF08A" Offset="0.0"/>
+                            <GradientStop Color="#F59E0B" Offset="0.45"/>
+                            <GradientStop Color="#D97706" Offset="0.8"/>
+                            <GradientStop Color="#78350F" Offset="1.0"/>
+                        </RadialGradientBrush>
+                    </Border.Background>
                     <Grid>
+                        <Border CornerRadius="7.5" BorderThickness="1" BorderBrush="#92400E" Opacity="0.55"/>
                         <Grid x:Name="LeftPupil" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <Grid.RenderTransform>
                                 <TranslateTransform x:Name="LeftPupilTransform" X="0" Y="0"/>
                             </Grid.RenderTransform>
-                            <Border x:Name="LeftPupilBorder" Width="4.5" Height="10" CornerRadius="2.25" Background="#0B0D13"/>
-                            <Border Width="1.8" Height="1.8" CornerRadius="0.9" Background="#FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,0.5,0"/>
+                            <Border x:Name="LeftPupilBorder" Width="3.8" Height="11" CornerRadius="1.9" Background="#05070B"/>
+                            <Border Width="1.8" Height="2.2" CornerRadius="0.9" Background="#FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,0.4,0" Opacity="0.95"/>
                         </Grid>
                     </Grid>
                 </Border>
 
-                <!-- Right Eye -->
-                <Border x:Name="RightEye" Width="14" Height="16" CornerRadius="7" Background="#FFFFFF" ClipToBounds="True">
+                <!-- Right Eye: Electric Sapphire / Ocean Blue Iris (Heterochromia) -->
+                <Border x:Name="RightEye" Width="15" Height="17" CornerRadius="7.5" ClipToBounds="True">
+                    <Border.Background>
+                        <RadialGradientBrush Center="0.45,0.45" GradientOrigin="0.45,0.45" RadiusX="0.65" RadiusY="0.65">
+                            <GradientStop Color="#BAE6FD" Offset="0.0"/>
+                            <GradientStop Color="#00D2FF" Offset="0.4"/>
+                            <GradientStop Color="#0284C7" Offset="0.75"/>
+                            <GradientStop Color="#082F49" Offset="1.0"/>
+                        </RadialGradientBrush>
+                    </Border.Background>
                     <Grid>
+                        <Border CornerRadius="7.5" BorderThickness="1" BorderBrush="#0369A1" Opacity="0.55"/>
                         <Grid x:Name="RightPupil" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <Grid.RenderTransform>
                                 <TranslateTransform x:Name="RightPupilTransform" X="0" Y="0"/>
                             </Grid.RenderTransform>
-                            <Border x:Name="RightPupilBorder" Width="4.5" Height="10" CornerRadius="2.25" Background="#0B0D13"/>
-                            <Border Width="1.8" Height="1.8" CornerRadius="0.9" Background="#FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,0.5,0"/>
+                            <Border x:Name="RightPupilBorder" Width="3.8" Height="11" CornerRadius="1.9" Background="#05070B"/>
+                            <Border Width="1.8" Height="2.2" CornerRadius="0.9" Background="#FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,0.4,0" Opacity="0.95"/>
                         </Grid>
                     </Grid>
                 </Border>
@@ -2661,6 +2749,10 @@ $global:catWinkTicks = 0
 $global:sleepBreathTick = 0
 $global:audioBopTick = 0
 $global:ambilightTick = 0
+$global:gsmtcPlaying = $false
+$global:waveAmp = 0.0
+$global:wavePhase = 0.0
+$global:waveStrokeColor = "#FF385C" 
 
 # Network & Ping State
 $global:lastNetRxBytes = [int64]0
@@ -2786,15 +2878,13 @@ $global:targetMode = "eyes"
 $global:statusIdleTicks = 0
 $global:outsideTicks = 0
 
-# Grab Handles: Single Unified Hardware Notch Path & Audio Ambilight Path
+# Grab Handles: Single Unified Hardware Notch Path & Audio Wave Stroke Path
 $notchSinglePath = $window.FindName("NotchSinglePath")
-$notchAmbilightPath = $window.FindName("NotchAmbilightPath")
 $notchBody = $notchSinglePath # Alias for event handlers and backward compatibility
 if ($notchSinglePath) {
     $initialPathStr = Get-NotchPathData $eyesTotalWidth $eyesHeight $shoulderPad 18
     $initialGeom = [System.Windows.Media.Geometry]::Parse($initialPathStr)
     $notchSinglePath.Data = $initialGeom
-    if ($notchAmbilightPath) { $notchAmbilightPath.Data = $initialGeom }
 }
 
 $eyesGrid = $window.FindName("EyesGrid")
@@ -2804,6 +2894,7 @@ $compactNetSpeedText = $window.FindName("CompactNetSpeedText")
 $compactPingDot = $window.FindName("CompactPingDot")
 $sysNetStatsText = $window.FindName("SysNetStatsText")
 $sysPingText = $window.FindName("SysPingText")
+$notchWaveStrokePath = $window.FindName("NotchWaveStrokePath")
 
 # Handles: Resting Eyes
 $leftEye = $window.FindName("LeftEye")
@@ -3115,7 +3206,6 @@ $global:animTimer.Add_Tick({
         $pathStr = Get-NotchPathData $curTotalW $curH $shoulderPad $curR
         $notchGeom = [System.Windows.Media.Geometry]::Parse($pathStr)
         $notchSinglePath.Data = $notchGeom
-        if ($notchAmbilightPath) { $notchAmbilightPath.Data = $notchGeom }
     }
 
     # Cross-fading Opacities between active views during interpolation
@@ -4606,15 +4696,43 @@ $fastEyeTimer.Add_Tick({
     try {
         $cursorPos = [System.Windows.Forms.Cursor]::Position
 
-        # Feature 2: 🌈 Audio-Reactive Ambilight (Cyan breathing halo along the bottom rim of the notch)
-        if ($notchAmbilightPath) {
-            if ($global:gsmtcPlaying -eq $true) {
-                $global:ambilightTick = ($global:ambilightTick + 1) % 360
-                $glowIntensity = 0.35 + ([Math]::Abs([Math]::Sin($global:ambilightTick * 0.08)) * 0.55)
-                $notchAmbilightPath.Opacity = [Math]::Round($glowIntensity, 3)
+        # Reference Image 2: Dynamic Audio Waveform Bottom Rim (EXCLUSIVE TO MUSIC CARD 0 WHEN PLAYING)
+        $isMusicCardActive = ($global:islandMode -eq "expanded" -and $global:activeCardIndex -eq 0 -and $cardMusic.Visibility -eq [System.Windows.Visibility]::Visible -and $global:gsmtcPlaying -eq $true)
+
+        if ($isMusicCardActive) {
+            # Animate wave phase & ramp up amplitude
+            $global:wavePhase = ($global:wavePhase + 0.16) % 360
+            $global:waveAmp = [Math]::Min(13.0, $global:waveAmp + 1.2)
+
+            if ($notchWaveStrokePath) {
+                $notchWaveStrokePath.Opacity = [Math]::Min(1.0, $notchWaveStrokePath.Opacity + 0.15)
+                $strokeStr = Get-NotchBottomWavePathData $window.Width $window.Height $shoulderPad 24 $global:waveAmp $global:wavePhase
+                $notchWaveStrokePath.Data = [System.Windows.Media.Geometry]::Parse($strokeStr)
+            }
+
+            # Update live geometry with animated audio wave scallops
+            $wStr = Get-NotchPathData $window.Width $window.Height $shoulderPad 24 $global:waveAmp $global:wavePhase
+            $wGeom = [System.Windows.Media.Geometry]::Parse($wStr)
+            if ($notchSinglePath) { $notchSinglePath.Data = $wGeom }
+        } else {
+            # In Resting Eyes Mode, Status Mode, Other Cards, or Music Paused:
+            # INSTANTLY / SMOOTHLY FLATTEN wave to 0 & hide red stroke!
+            if ($global:waveAmp -gt 0.2) {
+                $global:waveAmp = [Math]::Max(0.0, $global:waveAmp - 1.5)
+                $curR = if ($global:islandMode -eq "expanded") { 24 } else { 18 }
+                $wStr = Get-NotchPathData $window.Width $window.Height $shoulderPad $curR $global:waveAmp $global:wavePhase
+                $wGeom = [System.Windows.Media.Geometry]::Parse($wStr)
+                if ($notchSinglePath) { $notchSinglePath.Data = $wGeom }
+
+                if ($notchWaveStrokePath) {
+                    $strokeStr = Get-NotchBottomWavePathData $window.Width $window.Height $shoulderPad $curR $global:waveAmp $global:wavePhase
+                    $notchWaveStrokePath.Data = [System.Windows.Media.Geometry]::Parse($strokeStr)
+                    $notchWaveStrokePath.Opacity = [Math]::Max(0.0, $notchWaveStrokePath.Opacity - 0.2)
+                }
             } else {
-                if ($notchAmbilightPath.Opacity -gt 0.01) {
-                    $notchAmbilightPath.Opacity = [Math]::Max(0.0, $notchAmbilightPath.Opacity - 0.06)
+                $global:waveAmp = 0.0
+                if ($notchWaveStrokePath -and $notchWaveStrokePath.Opacity -gt 0) {
+                    $notchWaveStrokePath.Opacity = 0.0
                 }
             }
         }
@@ -4742,8 +4860,8 @@ $fastEyeTimer.Add_Tick({
                         $leftEye.Height = 2
                         $rightEye.Height = 2
                     } elseif ($global:eyeBlinkTick -eq 1 -or ($global:eyeBlinkTick -eq 3 -and $blinkInterval -eq 90)) {
-                        $leftEye.Height = 16
-                        $rightEye.Height = 16
+                        $leftEye.Height = 17
+                        $rightEye.Height = 17
                     }
                 }
             }
@@ -4940,6 +5058,7 @@ $mainTimer.Add_Tick({
                 $global:OceruState.currentMedia.title = $winMedia.Title
                 $global:OceruState.currentMedia.artist = $winMedia.Artist
                 $global:OceruState.currentMedia.isPlaying = $winMedia.IsPlaying
+                $global:gsmtcPlaying = ($winMedia.IsPlaying -eq $true)
 
                 if ($musicTitle) { $musicTitle.Text = $winMedia.Title }
                 if ($musicArtist) { $musicArtist.Text = $winMedia.Artist }
@@ -4967,6 +5086,7 @@ $mainTimer.Add_Tick({
                     if ($musicRemainingTime) { $musicRemainingTime.Text = "-" + [TimeSpan]::FromSeconds([Math]::Max(0, $totalSec - $curSec)).ToString("mm\:ss") }
                 }
             } else {
+                $global:gsmtcPlaying = $false
                 if ($musicTitle -and $musicTitle.Text -ne "Tidak ada media aktif") {
                     $musicTitle.Text = "Tidak ada media aktif"
                     $musicArtist.Text = "Kontrol pemutar Windows atau putar file audio"
