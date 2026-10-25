@@ -192,7 +192,7 @@ $islandXaml = @'
         <Style x:Key="CircleNavBtn" TargetType="Button">
             <Setter Property="Width" Value="28"/>
             <Setter Property="Height" Value="28"/>
-            <Setter Property="Background" Value="#242426"/>
+            <Setter Property="Background" Value="#141C28"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -203,7 +203,7 @@ $islandXaml = @'
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BtnBorder" Property="Background" Value="#38383A"/>
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#202A3A"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -213,8 +213,8 @@ $islandXaml = @'
 
         <!-- Pill Button -->
         <Style x:Key="PillBtn" TargetType="Button">
-            <Setter Property="Background" Value="#1C1C1E"/>
-            <Setter Property="BorderBrush" Value="#2C2C2E"/>
+            <Setter Property="Background" Value="#101824"/>
+            <Setter Property="BorderBrush" Value="#202A3A"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Padding" Value="12,5"/>
@@ -231,8 +231,8 @@ $islandXaml = @'
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="PillBorder" Property="Background" Value="#2C2C2E"/>
-                                <Setter TargetName="PillBorder" Property="BorderBrush" Value="#38BDF8"/>
+                                <Setter TargetName="PillBorder" Property="Background" Value="#182335"/>
+                                <Setter TargetName="PillBorder" Property="BorderBrush" Value="#00D2FF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -242,8 +242,8 @@ $islandXaml = @'
 
         <!-- Quick Mini Button -->
         <Style x:Key="QuickMiniBtn" TargetType="Button">
-            <Setter Property="Background" Value="#141416"/>
-            <Setter Property="BorderBrush" Value="#242426"/>
+            <Setter Property="Background" Value="#0E1624"/>
+            <Setter Property="BorderBrush" Value="#202A3A"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Padding" Value="8,4"/>
@@ -260,7 +260,7 @@ $islandXaml = @'
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="MiniBorder" Property="Background" Value="#202024"/>
+                                <Setter TargetName="MiniBorder" Property="Background" Value="#182438"/>
                                 <Setter TargetName="MiniBorder" Property="BorderBrush" Value="#00D2FF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -288,10 +288,10 @@ $islandXaml = @'
 
     <Grid x:Name="MasterGrid">
         <!-- ======================================================== -->
-        <!-- PURE OBSIDIAN GLASS SILHOUETTE (No blur/halo/contour!)   -->
-        <!-- Crisp luxury capsule finish with subtle glass stroke     -->
+        <!-- SEAMLESS OBSIDIAN CAPSULE SILHOUETTE                     -->
+        <!-- Zero-border capsule flush with top screen bezel          -->
         <!-- ======================================================== -->
-        <Border x:Name="NotchBody" Background="#000000" BorderBrush="#1C273C" BorderThickness="1" CornerRadius="0,0,18,18"/>
+        <Border x:Name="NotchBody" Background="#000000" CornerRadius="0,0,18,18"/>
 
         <!-- ======================================================== -->
         <!-- VIEW 1: RESTING CAT EYES PILL (Standalone, Eyes Only!)    -->
@@ -339,12 +339,12 @@ $islandXaml = @'
             </StackPanel>
 
             <!-- Center: REAL-TIME CLOCK (Replaces Eyes in Status Bar!) -->
-            <TextBlock x:Name="CompactClockText" Text="09:35" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"
+            <TextBlock x:Name="CompactClockText" Text="09:35" FontSize="12" FontWeight="Bold" Foreground="#F3F6FC"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
             <!-- Right: Battery & Mode -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                <TextBlock x:Name="CompactBatPct" Text="85%" FontSize="11" Foreground="#CBD5E1" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="CompactBatPct" Text="85%" FontSize="11" Foreground="#9BAAC0" Margin="0,0,4,0" VerticalAlignment="Center"/>
                 <TextBlock x:Name="CompactBatIcon" Text="&#xEA93;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" VerticalAlignment="Center"/>
             </StackPanel>
         </Grid>
@@ -367,24 +367,24 @@ $islandXaml = @'
             <!-- TOP HEADER ROW (NO COLLAPSE BUTTON!) -->
             <Grid Grid.Row="0" Margin="10,6,10,0">
                 <!-- Left: Card Title -->
-                <TextBlock x:Name="HeaderTitleText" Text="" FontWeight="SemiBold" FontSize="15" Foreground="#FFFFFF"
+                <TextBlock x:Name="HeaderTitleText" Text="" FontWeight="SemiBold" FontSize="15" Foreground="#F3F6FC"
                            VerticalAlignment="Center" HorizontalAlignment="Left" Cursor="Hand"/>
 
                 <!-- Center: Green Ring + Date & Time -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Border Width="13" Height="13" CornerRadius="6.5" BorderThickness="2" BorderBrush="#10B981"
                             Margin="0,0,7,0" Background="Transparent"/>
-                    <TextBlock x:Name="HeaderDateText" Text="Sun 25 Oct 2026 " FontSize="12" Foreground="#CBD5E1" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="HeaderTimeText" Text="09:35" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="HeaderDateText" Text="Sun 25 Oct 2026 " FontSize="12" Foreground="#9BAAC0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="HeaderTimeText" Text="09:35" FontSize="12" FontWeight="Bold" Foreground="#F3F6FC" VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Right: Soundwave Equalizer Bars (Clean Header) -->
+                <!-- Right: Soundwave Equalizer Bars (Clean Header with Ocean Azure Accent) -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <StackPanel x:Name="HeaderWavePanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0">
-                        <Border x:Name="WaveBar1" Width="2.5" Height="8" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
-                        <Border x:Name="WaveBar2" Width="2.5" Height="14" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
-                        <Border x:Name="WaveBar3" Width="2.5" Height="10" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
-                        <Border x:Name="WaveBar4" Width="2.5" Height="12" CornerRadius="1.25" Background="#FFFFFF" Margin="1.5,0"/>
+                        <Border x:Name="WaveBar1" Width="2.5" Height="8" CornerRadius="1.25" Background="#00D2FF" Margin="1.5,0"/>
+                        <Border x:Name="WaveBar2" Width="2.5" Height="14" CornerRadius="1.25" Background="#00D2FF" Margin="1.5,0"/>
+                        <Border x:Name="WaveBar3" Width="2.5" Height="10" CornerRadius="1.25" Background="#00D2FF" Margin="1.5,0"/>
+                        <Border x:Name="WaveBar4" Width="2.5" Height="12" CornerRadius="1.25" Background="#00D2FF" Margin="1.5,0"/>
                     </StackPanel>
                 </StackPanel>
             </Grid>
@@ -435,14 +435,14 @@ $islandXaml = @'
 
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0">
                                 <TextBlock x:Name="MusicTitle" Text="Paper Sky" FontSize="16" FontWeight="SemiBold"
-                                           Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
+                                           Foreground="#F3F6FC" TextTrimming="CharacterEllipsis"/>
                                 <TextBlock x:Name="MusicArtist" Text="Lumen Coast - Summer Flows" FontSize="12"
-                                           Foreground="#8E8E93" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                                           Foreground="#9BAAC0" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
 
                             <Button x:Name="BtnMusicNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}"
                                     HorizontalAlignment="Right" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                                <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#F3F6FC"/>
                             </Button>
                         </Grid>
 
@@ -453,12 +453,12 @@ $islandXaml = @'
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="46"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="MusicCurrentTime" Grid.Column="0" Text="03:13" FontSize="11" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="MusicCurrentTime" Grid.Column="0" Text="03:13" FontSize="11" Foreground="#F3F6FC" VerticalAlignment="Center"/>
                             <Grid Grid.Column="1" Margin="6,0" VerticalAlignment="Center">
-                                <Border Height="4" CornerRadius="2" Background="#2C2C2E"/>
-                                <Border x:Name="MusicProgressBar" Height="4" CornerRadius="2" Background="#FFFFFF" HorizontalAlignment="Left" Width="150"/>
+                                <Border Height="4" CornerRadius="2" Background="#202A3A"/>
+                                <Border x:Name="MusicProgressBar" Height="4" CornerRadius="2" Background="#00D2FF" HorizontalAlignment="Left" Width="150"/>
                             </Grid>
-                            <TextBlock x:Name="MusicRemainingTime" Grid.Column="2" Text="-01:03" FontSize="11" Foreground="#8E8E93"
+                            <TextBlock x:Name="MusicRemainingTime" Grid.Column="2" Text="-01:03" FontSize="11" Foreground="#9BAAC0"
                                        HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
 
@@ -466,18 +466,18 @@ $islandXaml = @'
                         <Grid Grid.Row="2">
                             <Button x:Name="BtnToggleLyrics" Style="{StaticResource CircleNavBtn}" Width="26" Height="26"
                                     HorizontalAlignment="Left" VerticalAlignment="Center" ToolTip="Lihat Lirik Lagu">
-                                <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#8E8E93"/>
+                                <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#9BAAC0"/>
                             </Button>
 
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <Button x:Name="BtnMusicPrev" Style="{StaticResource MediaControlBtn}" Margin="0,0,24,0">
-                                    <TextBlock Text="&#xE892;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#FFFFFF"/>
+                                    <TextBlock Text="&#xE892;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#F3F6FC"/>
                                 </Button>
                                 <Button x:Name="BtnMusicPlayPause" Style="{StaticResource MediaControlBtn}" Margin="0,0,24,0">
-                                    <TextBlock x:Name="MusicPlayPauseIcon" Text="&#xE769;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#FFFFFF"/>
+                                    <TextBlock x:Name="MusicPlayPauseIcon" Text="&#xE769;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#F3F6FC"/>
                                 </Button>
                                 <Button x:Name="BtnMusicNext" Style="{StaticResource MediaControlBtn}">
-                                    <TextBlock Text="&#xE893;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#FFFFFF"/>
+                                    <TextBlock Text="&#xE893;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#F3F6FC"/>
                                 </Button>
                             </StackPanel>
                         </Grid>
@@ -490,12 +490,12 @@ $islandXaml = @'
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <Button x:Name="BtnBackFromLyrics" Grid.Row="0" Style="{StaticResource CircleNavBtn}" Width="22" Height="22" HorizontalAlignment="Left">
-                            <TextBlock Text="&#xE72B;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#CBD5E1"/>
+                            <TextBlock Text="&#xE72B;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#9BAAC0"/>
                         </Button>
                         <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="Gliding high above the quiet morning sky..." FontSize="12" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,2"/>
+                            <TextBlock Text="Gliding high above the quiet morning sky..." FontSize="12" Foreground="#9BAAC0" HorizontalAlignment="Center" Margin="0,2"/>
                             <TextBlock Text="Ocean breeze whispers what you left behind" FontSize="14" FontWeight="Bold" Foreground="#00D2FF" HorizontalAlignment="Center" Margin="0,2"/>
-                            <TextBlock Text="Folded wings of paper chasing summer light" FontSize="12" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,2"/>
+                            <TextBlock Text="Folded wings of paper chasing summer light" FontSize="12" Foreground="#9BAAC0" HorizontalAlignment="Center" Margin="0,2"/>
                         </StackPanel>
                     </Grid>
                 </Grid>
@@ -512,7 +512,7 @@ $islandXaml = @'
                     </Grid.ColumnDefinitions>
 
                     <Button x:Name="BtnPomoPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#F3F6FC"/>
                     </Button>
 
                     <Grid Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -523,7 +523,7 @@ $islandXaml = @'
 
                         <!-- Circular Timer Dial -->
                         <Grid Grid.Column="0" Width="82" Height="82" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Border Width="82" Height="82" CornerRadius="41" BorderThickness="2.5" BorderBrush="#222224" Background="#121214"/>
+                            <Border Width="82" Height="82" CornerRadius="41" BorderThickness="2.5" BorderBrush="#202A3A" Background="#0B101B"/>
                             <Border Width="82" Height="82" CornerRadius="41" BorderThickness="2.5" BorderBrush="#FF5252"
                                     Opacity="0.85" Background="Transparent"/>
                             <Border Width="6" Height="6" CornerRadius="3" Background="#FF5252" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0"/>
@@ -533,19 +533,19 @@ $islandXaml = @'
 
                         <!-- Timer Typography and Reset -->
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0">
-                            <TextBlock Text="Waktu Fokus" FontSize="12" Foreground="#A1A1AA" Margin="0,0,0,2"/>
-                            <TextBlock x:Name="PomoSubtitle" Text="Focus time" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF"/>
+                            <TextBlock Text="Waktu Fokus" FontSize="12" Foreground="#9BAAC0" Margin="0,0,0,2"/>
+                            <TextBlock x:Name="PomoSubtitle" Text="Focus time" FontSize="14" FontWeight="SemiBold" Foreground="#F3F6FC"/>
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                <TextBlock x:Name="PomoDisplayTime" Text="25:00" FontFamily="Segoe UI, Consolas" FontSize="30" FontWeight="Bold" Foreground="#FFFFFF"/>
+                                <TextBlock x:Name="PomoDisplayTime" Text="25:00" FontFamily="Segoe UI, Consolas" FontSize="30" FontWeight="Bold" Foreground="#F3F6FC"/>
                                 <Button x:Name="BtnPomoReset" Style="{StaticResource CircleNavBtn}" Width="24" Height="24" Margin="10,0,0,0" ToolTip="Reset Timer">
-                                    <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#A1A1AA"/>
+                                    <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#9BAAC0"/>
                                 </Button>
                             </StackPanel>
                         </StackPanel>
                     </Grid>
 
                     <Button x:Name="BtnPomoNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#F3F6FC"/>
                     </Button>
                 </Grid>
 
@@ -562,11 +562,11 @@ $islandXaml = @'
                     </Grid.ColumnDefinitions>
 
                     <Button x:Name="BtnNotesPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#F3F6FC"/>
                     </Button>
 
                     <!-- Left Half: Quick Note Editor -->
-                    <Border Grid.Column="1" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                    <Border Grid.Column="1" Background="#0B101B" BorderBrush="#202A3A" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="22"/>
@@ -577,17 +577,17 @@ $islandXaml = @'
                                 <TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="Catatan Cepat" FontSize="12" FontWeight="Bold" Foreground="#00D2FF" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <TextBox x:Name="InputNoteText" Grid.Row="1" Background="#070C18" Foreground="#FFFFFF" BorderBrush="#1B2F50"
+                            <TextBox x:Name="InputNoteText" Grid.Row="1" Background="#060A14" Foreground="#F3F6FC" BorderBrush="#202A3A"
                                      FontSize="11" Margin="0,3" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Hidden"
                                      Text="Meeting project Oceru jam 10 pagi..."/>
                             <Button x:Name="BtnSaveNote" Grid.Row="2" Style="{StaticResource PillBtn}" Padding="8,2" HorizontalAlignment="Right">
-                                <TextBlock Text="Simpan" FontSize="10" Foreground="#38BDF8"/>
+                                <TextBlock Text="Simpan" FontSize="10" Foreground="#00D2FF"/>
                             </Button>
                         </Grid>
                     </Border>
 
                     <!-- Right Half: To-Do Checklist -->
-                    <Border Grid.Column="2" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                    <Border Grid.Column="2" Background="#0B101B" BorderBrush="#202A3A" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="22"/>
@@ -596,18 +596,18 @@ $islandXaml = @'
                             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
                                 <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" Margin="0,0,5,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="Tugas Hari Ini" FontSize="12" FontWeight="Bold" Foreground="#10B981" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TodoStatusCount" Text=" (2/3)" FontSize="11" Foreground="#94A3B8" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TodoStatusCount" Text=" (2/3)" FontSize="11" Foreground="#9BAAC0" Margin="4,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                             <StackPanel Grid.Row="1" Margin="0,4,0,0">
-                                <CheckBox x:Name="CbTask1" Content="Uji responsivitas Notch" IsChecked="True" Foreground="#CBD5E1" FontSize="11" Margin="0,2"/>
-                                <CheckBox x:Name="CbTask2" Content="Sinkronisasi audio &amp; volume" IsChecked="True" Foreground="#CBD5E1" FontSize="11" Margin="0,2"/>
-                                <CheckBox x:Name="CbTask3" Content="Cek catatan &amp; to-do list" IsChecked="False" Foreground="#CBD5E1" FontSize="11" Margin="0,2"/>
+                                <CheckBox x:Name="CbTask1" Content="Uji responsivitas Notch" IsChecked="True" Foreground="#F3F6FC" FontSize="11" Margin="0,2"/>
+                                <CheckBox x:Name="CbTask2" Content="Sinkronisasi audio &amp; volume" IsChecked="True" Foreground="#F3F6FC" FontSize="11" Margin="0,2"/>
+                                <CheckBox x:Name="CbTask3" Content="Cek catatan &amp; to-do list" IsChecked="False" Foreground="#F3F6FC" FontSize="11" Margin="0,2"/>
                             </StackPanel>
                         </Grid>
                     </Border>
 
                     <Button x:Name="BtnNotesNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#F3F6FC"/>
                     </Button>
                 </Grid>
 
@@ -624,11 +624,11 @@ $islandXaml = @'
                     </Grid.ColumnDefinitions>
 
                     <Button x:Name="BtnClipPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#F3F6FC"/>
                     </Button>
 
                     <!-- Left: Clipboard History -->
-                    <Border Grid.Column="1" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                    <Border Grid.Column="1" Background="#0B101B" BorderBrush="#202A3A" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="22"/>
@@ -641,14 +641,14 @@ $islandXaml = @'
                             <StackPanel Grid.Row="1" Margin="0,4,0,0">
                                 <Button x:Name="BtnCopyClip1" Style="{StaticResource QuickMiniBtn}" Margin="0,2" HorizontalContentAlignment="Left">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE71B;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#38BDF8" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="github.com/cubadakanda..." FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                                        <TextBlock Text="&#xE71B;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="github.com/cubadakanda..." FontSize="11" Foreground="#F3F6FC" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
                                 <Button x:Name="BtnCopyClip2" Style="{StaticResource QuickMiniBtn}" Margin="0,2" HorizontalContentAlignment="Left">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Oceru Dynamic Island" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Oceru Dynamic Island" FontSize="11" Foreground="#F3F6FC" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
@@ -656,7 +656,7 @@ $islandXaml = @'
                     </Border>
 
                     <!-- Right: File Shelf Drop Zone -->
-                    <Border x:Name="ShelfDropBorder" Grid.Column="2" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0" AllowDrop="True">
+                    <Border x:Name="ShelfDropBorder" Grid.Column="2" Background="#0B101B" BorderBrush="#202A3A" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0" AllowDrop="True">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="22"/>
@@ -666,20 +666,20 @@ $islandXaml = @'
                                 <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,5,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="File Shelf (Tarik File)" FontSize="12" FontWeight="Bold" Foreground="#F59E0B" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <Border Grid.Row="1" BorderBrush="#2A3B58" BorderThickness="1" CornerRadius="8" Background="#070D18" Margin="0,3">
+                            <Border Grid.Row="1" BorderBrush="#202A3A" BorderThickness="1" CornerRadius="8" Background="#060A14" Margin="0,3">
                                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <TextBlock Text="&#xED25;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Lepas file di sini" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Lepas file di sini" FontSize="11" Foreground="#9BAAC0" VerticalAlignment="Center"/>
                                     </StackPanel>
-                                    <TextBlock x:Name="ShelfFileCount" Text="0 file tersimpan" FontSize="10" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    <TextBlock x:Name="ShelfFileCount" Text="0 file tersimpan" FontSize="10" Foreground="#9BAAC0" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
                     </Border>
 
                     <Button x:Name="BtnClipNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#F3F6FC"/>
                     </Button>
                 </Grid>
 
@@ -696,46 +696,46 @@ $islandXaml = @'
                     </Grid.ColumnDefinitions>
 
                     <Button x:Name="BtnSysPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#F3F6FC"/>
                     </Button>
 
                     <!-- Left: System Hardware -->
-                    <Border Grid.Column="1" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                    <Border Grid.Column="1" Background="#0B101B" BorderBrush="#202A3A" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
                         <StackPanel VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="SysRamText" Text="48%" FontFamily="Segoe UI, Consolas" FontSize="28" FontWeight="Bold" Foreground="#FFFFFF"/>
+                                <TextBlock x:Name="SysRamText" Text="48%" FontFamily="Segoe UI, Consolas" FontSize="28" FontWeight="Bold" Foreground="#F3F6FC"/>
                                 <TextBlock Text=" RAM" FontSize="14" FontWeight="SemiBold" Foreground="#00D2FF" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
                             </StackPanel>
-                            <TextBlock x:Name="SysBatStatusText" Text="Baterai 85% - Mengisi Daya" FontSize="11" Foreground="#8E8E93" Margin="0,2,0,0"/>
+                            <TextBlock x:Name="SysBatStatusText" Text="Baterai 85% - Mengisi Daya" FontSize="11" Foreground="#9BAAC0" Margin="0,2,0,0"/>
                             <Button x:Name="BtnSysTaskMgr" Style="{StaticResource QuickMiniBtn}" Margin="0,6,0,0" HorizontalAlignment="Left">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#38BDF8" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Buka Task Manager" FontSize="10" Foreground="#38BDF8" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Buka Task Manager" FontSize="10" Foreground="#00D2FF" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
                     </Border>
 
                     <!-- Right: Water Reminder -->
-                    <Border Grid.Column="2" Background="#0C1424" BorderBrush="#162744" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                    <Border Grid.Column="2" Background="#0B101B" BorderBrush="#202A3A" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
                         <StackPanel VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE798;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#38BDF8" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Air Minum" FontSize="12" FontWeight="Bold" Foreground="#38BDF8" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="WaterAmountText" Text=" (1.250 ml)" FontSize="11" Foreground="#94A3B8" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="&#xE798;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Air Minum" FontSize="12" FontWeight="Bold" Foreground="#00D2FF" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="WaterAmountText" Text=" (1.250 ml)" FontSize="11" Foreground="#9BAAC0" Margin="4,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                             <Grid Margin="0,6">
-                                <Border Height="5" CornerRadius="2.5" Background="#162846"/>
+                                <Border Height="5" CornerRadius="2.5" Background="#202A3A"/>
                                 <Border x:Name="WaterProgressBar" Height="5" CornerRadius="2.5" Background="#00D2FF" HorizontalAlignment="Left" Width="110"/>
                             </Grid>
                             <Button x:Name="BtnAddWater" Style="{StaticResource PillBtn}" Padding="8,3" HorizontalAlignment="Left">
-                                <TextBlock Text="+ 250 ml (1 Gelas)" FontSize="10" Foreground="#E2E8F0"/>
+                                <TextBlock Text="+ 250 ml (1 Gelas)" FontSize="10" Foreground="#F3F6FC"/>
                             </Button>
                         </StackPanel>
                     </Border>
 
                     <Button x:Name="BtnSysNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#F3F6FC"/>
                     </Button>
                 </Grid>
 
@@ -751,7 +751,7 @@ $islandXaml = @'
                     </Grid.ColumnDefinitions>
 
                     <Button x:Name="BtnQuickPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#F3F6FC"/>
                     </Button>
 
                     <Grid Grid.Column="1" VerticalAlignment="Center" Margin="8,0">
@@ -771,26 +771,26 @@ $islandXaml = @'
                             </Grid.ColumnDefinitions>
                             <Button x:Name="BtnQuickWifi" Grid.Column="0" Margin="2" Style="{StaticResource QuickMiniBtn}">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <TextBlock Text="&#xE701;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#38BDF8" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Wi-Fi" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE701;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#00D2FF" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Wi-Fi" FontSize="11" Foreground="#F3F6FC" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button x:Name="BtnQuickBt" Grid.Column="1" Margin="2" Style="{StaticResource QuickMiniBtn}">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <TextBlock Text="&#xE702;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#38BDF8" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Bluetooth" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE702;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#00D2FF" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Bluetooth" FontSize="11" Foreground="#F3F6FC" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button x:Name="BtnQuickDnd" Grid.Column="2" Margin="2" Style="{StaticResource QuickMiniBtn}">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                     <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#A855F7" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="QuickStatusDnd" Text="DND" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="QuickStatusDnd" Text="DND" FontSize="11" Foreground="#F3F6FC" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button x:Name="BtnQuickGame" Grid.Column="3" Margin="2" Style="{StaticResource QuickMiniBtn}">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                     <TextBlock Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="QuickStatusGame" Text="Game" FontSize="11" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="QuickStatusGame" Text="Game" FontSize="11" Foreground="#F3F6FC" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </Grid>
@@ -803,10 +803,10 @@ $islandXaml = @'
                                 <ColumnDefinition Width="34"/>
                             </Grid.ColumnDefinitions>
                             <Button x:Name="BtnQuickMute" Grid.Column="0" Style="{StaticResource QuickMiniBtn}" Padding="4,2">
-                                <TextBlock x:Name="QuickIconMute" Text="&#xE767;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#38BDF8"/>
+                                <TextBlock x:Name="QuickIconMute" Text="&#xE767;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#00D2FF"/>
                             </Button>
                             <Slider x:Name="QuickSliderVol" Grid.Column="1" Minimum="0" Maximum="100" Value="72" VerticalAlignment="Center" Margin="8,0"/>
-                            <TextBlock x:Name="QuickVolPctText" Grid.Column="2" Text="72%" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="QuickVolPctText" Grid.Column="2" Text="72%" FontSize="11" Foreground="#9BAAC0" VerticalAlignment="Center"/>
                         </Grid>
 
                         <!-- Row 2: Lock, Sleep, Restart, Dashboard -->
@@ -819,14 +819,14 @@ $islandXaml = @'
                             </Grid.ColumnDefinitions>
                             <Button x:Name="BtnQuickLock" Grid.Column="0" Margin="2" Style="{StaticResource QuickMiniBtn}">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#CBD5E1" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Kunci" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#9BAAC0" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Kunci" FontSize="11" Foreground="#9BAAC0" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button x:Name="BtnQuickSleep" Grid.Column="1" Margin="2" Style="{StaticResource QuickMiniBtn}">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#CBD5E1" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Tidur" FontSize="11" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#9BAAC0" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Tidur" FontSize="11" Foreground="#9BAAC0" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button x:Name="BtnQuickRestart" Grid.Column="2" Margin="2" Style="{StaticResource QuickMiniBtn}">
@@ -845,7 +845,7 @@ $islandXaml = @'
                     </Grid>
 
                     <Button x:Name="BtnQuickNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#F3F6FC"/>
                     </Button>
                 </Grid>
 
@@ -859,7 +859,7 @@ $islandXaml = @'
                         <Button x:Name="BtnPomoShortBreak" Style="{StaticResource PillBtn}" Margin="0,0,10,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Short Break" FontSize="12" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Short Break" FontSize="12" Foreground="#F3F6FC" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="BtnPomoPlay" Width="66" Height="32" Background="#FF5252" Cursor="Hand"
@@ -876,7 +876,7 @@ $islandXaml = @'
                         <Button x:Name="BtnPomoFocusTime" Style="{StaticResource PillBtn}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#FF5252" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Focus Time" FontSize="12" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Focus Time" FontSize="12" Foreground="#F3F6FC" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -885,18 +885,18 @@ $islandXaml = @'
                 <!-- BOTTOM PAGINATION INDICATOR (6 DOTS FOR 6 CARDS) -->
                 <StackPanel x:Name="PaginationPanel" Orientation="Horizontal" HorizontalAlignment="Center"
                             VerticalAlignment="Bottom" Margin="0,0,0,2">
-                    <Border x:Name="Dot0" Width="16" Height="3" CornerRadius="1.5" Background="#FFFFFF" Margin="2.5,0" Cursor="Hand"/>
-                    <Border x:Name="Dot1" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
-                    <Border x:Name="Dot2" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
-                    <Border x:Name="Dot3" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
-                    <Border x:Name="Dot4" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
-                    <Border x:Name="Dot5" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#48484A" Margin="2.5,0" Cursor="Hand"/>
+                    <Border x:Name="Dot0" Width="16" Height="3" CornerRadius="1.5" Background="#00D2FF" Margin="2.5,0" Cursor="Hand"/>
+                    <Border x:Name="Dot1" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#202A3A" Margin="2.5,0" Cursor="Hand"/>
+                    <Border x:Name="Dot2" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#202A3A" Margin="2.5,0" Cursor="Hand"/>
+                    <Border x:Name="Dot3" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#202A3A" Margin="2.5,0" Cursor="Hand"/>
+                    <Border x:Name="Dot4" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#202A3A" Margin="2.5,0" Cursor="Hand"/>
+                    <Border x:Name="Dot5" Width="3.5" Height="3.5" CornerRadius="1.75" Background="#202A3A" Margin="2.5,0" Cursor="Hand"/>
                 </StackPanel>
             </Grid>
 
             <!-- FLOATING ACTION FEEDBACK TOAST PILL -->
             <Border x:Name="ToastFeedbackPill" Grid.Row="0" Grid.RowSpan="2" HorizontalAlignment="Center"
-                    VerticalAlignment="Top" Margin="0,38,0,0" Background="#E6070B14" BorderBrush="#00D2FF"
+                    VerticalAlignment="Top" Margin="0,38,0,0" Background="#E6060A14" BorderBrush="#00D2FF"
                     BorderThickness="1" CornerRadius="14" Padding="14,6" Visibility="Collapsed">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock x:Name="ToastFeedbackIcon" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="12"
@@ -1384,8 +1384,8 @@ $dashXaml = @'
                                 <Border Style="{StaticResource DashCard}">
                                     <StackPanel>
                                         <TextBlock Text="DESAIN SILUET OBSIDIAN GLASS" FontSize="11" FontWeight="Bold" Foreground="#C084FC"/>
-                                        <TextBlock Text="Pure Obsidian Glass Capsule" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,6,0,2"/>
-                                        <TextBlock Text="Kapsul hitam murni (#000000) dengan batas kaca tipis 1px (#1C273C). Bebas bayangan blur hitam kasar dan tanpa kontur kotor, menyatu bersih dengan desktop Windows Anda." FontSize="12" Foreground="#94A3B8"/>
+                                        <TextBlock Text="Seamless Obsidian Island Capsule" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,6,0,2"/>
+                                        <TextBlock Text="Kapsul obsidian hitam murni (#000000) tanpa garis tepi (seamless bezel-flush). Bebas bayangan blur dan fringe kontur, menyatu sempurna dengan tepi atas layar desktop Windows Anda." FontSize="12" Foreground="#9BAAC0"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -2662,12 +2662,12 @@ function SwitchCarouselCard($index) {
             $dotBars[$i].Width = 16
             $dotBars[$i].Height = 3
             $dotBars[$i].CornerRadius = [System.Windows.CornerRadius]::new(1.5)
-            $dotBars[$i].Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
+            $dotBars[$i].Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00D2FF")
         } else {
             $dotBars[$i].Width = 3.5
             $dotBars[$i].Height = 3.5
             $dotBars[$i].CornerRadius = [System.Windows.CornerRadius]::new(1.75)
-            $dotBars[$i].Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#48484A")
+            $dotBars[$i].Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#202A3A")
         }
     }
 }
