@@ -937,9 +937,16 @@ $expandedBodyWidth = 560
 
 $expandedTotalWidth = $expandedBodyWidth + (2 * $shoulderPad) # 576
 
+$expandedLyricsBodyWidth = 840
+
+$expandedLyricsTotalWidth = $expandedLyricsBodyWidth + (2 * $shoulderPad) # 856
+
 $expandedHeight = 222
 
 $expandedLeftPos = [Math]::Round(($screenWidth - $expandedTotalWidth) / 2)
+
+$global:isLyricsSideOpen = $false
+$global:browserPlaybackEstimate = 0.0
 
 $toastBodyWidth = 360
 
@@ -1481,193 +1488,133 @@ $islandXaml = @'
                 <!-- ============================================== -->
 
                 <Grid x:Name="CardMusic" Visibility="Visible">
+                    <Grid.ColumnDefinitions>
+                        <!-- Left Column: Music Player Controls (always visible) -->
+                        <ColumnDefinition x:Name="ColMusicPlayer" Width="*"/>
+                        <!-- Center Divider -->
+                        <ColumnDefinition x:Name="ColMusicDivider" Width="Auto"/>
+                        <!-- Right Column: Live Lyrics Side Panel -->
+                        <ColumnDefinition x:Name="ColMusicLyrics" Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                    <!-- Default Player Layout -->
-
-                    <Grid x:Name="MusicPlayerView" Visibility="Visible">
-
+                    <!-- Player Controls (Column 0) -->
+                    <Grid Grid.Column="0">
                         <Grid.RowDefinitions>
-
                             <RowDefinition Height="68"/>
-
                             <RowDefinition Height="20"/>
-
                             <RowDefinition Height="26"/>
-
                         </Grid.RowDefinitions>
 
+                        <!-- Row 0: Track Info -->
                         <Grid Grid.Row="0">
-
                             <Grid.ColumnDefinitions>
-
                                 <ColumnDefinition Width="78"/>
-
                                 <ColumnDefinition Width="*"/>
-
                                 <ColumnDefinition Width="32"/>
-
                             </Grid.ColumnDefinitions>
 
                             <!-- Stylized Music Album Cover & Media Disc -->
-
                             <Border Grid.Column="0" Width="68" Height="68" CornerRadius="14" Background="#131722"
-
                                     BorderBrush="#232B3D" BorderThickness="1"
-
                                     HorizontalAlignment="Left" VerticalAlignment="Center" ClipToBounds="True">
-
                                 <Grid>
-
-                                    <!-- Vinyl Grooves -->
-
                                     <Border Width="56" Height="56" CornerRadius="28" BorderThickness="1" BorderBrush="#232B3D" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
                                     <Border Width="44" Height="44" CornerRadius="22" BorderThickness="1" BorderBrush="#232B3D" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
-                                    <!-- Glowing Center Hub -->
-
                                     <Border Width="32" Height="32" CornerRadius="16" Background="#1B2130" BorderThickness="1.5" BorderBrush="#00D2FF"
-
                                             HorizontalAlignment="Center" VerticalAlignment="Center">
-
                                         <TextBlock Text="&#xE8D6;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#00D2FF"
-
                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
                                     </Border>
-
                                 </Grid>
-
                             </Border>
 
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0">
-
-                                <TextBlock x:Name="MusicTitle" Text="Tidak ada media aktif" FontSize="15" FontWeight="SemiBold"
-
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="6,0,0,0">
+                                <TextBlock x:Name="MusicTitle" Text="Tidak ada media aktif" FontSize="14.5" FontWeight="SemiBold"
                                            Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
-
                                 <TextBlock x:Name="MusicArtist" Text="Kontrol pemutar Windows atau putar file audio" FontSize="11"
-
                                            Foreground="#8E9AA8" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
-
                             </StackPanel>
 
                             <Button x:Name="BtnMusicNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}"
-
                                     HorizontalAlignment="Right" VerticalAlignment="Center">
-
                                 <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-
                             </Button>
-
                         </Grid>
 
-                        <!-- Seekbar -->
-
+                        <!-- Row 1: Seekbar -->
                         <Grid Grid.Row="1" VerticalAlignment="Center">
-
                             <Grid.ColumnDefinitions>
-
                                 <ColumnDefinition Width="42"/>
-
                                 <ColumnDefinition Width="*"/>
-
                                 <ColumnDefinition Width="46"/>
-
                             </Grid.ColumnDefinitions>
-
                             <TextBlock x:Name="MusicCurrentTime" Grid.Column="0" Text="00:00" FontSize="11" Foreground="#FFFFFF" VerticalAlignment="Center"/>
-
                             <Grid Grid.Column="1" Margin="6,0" VerticalAlignment="Center">
-
                                 <Border Height="4" CornerRadius="2" Background="#232B3D"/>
-
                                 <Border x:Name="MusicProgressBar" Height="4" CornerRadius="2" Background="#00D2FF" HorizontalAlignment="Left" Width="0"/>
-
                             </Grid>
-
                             <TextBlock x:Name="MusicRemainingTime" Grid.Column="2" Text="00:00" FontSize="11" Foreground="#8E9AA8"
-
                                        HorizontalAlignment="Right" VerticalAlignment="Center"/>
-
                         </Grid>
 
-                        <!-- Controls Row -->
-
+                        <!-- Row 2: Controls -->
                         <Grid Grid.Row="2">
-
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-
-                                <Button x:Name="BtnToggleLyrics" Style="{StaticResource CircleNavBtn}" Width="26" Height="26" ToolTip="Lihat Lirik Lagu">
-
-                                    <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#8E9AA8"/>
-
+                                <Button x:Name="BtnToggleLyrics" Style="{StaticResource CircleNavBtn}" Width="26" Height="26">
+                                    <TextBlock x:Name="IconToggleLyrics" Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#8E9AA8"/>
                                 </Button>
-
-                                <Button x:Name="BtnOpenLocalAudio" Style="{StaticResource CircleNavBtn}" Width="26" Height="26" Margin="6,0,0,0" ToolTip="Pilih File Audio Lokal">
-
+                                <Button x:Name="BtnOpenLocalAudio" Style="{StaticResource CircleNavBtn}" Width="26" Height="26" Margin="6,0,0,0">
                                     <TextBlock Text="&#xE8E5;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#00D2FF"/>
-
                                 </Button>
-
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-
-                                <Button x:Name="BtnMusicPrev" Style="{StaticResource MediaControlBtn}" Margin="0,0,24,0" ToolTip="Lagu Sebelumnya">
-
+                                <Button x:Name="BtnMusicPrev" Style="{StaticResource MediaControlBtn}" Margin="0,0,24,0">
                                     <TextBlock Text="&#xE892;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#FFFFFF"/>
-
                                 </Button>
-
-                                <Button x:Name="BtnMusicPlayPause" Style="{StaticResource MediaControlBtn}" Margin="0,0,24,0" ToolTip="Play / Pause">
-
+                                <Button x:Name="BtnMusicPlayPause" Style="{StaticResource MediaControlBtn}" Margin="0,0,24,0">
                                     <TextBlock x:Name="MusicPlayPauseIcon" Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#FFFFFF"/>
-
                                 </Button>
-
-                                <Button x:Name="BtnMusicNext" Style="{StaticResource MediaControlBtn}" ToolTip="Lagu Berikutnya">
-
+                                <Button x:Name="BtnMusicNext" Style="{StaticResource MediaControlBtn}">
                                     <TextBlock Text="&#xE893;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#FFFFFF"/>
-
                                 </Button>
-
                             </StackPanel>
-
                         </Grid>
-
                     </Grid>
 
-                    <!-- Synced Lyrics View (Toggled via Lyrics button) -->
+                    <!-- Center Divider -->
+                    <Border x:Name="MusicLyricsDivider" Grid.Column="1" Width="1" Background="#232B3D" Margin="14,2,14,2" Visibility="Collapsed"/>
 
-                    <Grid x:Name="MusicLyricsView" Visibility="Collapsed">
-
+                    <!-- Right Column: Live Lyrics Side Panel -->
+                    <Grid x:Name="MusicLyricsSidePanel" Grid.Column="2" Width="260" Visibility="Collapsed">
                         <Grid.RowDefinitions>
-
-                            <RowDefinition Height="24"/>
-
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
-
                         </Grid.RowDefinitions>
 
-                        <Button x:Name="BtnBackFromLyrics" Grid.Row="0" Style="{StaticResource CircleNavBtn}" Width="22" Height="22" HorizontalAlignment="Left">
+                        <!-- Header with live indicator & close -->
+                        <Grid Grid.Row="0" Margin="0,0,0,6">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="LIRIK REAL-TIME" FontSize="10" FontWeight="Bold" Foreground="#8E9AA8" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Button x:Name="BtnCloseLyricsSide" Style="{StaticResource CircleNavBtn}" Width="18" Height="18" HorizontalAlignment="Right">
+                                <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="8" Foreground="#8E9AA8"/>
+                            </Button>
+                        </Grid>
 
-                            <TextBlock Text="&#xE72B;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#8E9AA8"/>
-
-                        </Button>
-
-                        <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
-
-                            <TextBlock Text="Gliding high above the quiet morning sky..." FontSize="12" Foreground="#8E9AA8" HorizontalAlignment="Center" Margin="0,2"/>
-
-                            <TextBlock Text="Ocean breeze whispers what you left behind" FontSize="14" FontWeight="Bold" Foreground="#00D2FF" HorizontalAlignment="Center" Margin="0,2"/>
-
-                            <TextBlock Text="Folded wings of paper chasing summer light" FontSize="12" Foreground="#8E9AA8" HorizontalAlignment="Center" Margin="0,2"/>
-
+                        <!-- Synced Lines Stack -->
+                        <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,2,0,0">
+                            <!-- Prev Line -->
+                            <TextBlock x:Name="LyricLinePrev" Text="" FontSize="11" Foreground="#4A5568" TextTrimming="CharacterEllipsis" Margin="0,1" HorizontalAlignment="Left"/>
+                            <!-- Current Active Line with highlight -->
+                            <TextBlock x:Name="LyricLineCurrent" Text="♪ Mendengarkan musik... ♪" FontSize="13" FontWeight="Bold" Foreground="#00D2FF" TextWrapping="Wrap" Margin="0,3" HorizontalAlignment="Left"/>
+                            <!-- Next Line 1 -->
+                            <TextBlock x:Name="LyricLineNext" Text="" FontSize="11" Foreground="#8E9AA8" TextTrimming="CharacterEllipsis" Margin="0,1" HorizontalAlignment="Left"/>
+                            <!-- Next Line 2 -->
+                            <TextBlock x:Name="LyricLineNext2" Text="" FontSize="10" Foreground="#4A5568" TextTrimming="CharacterEllipsis" Margin="0,1" HorizontalAlignment="Left"/>
                         </StackPanel>
-
                     </Grid>
-
                 </Grid>
 
                 <!-- ============================================== -->
@@ -6051,7 +5998,337 @@ $dotBars = @($dot0, $dot1, $dot2, $dot3, $dot4, $dot5)
 
 $musicPlayerView = $window.FindName("MusicPlayerView")
 
-$musicLyricsView = $window.FindName("MusicLyricsView")
+# ========================================================
+# FEATURE: DYNAMIC SYNCHRONIZED LYRICS ENGINE (LRCLIB REAL-TIME SYNC)
+# ========================================================
+Add-Type -AssemblyName System.Net.Http -ErrorAction SilentlyContinue
+
+$global:lyricsCacheFile = Join-Path $PSScriptRoot ".oceru-lyrics-cache.json"
+$global:lyricsCache = @{}
+
+if (Test-Path $global:lyricsCacheFile) {
+    try {
+        $cacheRaw = Get-Content -Path $global:lyricsCacheFile -Raw -Encoding UTF8
+        $cacheObj = $cacheRaw | ConvertFrom-Json
+        foreach ($prop in $cacheObj.PSObject.Properties) {
+            $global:lyricsCache[$prop.Name] = $prop.Value
+        }
+    } catch {}
+}
+
+function Save-OceruLyricsCache {
+    try {
+        $json = $global:lyricsCache | ConvertTo-Json -Depth 5
+        [System.IO.File]::WriteAllText($global:lyricsCacheFile, $json, [System.Text.Encoding]::UTF8)
+    } catch {}
+}
+
+$global:lyricsHttpClient = $null
+try {
+    $global:lyricsHttpClient = New-Object System.Net.Http.HttpClient
+    $global:lyricsHttpClient.DefaultRequestHeaders.UserAgent.ParseAdd("OceruDynamicIsland/1.0.0 (Windows NT 10.0; Win64; x64)")
+    $global:lyricsHttpClient.Timeout = [TimeSpan]::FromSeconds(6)
+} catch {}
+
+$global:lyricsFetchTask = $null
+$global:fetchingSongKey = ""
+
+$global:embeddedLyrics = @{
+    "daun jatuh:antara pagi dan kau" = @"
+[00:16.30] Pagi ini mentari bersinar cerah
+[00:25.76] Namun cerahnya tak secerah parasmu
+[00:35.07] Pagi ini burung berkicau nan merdu
+[00:44.65] Namun tak semerdu saat kau menyapaku
+[00:54.07] Hu
+[01:04.98] Dengan tulus dan penuh keyakinan
+[01:14.86] Kutitipkan segala yang kupunya padamu
+[01:25.35] Aku ingin kau selalu ada di sini
+[01:35.20] Tuk temani hari yang terus berganti
+[01:44.90] Karena aku tak pernah mau tuk sendiri
+[01:54.41] Raga dan jiwaku nyaman bersamamu
+[02:10.55] Pagi ini bunga bermekaran manis
+[02:20.58] Namun tak semanis saat kau menatapku
+[02:30.71] Hu
+[02:41.22] Dengan tulus dan penuh keyakinan
+[02:50.44] Kutitipkan segala yang kupunya padamu
+[03:00.91] Aku ingin kau selalu ada di sini
+[03:11.07] Tuk temani hari yang terus berganti
+[03:20.70] Karena aku tak pernah mau tuk sendiri
+[03:30.18] Raga dan jiwaku nyaman bersamamu
+[03:54.61] Jangan pernah kau pergi
+[03:59.21] Tinggalkan ku sendiri
+[04:04.03] Jangan membuatku tertatih
+[04:08.55] Karena luka yang perih
+[04:13.90] Jangan pernah kau pergi
+[04:18.25] Tinggalkan ku sendiri
+[04:23.05] Jangan membuatku tertatih
+[04:27.71] Karena luka yang perih lagi
+[04:50.01] Aku ingin kau selalu ada di sini
+[04:59.06] Tuk temani hari yang terus berganti
+[05:08.74] Karena aku tak pernah mau tuk sendiri
+[05:18.30] Raga dan jiwaku nyaman bersamamu
+"@
+    "daun jatuh:resah jadi luka" = @"
+[00:15.00]Kuingin rasakan rindu
+[00:22.00]Tanpa ada rasa sakit di hatiku
+[00:30.00]Mengapa harus terluka
+[00:38.00]Saat cinta mulai tumbuh di jiwa
+[00:48.00]Kuharap kau mengerti apa yang kurasa
+[00:58.00]Kini resahku telah menjadi luka
+[01:08.00]Menemani sepi di malam yang dingin
+"@
+    "raim laode:komang" = @"
+[00:16.59] Dari kejauhan, tergambar cerita tentang kita
+[00:25.87] Terpisah jarak dan waktu
+[00:34.50] Ingin kuungkapkan rindu lewat alunan lagu
+[00:46.85] Sebab kau terlalu indah tuk sekadar kata
+[00:57.20] Sebab kau terlalu indah tuk jadi nyata
+[01:09.10] Dan apabila hatiku mulai merasa sepi
+[01:19.45] Ku akan bernyanyi untukmu
+"@
+}
+
+function Clean-SongInfo {
+    param([string]$RawTitle, [string]$RawArtist)
+    if (-not $RawTitle) { $RawTitle = "" }
+    if (-not $RawArtist) { $RawArtist = "" }
+
+    $cleanT = $RawTitle -replace '\(.*?(?:Official|Audio|Video|Lyric|Lirik|Version|Remaster|YouTube|Spotify).*?\)', '' `
+                        -replace '\[.*?(?:Official|Audio|Video|Lyric|Lirik|Version|Remaster).*?\]', '' `
+                        -replace '(?i)Official Music Video|Official Video|Official Audio|Lyric Video|Audio|Lirik|MV|Visualizer|HD|4K', ''
+    $cleanT = $cleanT.Trim()
+
+    $cleanA = $RawArtist -replace '\s*\(.*?\)', ''
+    $cleanA = $cleanA.Trim()
+
+    $dashRegex = '[\-\u2013\u2014]'
+
+    # If artist is a browser/generic app and title contains " - ", split them
+    if (($cleanA -match '(?i)YouTube|Chrome|Edge|Firefox|Spotify|Windows Media|Media Windows|^$') -and ($cleanT -match "^(.*?)\s*$dashRegex\s*(.*)$")) {
+        $cleanA = $Matches[1].Trim()
+        $cleanT = $Matches[2].Trim()
+    }
+
+    # If title repeats the artist at the beginning
+    if ($cleanA) {
+        $escA = [regex]::Escape($cleanA)
+        if ($cleanT -match "^$escA\s*$dashRegex\s*(.*)$") {
+            $cleanT = $Matches[1].Trim()
+        }
+    }
+
+    return @{ Title = $cleanT; Artist = $cleanA }
+}
+
+function Start-AsyncLyricsFetch([string]$Title, [string]$Artist, [double]$Duration = 240) {
+    if (-not $global:lyricsHttpClient) { return }
+    $info = Clean-SongInfo $Title $Artist
+    $cleanT = $info.Title
+    $cleanA = $info.Artist
+    if (-not $cleanT -or $cleanT -eq "Tidak ada media aktif") { return }
+
+    $searchQuery = "$cleanT $cleanA".Trim()
+    $encoded = [System.Uri]::EscapeDataString($searchQuery)
+    $url = "https://lrclib.net/api/search?q=$encoded"
+
+    try {
+        $global:fetchingSongKey = "$($cleanA)::$($cleanT)".ToLower()
+        $global:lyricsFetchTask = $global:lyricsHttpClient.GetStringAsync($url)
+    } catch {}
+}
+
+function Parse-LyricsLRC {
+    param([string]$LrcText, [double]$TotalSeconds = 240)
+    $lines = @()
+    if (-not $LrcText) { return $lines }
+    $rawLines = $LrcText -split "`r?`n"
+    $hasTimestamps = $false
+
+    foreach ($line in $rawLines) {
+        $trim = $line.Trim()
+        if (-not $trim) { continue }
+        if ($trim -match '^\s*\[(\d{1,2}):(\d{2}(?:\.\d+)?)\](.*)$') {
+            $hasTimestamps = $true
+            $min = [double]$Matches[1]
+            $sec = [double]$Matches[2]
+            $text = $Matches[3].Trim()
+            $timeSec = ($min * 60.0) + $sec
+            if ($text) {
+                $lines += [PSCustomObject]@{ TimeSec = $timeSec; Text = $text }
+            }
+        }
+    }
+
+    if (-not $hasTimestamps -and $rawLines.Count -gt 0) {
+        $validPlain = $rawLines | Where-Object { $_.Trim() -ne "" }
+        $step = [Math]::Max(4.0, $TotalSeconds / [Math]::Max(1, $validPlain.Count))
+        $t = 6.0
+        foreach ($p in $validPlain) {
+            $lines += [PSCustomObject]@{ TimeSec = $t; Text = $p.Trim() }
+            $t += $step
+        }
+    }
+    return $lines
+}
+
+function Generate-AdaptiveLyricsProgression {
+    param([string]$Title, [string]$Artist, [double]$Duration = 240)
+    if ($Duration -le 0) { $Duration = 210 }
+    $info = Clean-SongInfo $Title $Artist
+    $cleanT = if ($info.Title) { $info.Title } else { "Lagu Sedang Diputar" }
+    $cleanA = if ($info.Artist) { $info.Artist } else { "Musik Aktif" }
+    $note = [char]0x266A
+
+    $lines = @(
+        [PSCustomObject]@{ TimeSec = 0.0; Text = "$note [Intro Musik] $cleanT $note" },
+        [PSCustomObject]@{ TimeSec = [Math]::Round($Duration * 0.12); Text = "Memutar lagu: $cleanT" },
+        [PSCustomObject]@{ TimeSec = [Math]::Round($Duration * 0.25); Text = "Artis: $cleanA" },
+        [PSCustomObject]@{ TimeSec = [Math]::Round($Duration * 0.40); Text = "$note [Bait Utama & Harmoni Nada] $note" },
+        [PSCustomObject]@{ TimeSec = [Math]::Round($Duration * 0.60); Text = "Menikmati alunan melodi lagu..." },
+        [PSCustomObject]@{ TimeSec = [Math]::Round($Duration * 0.78); Text = "$note [Refrain & Puncak Musik] $note" },
+        [PSCustomObject]@{ TimeSec = [Math]::Round($Duration * 0.90); Text = "$note [Outro / Menjelang Akhir] $note" }
+    )
+    return $lines
+}
+
+function Get-ActiveLyricsContext {
+    param($ParsedLines, [double]$CurSec)
+    $note = [char]0x266A
+    if (-not $ParsedLines -or $ParsedLines.Count -eq 0) {
+        return @{ Prev = ""; Current = "$note Instrumen Musik $note"; Next = ""; Next2 = "" }
+    }
+
+    $activeIdx = 0
+    for ($i = 0; $i -lt $ParsedLines.Count; $i++) {
+        if ($CurSec -ge $ParsedLines[$i].TimeSec) {
+            $activeIdx = $i
+        } else {
+            break
+        }
+    }
+
+    $prev = if ($activeIdx -gt 0) { $ParsedLines[$activeIdx - 1].Text } else { "" }
+    $curr = $ParsedLines[$activeIdx].Text
+    $next = if ($activeIdx + 1 -lt $ParsedLines.Count) { $ParsedLines[$activeIdx + 1].Text } else { "" }
+    $next2 = if ($activeIdx + 2 -lt $ParsedLines.Count) { $ParsedLines[$activeIdx + 2].Text } else { "" }
+
+    return @{
+        Prev = $prev
+        Current = $curr
+        Next = $next
+        Next2 = $next2
+        Index = $activeIdx
+        Total = $ParsedLines.Count
+    }
+}
+
+$global:currentLyricsSongKey = ""
+$global:parsedLyricsLines = @()
+
+function Update-LiveLyricsDisplay([double]$curSec, [double]$totalSec) {
+    try {
+        $note = [char]0x266A
+        $rawTitle = $global:OceruState.currentMedia.title
+        $rawArtist = $global:OceruState.currentMedia.artist
+        if (-not $rawTitle -or $rawTitle -eq "Tidak ada media aktif") {
+            if ($lyricLineCurrent) { $lyricLineCurrent.Text = "$note Tidak ada media aktif $note" }
+            if ($lyricLinePrev) { $lyricLinePrev.Text = "" }
+            if ($lyricLineNext) { $lyricLineNext.Text = "" }
+            if ($lyricLineNext2) { $lyricLineNext2.Text = "" }
+            return
+        }
+
+        $info = Clean-SongInfo $rawTitle $rawArtist
+        $cacheKey = "$($info.Artist)::$($info.Title)".ToLower()
+
+        # Check if background fetch has completed
+        if ($global:lyricsFetchTask -and $global:lyricsFetchTask.IsCompleted) {
+            try {
+                if (-not $global:lyricsFetchTask.IsFaulted -and $global:lyricsFetchTask.Result) {
+                    $json = $global:lyricsFetchTask.Result
+                    $items = $json | ConvertFrom-Json
+                    $match = $items | Where-Object { $_.syncedLyrics } | Select-Object -First 1
+                    if ($match -and $match.syncedLyrics) {
+                        $global:lyricsCache[$global:fetchingSongKey] = $match.syncedLyrics
+                        Save-OceruLyricsCache
+                        if ($global:currentLyricsSongKey -eq $global:fetchingSongKey) {
+                            $global:parsedLyricsLines = Parse-LyricsLRC $match.syncedLyrics $totalSec
+                        }
+                    } elseif ($items -and $items.Count -gt 0 -and $items[0].plainLyrics) {
+                        $global:lyricsCache[$global:fetchingSongKey] = $items[0].plainLyrics
+                        Save-OceruLyricsCache
+                        if ($global:currentLyricsSongKey -eq $global:fetchingSongKey) {
+                            $global:parsedLyricsLines = Parse-LyricsLRC $items[0].plainLyrics $totalSec
+                        }
+                    }
+                }
+            } catch {}
+            $global:lyricsFetchTask = $null
+        }
+
+        # Check if song changed or lyrics not parsed yet
+        if ($cacheKey -ne $global:currentLyricsSongKey -or (-not $global:parsedLyricsLines) -or $global:parsedLyricsLines.Count -eq 0) {
+            $global:currentLyricsSongKey = $cacheKey
+
+            # 1. Check local persistent disk cache
+            if ($global:lyricsCache.ContainsKey($cacheKey)) {
+                $rawLrc = $global:lyricsCache[$cacheKey]
+                $global:parsedLyricsLines = Parse-LyricsLRC $rawLrc $totalSec
+            }
+            # 2. Check embedded songs
+            elseif ($global:embeddedLyrics.ContainsKey($cacheKey)) {
+                $rawLrc = $global:embeddedLyrics[$cacheKey]
+                $global:parsedLyricsLines = Parse-LyricsLRC $rawLrc $totalSec
+            }
+            else {
+                # 3. Check partial match in embedded songs
+                $foundEmbedded = $null
+                foreach ($k in $global:embeddedLyrics.Keys) {
+                    $parts = $k -split ":"
+                    if ($cacheKey.Contains($parts[1]) -and $cacheKey.Contains($parts[0])) {
+                        $foundEmbedded = $global:embeddedLyrics[$k]
+                        break
+                    }
+                }
+                if ($foundEmbedded) {
+                    $global:parsedLyricsLines = Parse-LyricsLRC $foundEmbedded $totalSec
+                } else {
+                    # 4. Trigger asynchronous fetch from LRCLIB
+                    Start-AsyncLyricsFetch $rawTitle $rawArtist $totalSec
+                    $global:parsedLyricsLines = @(
+                        [PSCustomObject]@{ TimeSec = 0.0; Text = "$note Mencari lirik online ($($info.Title))... $note" },
+                        [PSCustomObject]@{ TimeSec = 4.0; Text = "$note Menghubungkan ke database lirik $note" },
+                        [PSCustomObject]@{ TimeSec = 10.0; Text = "$note Menikmati melodi lagu... $note" }
+                    )
+                }
+            }
+        }
+
+        # Render active lyrics
+        if ($global:parsedLyricsLines -and $global:parsedLyricsLines.Count -gt 0) {
+            $ctx = Get-ActiveLyricsContext $global:parsedLyricsLines $curSec
+            if ($lyricLinePrev) { $lyricLinePrev.Text = $ctx.Prev }
+            if ($lyricLineCurrent) {
+                $lyricLineCurrent.Text = $ctx.Current
+                if ($global:lastWaveColor) {
+                    $lyricLineCurrent.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString($global:lastWaveColor)
+                }
+            }
+            if ($lyricLineNext) { $lyricLineNext.Text = $ctx.Next }
+            if ($lyricLineNext2) { $lyricLineNext2.Text = $ctx.Next2 }
+        }
+    } catch {}
+}
+# Handles: Card 0 Side-by-Side Lyrics & Media Controls
+$musicLyricsSidePanel = $window.FindName("MusicLyricsSidePanel")
+$musicLyricsDivider = $window.FindName("MusicLyricsDivider")
+$btnToggleLyrics = $window.FindName("BtnToggleLyrics")
+$iconToggleLyrics = $window.FindName("IconToggleLyrics")
+$btnCloseLyricsSide = $window.FindName("BtnCloseLyricsSide")
+$lyricLinePrev = $window.FindName("LyricLinePrev")
+$lyricLineCurrent = $window.FindName("LyricLineCurrent")
+$lyricLineNext = $window.FindName("LyricLineNext")
+$lyricLineNext2 = $window.FindName("LyricLineNext2")
 
 $musicTitle = $window.FindName("MusicTitle")
 
@@ -6448,14 +6725,12 @@ function Set-IslandMode($mode) {
     }
 
     elseif ($mode -eq "expanded") {
-
-        $global:toBodyW = $expandedBodyWidth
-
-        $global:toTotalW = $expandedTotalWidth
-
+        $bodyW = if ($global:isLyricsSideOpen -and $global:activeCardIndex -eq 0) { $expandedLyricsBodyWidth } else { $expandedBodyWidth }
+        $totW = if ($global:isLyricsSideOpen -and $global:activeCardIndex -eq 0) { $expandedLyricsTotalWidth } else { $expandedTotalWidth }
+        $global:toBodyW = $bodyW
+        $global:toTotalW = $totW
         $global:toH = $expandedHeight
-
-        $global:toL = $expandedLeftPos
+        $global:toL = [Math]::Round(($screenWidth - $totW) / 2)
 
         $global:toR = 24
 
@@ -7041,6 +7316,23 @@ function SwitchCarouselCard($index) {
 
     }
 
+    if ($index -ne 0 -and $global:isLyricsSideOpen) {
+        if ($musicLyricsSidePanel) { $musicLyricsSidePanel.Visibility = [System.Windows.Visibility]::Collapsed }
+        if ($musicLyricsDivider) { $musicLyricsDivider.Visibility = [System.Windows.Visibility]::Collapsed }
+        $global:toBodyW = $expandedBodyWidth
+        $global:toTotalW = $expandedTotalWidth
+        $global:toL = [Math]::Round(($screenWidth - $expandedTotalWidth) / 2)
+        $global:fromTotalW = $window.Width
+        $global:fromBodyW = [Math]::Max(10, $window.Width - (2 * $shoulderPad))
+        $global:fromH = $window.Height
+        $global:fromL = $window.Left
+        $global:fromR = $global:toR
+        $global:animDuration = 260
+        $global:animSw.Restart()
+        $global:animTimer.Start()
+    } elseif ($index -eq 0 -and $global:isLyricsSideOpen) {
+        Update-LyricsSidePanelVisibility
+    }
 }
 
 # Nav Buttons Wiring
@@ -7267,21 +7559,49 @@ $btnMusicPrev.Add_Click({
 
 })
 
-$btnToggleLyrics.Add_Click({
+function Update-LyricsSidePanelVisibility {
+    if ($global:isLyricsSideOpen -and $global:activeCardIndex -eq 0) {
+        if ($musicLyricsSidePanel) { $musicLyricsSidePanel.Visibility = [System.Windows.Visibility]::Visible }
+        if ($musicLyricsDivider) { $musicLyricsDivider.Visibility = [System.Windows.Visibility]::Visible }
+        if ($iconToggleLyrics) { $iconToggleLyrics.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00D2FF") }
+        $global:toBodyW = $expandedLyricsBodyWidth
+        $global:toTotalW = $expandedLyricsTotalWidth
+        $global:toL = [Math]::Round(($screenWidth - $expandedLyricsTotalWidth) / 2)
+    } else {
+        if ($musicLyricsSidePanel) { $musicLyricsSidePanel.Visibility = [System.Windows.Visibility]::Collapsed }
+        if ($musicLyricsDivider) { $musicLyricsDivider.Visibility = [System.Windows.Visibility]::Collapsed }
+        if ($iconToggleLyrics) { $iconToggleLyrics.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#8E9AA8") }
+        $global:toBodyW = $expandedBodyWidth
+        $global:toTotalW = $expandedTotalWidth
+        $global:toL = [Math]::Round(($screenWidth - $expandedTotalWidth) / 2)
+    }
 
-    $musicPlayerView.Visibility = [System.Windows.Visibility]::Collapsed
+    $global:fromTotalW = $window.Width
+    $global:fromBodyW = [Math]::Max(10, $window.Width - (2 * $shoulderPad))
+    $global:fromH = $window.Height
+    $global:fromL = $window.Left
+    $global:fromR = $global:toR
+    $global:animDuration = 260
+    $global:animSw.Restart()
+    $global:animTimer.Start()
+}
 
-    $musicLyricsView.Visibility = [System.Windows.Visibility]::Visible
+if ($btnToggleLyrics) {
+    $btnToggleLyrics.Add_Click({
+        $global:isLyricsSideOpen = -not $global:isLyricsSideOpen
+        Update-LyricsSidePanelVisibility
+        if ($global:isLyricsSideOpen) {
+            Update-LiveLyricsDisplay 0 240
+        }
+    })
+}
 
-})
-
-$btnBackFromLyrics.Add_Click({
-
-    $musicLyricsView.Visibility = [System.Windows.Visibility]::Collapsed
-
-    $musicPlayerView.Visibility = [System.Windows.Visibility]::Visible
-
-})
+if ($btnCloseLyricsSide) {
+    $btnCloseLyricsSide.Add_Click({
+        $global:isLyricsSideOpen = $false
+        Update-LyricsSidePanelVisibility
+    })
+}
 
 # CARD 1: POMODORO FOCUS TIMER WIRING
 
@@ -10078,6 +10398,10 @@ $mainTimer.Add_Tick({
 
                 $isActivelyPlaying = ($winMedia.IsPlaying -eq $true)
 
+                if ($global:OceruState.currentMedia.title -ne $winMedia.Title) {
+                    $global:browserPlaybackEstimate = 0.0
+                }
+
                 $global:OceruState.currentMedia.title = $winMedia.Title
 
                 $global:OceruState.currentMedia.artist = $winMedia.Artist
@@ -10130,6 +10454,9 @@ $mainTimer.Add_Tick({
                         $miniEqBar3.Background = $colorBrush
                         $miniEqBar4.Background = $colorBrush
                     }
+                    if ($lyricLineCurrent) {
+                        $lyricLineCurrent.Foreground = $colorBrush
+                    }
 
                     if ($notchWaveStrokePath) {
 
@@ -10169,9 +10496,20 @@ $mainTimer.Add_Tick({
 
                     if ($musicRemainingTime) { $musicRemainingTime.Text = "-" + [TimeSpan]::FromSeconds([Math]::Max(0, $totalSec - $curSec)).ToString("mm\:ss") }
 
+                    Update-LiveLyricsDisplay $curSec $totalSec
+
+                } else {
+
+                    if ($isActivelyPlaying) {
+                        $global:browserPlaybackEstimate += 0.6
+                    }
+                    Update-LiveLyricsDisplay $global:browserPlaybackEstimate 240
+
                 }
 
             } else {
+
+                $global:browserPlaybackEstimate = 0.0
 
                 $global:gsmtcPlaying = $false
 
@@ -10375,6 +10713,8 @@ $mainTimer.Add_Tick({
 
                         $musicRemainingTime.Text = $remStr
 
+                        Update-LiveLyricsDisplay $curSec $totalSec
+
                         if ($dashMediaCurrentTime) { $dashMediaCurrentTime.Text = $curStr }
 
                         if ($dashMediaRemainingTime) { $dashMediaRemainingTime.Text = $remStr }
@@ -10446,4 +10786,3 @@ $mainTimer.Start()
 # Run Island Application Window
 
 $window.ShowDialog() | Out-Null
-
