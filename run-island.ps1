@@ -1243,7 +1243,7 @@ $islandXaml = @'
 
         AllowDrop="True"
 
-        Top="0" Width="104" Height="36">
+        Top="0" Width="1000" Height="320">
 
     <Window.Resources>
 
@@ -1444,7 +1444,7 @@ $islandXaml = @'
 
     </Window.Resources>
 
-    <Grid x:Name="MasterGrid" HorizontalAlignment="Center" VerticalAlignment="Top" ClipToBounds="False">
+    <Grid x:Name="MasterGrid" Width="104" Height="36" HorizontalAlignment="Center" VerticalAlignment="Top" ClipToBounds="False">
 
         <!-- ======================================================== -->
 
@@ -6028,29 +6028,27 @@ $dashWindow = [System.Windows.Markup.XamlReader]::Load($reader2)
 
 # Start by Default in Resting Cat Eyes Mode at Top-Center (Option B Hardware Notch)
 
-$window.Left = $eyesLeftPos
+$winCanvasW = [Math]::Min(1000, [int]$screenWidth)
+$winCanvasH = 320
+$winCanvasL = [Math]::Round(($screenWidth - $winCanvasW) / 2)
 
+$window.Width = $winCanvasW
+$window.Height = $winCanvasH
+$window.Left = $winCanvasL
 $window.Top = 0
+$window.Background = $null
 
 $global:islandHwnd = (New-Object System.Windows.Interop.WindowInteropHelper($window)).EnsureHandle()
-
 $global:isForegroundFullscreen = $false
-
 $global:fullscreenCheckTick = 0
-
 $global:targetWindowTop = 0.0
-
 $global:lastCapsLockState = $null
-
 $global:capsLockCheckTick = 0
-
 $global:lastPowerLineStatus = $null
-
 $global:topProcTick = 0
 
-$window.Width = $eyesTotalWidth
-
-$window.Height = $eyesHeight
+$masterGrid.Width = $eyesTotalWidth
+$masterGrid.Height = $eyesHeight
 
 $global:islandMode = "eyes" # "eyes", "status", "expanded"
 
@@ -6846,248 +6844,133 @@ function Show-OceruDashboard($pageIndex = 0) {
 
 # =========================================================================
 
-$global:animTimer = New-Object System.Windows.Threading.DispatcherTimer
-
-$global:animTimer.Interval = [TimeSpan]::FromMilliseconds(14) # ~71 FPS High-Fidelity VSync
-
+$global:animTimer = New-Object System.Windows.Threading.DispatcherTimer([System.Windows.Threading.DispatcherPriority]::Render)
+$global:animTimer.Interval = [TimeSpan]::FromMilliseconds(10) # 100 FPS ultra-smooth composition
 $global:animSw = [System.Diagnostics.Stopwatch]::new()
+$global:animDuration = 320
 
-$global:animDuration = 270
-
-$global:fromW = $eyesWidth
-
-$global:toW = $eyesWidth
-
+$global:fromW = $eyesTotalWidth
+$global:toW   = $eyesTotalWidth
 $global:fromH = $eyesHeight
-
-$global:toH = $eyesHeight
-
-$global:fromL = $eyesLeftPos
-
-$global:toL = $eyesLeftPos
-
-$global:fromBodyW = $eyesBodyWidth
-
-$global:toBodyW = $eyesBodyWidth
-
-$global:fromTotalW = $eyesTotalWidth
-
-$global:toTotalW = $eyesTotalWidth
-
-$global:fromH = $eyesHeight
-
-$global:toH = $eyesHeight
-
-$global:fromL = $eyesLeftPos
-
-$global:toL = $eyesLeftPos
-
+$global:toH   = $eyesHeight
 $global:fromR = 18
-
-$global:toR = 18
-
-$global:fromPadX = 0
-$global:toPadX   = 0
-$global:fromPadY = 0
-$global:toPadY   = 0
-$global:curPadX  = 0
-$global:curPadY  = 0
+$global:toR   = 18
+$global:curR  = 18
 
 function Set-IslandMode($mode) {
-
     if ($global:targetMode -eq $mode) { return }
 
+    $global:fromMode = $global:targetMode
     $global:targetMode = $mode
-
     $global:islandMode = $mode
 
-    # Capture current live dimensions as starting point (enables seamless reversal!)
-
-    $global:fromTotalW = $window.Width
-
-    $global:fromBodyW = [Math]::Max(10, $window.Width - (2 * $shoulderPad))
-
-    $global:fromH = $window.Height
-
-    $global:fromL = $window.Left
-
-    $global:fromR = $global:toR
-
-    $global:fromPadX = $global:curPadX
-    $global:fromPadY = $global:curPadY
+    $global:fromW = if ($masterGrid -and $masterGrid.Width -gt 0) { $masterGrid.Width } else { $eyesTotalWidth }
+    $global:fromH = if ($masterGrid -and $masterGrid.Height -gt 0) { $masterGrid.Height } else { $eyesHeight }
+    $global:fromR = $global:curR
 
     if ($mode -eq "eyes") {
-
-        $global:toBodyW = $eyesBodyWidth
-
-        $global:toTotalW = $eyesTotalWidth
-
+        $global:toW = $eyesTotalWidth
         $global:toH = $eyesHeight
-
-        $global:toL = $eyesLeftPos
-
         $global:toR = 18
-        $global:toPadX = 0
-        $global:toPadY = 0
-
-        $global:animDuration = 320
-
+        $global:animDuration = 290
         $eyesGrid.Visibility = [System.Windows.Visibility]::Visible
         if ($expandedGrid) { $expandedGrid.Visibility = [System.Windows.Visibility]::Visible }
-
     }
-
     elseif ($mode -eq "status") {
-
-        $global:toBodyW = $statusBodyWidth
-
-        $global:toTotalW = $statusTotalWidth
-
+        $global:toW = $statusTotalWidth
         $global:toH = $statusHeight
-
-        $global:toL = $statusLeftPos
-
         $global:toR = 18
-        $global:toPadX = 0
-        $global:toPadY = 0
-
-        $global:animDuration = 330
-
+        $global:animDuration = 300
         $global:statusIdleTicks = 0
-
         $statusGrid.Visibility = [System.Windows.Visibility]::Visible
         if ($expandedGrid) { $expandedGrid.Visibility = [System.Windows.Visibility]::Visible }
-
     }
-
     elseif ($mode -eq "expanded") {
-        $bodyW = if ($global:isLyricsSideOpen -and $global:activeCardIndex -eq 0) { $expandedLyricsBodyWidth } else { $expandedBodyWidth }
         $totW = if ($global:isLyricsSideOpen -and $global:activeCardIndex -eq 0) { $expandedLyricsTotalWidth } else { $expandedTotalWidth }
-        $global:toBodyW = $bodyW
-        $global:toTotalW = $totW
+        $global:toW = $totW
         $global:toH = $expandedHeight
-        $global:toL = [Math]::Round(($screenWidth - $totW) / 2)
-
         $global:toR = 24
-        $global:toPadX = 42
-        $global:toPadY = 42
-
-        $global:animDuration = 360
-
+        $global:animDuration = 340
         $global:outsideTicks = 0
-
         $expandedGrid.Visibility = [System.Windows.Visibility]::Visible
         if ($eyesGrid) { $eyesGrid.Visibility = [System.Windows.Visibility]::Visible }
-
     }
-
     elseif ($mode -eq "toast") {
-
-        $global:toBodyW = $toastBodyWidth
-
-        $global:toTotalW = $toastTotalWidth
-
+        $global:toW = $toastTotalWidth
         $global:toH = $toastHeight
-
-        $global:toL = $toastLeftPos
-
         $global:toR = 18
-        $global:toPadX = 0
-        $global:toPadY = 0
-
-        $global:animDuration = 280
-
+        $global:animDuration = 270
         if ($dynamicToastGrid) { $dynamicToastGrid.Visibility = [System.Windows.Visibility]::Visible }
-
     }
 
     $global:animSw.Restart()
-
     $global:animTimer.Start()
-
 }
 
 $global:animTimer.Add_Tick({
-
     $elapsed = $global:animSw.ElapsedMilliseconds
-
     $t = [Math]::Min(1.0, $elapsed / $global:animDuration)
 
-    # Buttery-Smooth Smootherstep Easing (Perlin Curve: Zero Initial Jerk & Gentle Fluid Landing)
-    $sT = $t * $t * $t * (10.0 + $t * (-15.0 + 6.0 * $t))
-    $cushion = if (($global:targetMode -eq "expanded" -or $global:targetMode -eq "status") -and $t -gt 0.82) {
-        0.012 * [Math]::Sin(($t - 0.82) / 0.18 * [Math]::PI) * (1.0 - $t)
-    } else { 0.0 }
-    $ease = [Math]::Max(0.0, [Math]::Min(1.02, $sT + $cushion))
+    $isExpanding = ($global:toW -gt $global:fromW)
 
-    # Interpolate Window Width, Height, Left, Corner Radius, and Transparent Bar Padding
-    $curBodyW = [Math]::Round($global:fromBodyW + ($global:toBodyW - $global:fromBodyW) * $ease)
-    $curTotalW = $curBodyW + (2 * $shoulderPad)
+    # Snappy Fluid Spring Physics (Swift responsive burst + gentle elastic landing)
+    $ease = if ($isExpanding) {
+        $base = 1.0 - [Math]::Pow(1.0 - $t, 3.6)
+        $bounce = 0.018 * [Math]::Sin($t * [Math]::PI) * (1.0 - $t)
+        [Math]::Min(1.02, [Math]::Max(0.0, $base + $bounce))
+    } else {
+        1.0 - [Math]::Pow(1.0 - $t, 3.2)
+    }
+
+    $curTotalW = [Math]::Round($global:fromW + ($global:toW - $global:fromW) * $ease)
     $curH = [Math]::Round($global:fromH + ($global:toH - $global:fromH) * $ease)
-    $curL = [Math]::Round($global:fromL + ($global:toL - $global:fromL) * $ease)
-    $curR = [Math]::Round($global:fromR + ($global:toR - $global:fromR) * $ease)
-    $global:curPadX = [Math]::Round($global:fromPadX + ($global:toPadX - $global:fromPadX) * $ease)
-    $global:curPadY = [Math]::Round($global:fromPadY + ($global:toPadY - $global:fromPadY) * $ease)
-
-    $targetWinW = $curTotalW + (2 * $global:curPadX)
-    $targetWinH = $curH + $global:curPadY
-    $targetWinL = $curL - $global:curPadX
-
-    if ($window.Width -ne $targetWinW) { $window.Width = $targetWinW }
-    if ($window.Height -ne $targetWinH) { $window.Height = $targetWinH }
-    if ($window.Left -ne $targetWinL) { $window.Left = $targetWinL }
+    $global:curR = [Math]::Round($global:fromR + ($global:toR - $global:fromR) * $ease)
 
     if ($masterGrid.Width -ne $curTotalW) { $masterGrid.Width = $curTotalW }
     if ($masterGrid.Height -ne $curH) { $masterGrid.Height = $curH }
 
     if ($notchSinglePath) {
-        $pathStr = Get-NotchPathData $curTotalW $curH $shoulderPad $curR
+        $pathStr = Get-NotchPathData $curTotalW $curH $shoulderPad $global:curR
         $notchGeom = [System.Windows.Media.Geometry]::Parse($pathStr)
         $notchSinglePath.Data = $notchGeom
     }
 
-    # Cinematic Cross-Dissolve Opacities between active views during interpolation
+    # Cross-Fade between active views
     if ($global:targetMode -eq "expanded") {
-        $compactOp = [Math]::Max(0.0, 1.0 - ($t / 0.35))
-        $eyesGrid.Opacity = $compactOp
-        $statusGrid.Opacity = $compactOp
-        if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = $compactOp }
-        $expandedGrid.Opacity = if ($t -lt 0.20) { 0.0 } else { [Math]::Min(1.0, ($t - 0.20) / 0.75) }
+        $eyesGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.22))
+        $statusGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.22))
+        if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.22)) }
+        $expandedGrid.Opacity = if ($t -lt 0.35) { 0.0 } else { [Math]::Min(1.0, ($t - 0.35) / 0.65) }
     }
     elseif ($global:targetMode -eq "eyes") {
-        $expandedGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.45))
-        $statusGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.35))
-        if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.35)) }
-        $eyesGrid.Opacity = if ($t -lt 0.30) { 0.0 } else { [Math]::Min(1.0, ($t - 0.30) / 0.65) }
+        $expandedGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.25))
+        $statusGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.25))
+        if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.25)) }
+        $eyesGrid.Opacity = if ($t -lt 0.65) { 0.0 } else { [Math]::Min(1.0, ($t - 0.65) / 0.35) }
     }
     elseif ($global:targetMode -eq "status") {
-        $expandedGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.45))
-        $eyesGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.35))
-        if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.35)) }
-        $statusGrid.Opacity = if ($t -lt 0.25) { 0.0 } else { [Math]::Min(1.0, ($t - 0.25) / 0.70) }
+        $expandedGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.25))
+        $eyesGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.25))
+        if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.25)) }
+        $statusGrid.Opacity = if ($t -lt 0.55) { 0.0 } else { [Math]::Min(1.0, ($t - 0.55) / 0.45) }
     }
     elseif ($global:targetMode -eq "toast") {
-        $compactOp = [Math]::Max(0.0, 1.0 - ($t / 0.35))
-        $eyesGrid.Opacity = $compactOp
-        $statusGrid.Opacity = $compactOp
-        $expandedGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.45))
+        $eyesGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.25))
+        $statusGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.25))
+        $expandedGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.25))
         if ($dynamicToastGrid) {
-            $dynamicToastGrid.Opacity = if ($t -lt 0.20) { 0.0 } else { [Math]::Min(1.0, ($t - 0.20) / 0.75) }
+            $dynamicToastGrid.Opacity = if ($t -lt 0.30) { 0.0 } else { [Math]::Min(1.0, ($t - 0.30) / 0.70) }
         }
     }
 
     # Completion Cleanup
     if ($t -ge 1.0) {
         $global:animTimer.Stop()
-        $global:curPadX = $global:toPadX
-        $global:curPadY = $global:toPadY
-        $window.Width = $global:toTotalW + (2 * $global:toPadX)
-        $window.Height = $global:toH + $global:toPadY
-        $window.Left = $global:toL - $global:toPadX
-        $masterGrid.Width = $global:toTotalW
+        $masterGrid.Width = $global:toW
         $masterGrid.Height = $global:toH
+        $global:curR = $global:toR
         if ($notchSinglePath) {
-            $finalPathStr = Get-NotchPathData $global:toTotalW $global:toH $shoulderPad $global:toR
+            $finalPathStr = Get-NotchPathData $global:toW $global:toH $shoulderPad $global:toR
             $notchSinglePath.Data = [System.Windows.Media.Geometry]::Parse($finalPathStr)
         }
         if ($global:targetMode -eq "expanded") {
@@ -7114,7 +6997,6 @@ $global:animTimer.Add_Tick({
             $eyesGrid.Visibility = [System.Windows.Visibility]::Collapsed
             $statusGrid.Visibility = [System.Windows.Visibility]::Collapsed
         }
-        $global:islandMode = $global:targetMode
     }
 })
 
@@ -7150,7 +7032,7 @@ $statusGrid.Add_MouseEnter({ Set-IslandMode "expanded" })
 
 $statusGrid.Add_MouseLeftButtonUp({ Set-IslandMode "expanded" })
 
-$notchBody.Add_MouseEnter({ if ($global:targetMode -ne "expanded") { Set-IslandMode "expanded" } })
+$notchBody.Add_MouseEnter({ if ($global:islandMode -ne "eyes" -and $global:targetMode -ne "expanded") { Set-IslandMode "expanded" } })
 
 $notchBody.Add_MouseLeftButtonUp({ if ($global:targetMode -ne "expanded") { Set-IslandMode "expanded" } })
 
@@ -7489,14 +7371,12 @@ function SwitchCarouselCard($index) {
     if ($index -ne 0 -and $global:isLyricsSideOpen) {
         if ($musicLyricsSidePanel) { $musicLyricsSidePanel.Visibility = [System.Windows.Visibility]::Collapsed }
         if ($musicLyricsDivider) { $musicLyricsDivider.Visibility = [System.Windows.Visibility]::Collapsed }
-        $global:toBodyW = $expandedBodyWidth
-        $global:toTotalW = $expandedTotalWidth
-        $global:toL = [Math]::Round(($screenWidth - $expandedTotalWidth) / 2)
-        $global:fromTotalW = $window.Width
-        $global:fromBodyW = [Math]::Max(10, $window.Width - (2 * $shoulderPad))
-        $global:fromH = $window.Height
-        $global:fromL = $window.Left
-        $global:fromR = $global:toR
+        $global:fromW = $masterGrid.Width
+        $global:toW = $expandedTotalWidth
+        $global:fromH = $masterGrid.Height
+        $global:toH = $expandedHeight
+        $global:fromR = $global:curR
+        $global:toR = 24
         $global:animDuration = 260
         $global:animSw.Restart()
         $global:animTimer.Start()
@@ -7734,23 +7614,20 @@ function Update-LyricsSidePanelVisibility {
         if ($musicLyricsSidePanel) { $musicLyricsSidePanel.Visibility = [System.Windows.Visibility]::Visible }
         if ($musicLyricsDivider) { $musicLyricsDivider.Visibility = [System.Windows.Visibility]::Visible }
         if ($iconToggleLyrics) { $iconToggleLyrics.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00D2FF") }
-        $global:toBodyW = $expandedLyricsBodyWidth
-        $global:toTotalW = $expandedLyricsTotalWidth
-        $global:toL = [Math]::Round(($screenWidth - $expandedLyricsTotalWidth) / 2)
+        $global:toW = $expandedLyricsTotalWidth
+        $global:toH = $expandedHeight
     } else {
         if ($musicLyricsSidePanel) { $musicLyricsSidePanel.Visibility = [System.Windows.Visibility]::Collapsed }
         if ($musicLyricsDivider) { $musicLyricsDivider.Visibility = [System.Windows.Visibility]::Collapsed }
         if ($iconToggleLyrics) { $iconToggleLyrics.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#8E9AA8") }
-        $global:toBodyW = $expandedBodyWidth
-        $global:toTotalW = $expandedTotalWidth
-        $global:toL = [Math]::Round(($screenWidth - $expandedTotalWidth) / 2)
+        $global:toW = $expandedTotalWidth
+        $global:toH = $expandedHeight
     }
 
-    $global:fromTotalW = $window.Width
-    $global:fromBodyW = [Math]::Max(10, $window.Width - (2 * $shoulderPad))
-    $global:fromH = $window.Height
-    $global:fromL = $window.Left
-    $global:fromR = $global:toR
+    $global:fromW = $masterGrid.Width
+    $global:fromH = $masterGrid.Height
+    $global:fromR = $global:curR
+    $global:toR = 24
     $global:animDuration = 260
     $global:animSw.Restart()
     $global:animTimer.Start()
@@ -9883,10 +9760,12 @@ $window.Add_MouseWheel({
     param($s, $e)
     try {
         $cursorPos = [System.Windows.Forms.Cursor]::Position
-        $inIsland = ($cursorPos.X -ge ($window.Left - 10)) -and 
-                    ($cursorPos.X -le ($window.Left + $window.Width + 10)) -and 
-                    ($cursorPos.Y -ge 0) -and 
-                    ($cursorPos.Y -le ($window.Height + 14))
+        $curIslW = if ($masterGrid -and $masterGrid.Width -gt 0) { $masterGrid.Width } else { $eyesTotalWidth }
+        $curIslH = if ($masterGrid -and $masterGrid.Height -gt 0) { $masterGrid.Height } else { $eyesHeight }
+        $islL = ($screenWidth - $curIslW) / 2
+        $islR = $islL + $curIslW
+        $islB = $curIslH
+        $inIsland = ($cursorPos.X -ge ($islL - 10)) -and ($cursorPos.X -le ($islR + 10)) -and ($cursorPos.Y -ge 0) -and ($cursorPos.Y -le ($islB + 14))
 
         if ($inIsland) {
             $delta = $e.Delta
@@ -9936,10 +9815,12 @@ $window.Add_MouseDown({
     try {
         if ($e.ChangedButton -eq [System.Windows.Input.MouseButton]::Middle) {
             $cursorPos = [System.Windows.Forms.Cursor]::Position
-            $inIsland = ($cursorPos.X -ge ($window.Left - 10)) -and 
-                        ($cursorPos.X -le ($window.Left + $window.Width + 10)) -and 
-                        ($cursorPos.Y -ge 0) -and 
-                        ($cursorPos.Y -le ($window.Height + 14))
+            $curIslW = if ($masterGrid -and $masterGrid.Width -gt 0) { $masterGrid.Width } else { $eyesTotalWidth }
+            $curIslH = if ($masterGrid -and $masterGrid.Height -gt 0) { $masterGrid.Height } else { $eyesHeight }
+            $islL = ($screenWidth - $curIslW) / 2
+            $islR = $islL + $curIslW
+            $islB = $curIslH
+            $inIsland = ($cursorPos.X -ge ($islL - 10)) -and ($cursorPos.X -le ($islR + 10)) -and ($cursorPos.Y -ge 0) -and ($cursorPos.Y -le ($islB + 14))
             if ($inIsland) {
                 Toggle-OceruMediaPlayPause
                 $e.Handled = $true
@@ -9998,6 +9879,12 @@ $fastEyeTimer.Add_Tick({
 
         $cursorPos = [System.Windows.Forms.Cursor]::Position
 
+        $curIslW = if ($masterGrid -and $masterGrid.Width -gt 0) { $masterGrid.Width } else { $eyesTotalWidth }
+        $curIslH = if ($masterGrid -and $masterGrid.Height -gt 0) { $masterGrid.Height } else { $eyesHeight }
+        $islL = ($screenWidth - $curIslW) / 2
+        $islR = $islL + $curIslW
+        $islB = $curIslH
+
         # FEATURE 3: SMART FULLSCREEN AUTO-HIDE WITH SMOOTH BEZEL GLIDE
         $global:fullscreenCheckTick = ($global:fullscreenCheckTick + 1) % 6
         if ($global:fullscreenCheckTick -eq 0) {
@@ -10005,13 +9892,13 @@ $fastEyeTimer.Add_Tick({
         }
 
         if ($global:isForegroundFullscreen -and $global:islandMode -ne "expanded") {
-            $nearTop = ($cursorPos.Y -le 14) -and ($cursorPos.X -ge ($window.Left - 25)) -and ($cursorPos.X -le ($window.Left + $window.Width + 25))
-            $inIslandArea = ($cursorPos.X -ge ($window.Left - 10)) -and ($cursorPos.X -le ($window.Left + $window.Width + 10)) -and ($cursorPos.Y -ge 0) -and ($cursorPos.Y -le ($window.Height + 14))
+            $nearTop = ($cursorPos.Y -le 14) -and ($cursorPos.X -ge ($islL - 25)) -and ($cursorPos.X -le ($islR + 25))
+            $inIslandArea = ($cursorPos.X -ge ($islL - 10)) -and ($cursorPos.X -le ($islR + 10)) -and ($cursorPos.Y -ge 0) -and ($cursorPos.Y -le ($islB + 14))
             if ($nearTop -or $inIslandArea) {
                 $global:targetWindowTop = 0.0
             } else {
                 # Smoothly retract into the monitor bezel, leaving a 3px sleek rim
-                $global:targetWindowTop = -([Math]::Max(30, $window.Height - 3))
+                $global:targetWindowTop = -([Math]::Max(30, $curIslH - 3))
             }
         } else {
             $global:targetWindowTop = 0.0
@@ -10101,7 +9988,7 @@ $fastEyeTimer.Add_Tick({
                 $global:waveAmp = [Math]::Max(0.0, $global:waveAmp - 2.0)
                 $curR = if ($global:islandMode -eq "expanded") { 24 } else { 18 }
 
-                $w3 = Get-Notch3SidedWaveGeometry $window.Width $window.Height $shoulderPad $curR $global:waveAmp $global:wavePhase 0.0
+                $w3 = Get-Notch3SidedWaveGeometry $curNW $curNH $shoulderPad $curR $global:waveAmp $global:wavePhase 0.0
                 if ($w3) {
                     if ($notchSinglePath) { $notchSinglePath.Data = [System.Windows.Media.Geometry]::Parse($w3.BodyPath) }
                     if ($notchWaveStrokePath) {
@@ -10146,7 +10033,7 @@ $fastEyeTimer.Add_Tick({
             $global:magSafeGlowTicks--
             if ($notchWaveStrokePath) {
                 $curR = if ($global:islandMode -eq "expanded") { 24 } else { 18 }
-                $strokeStr = Get-NotchBottomWavePathData $window.Width $window.Height $shoulderPad $curR 0.0 0.0
+                $strokeStr = Get-NotchBottomWavePathData $curNW $curNH $shoulderPad $curR 0.0 0.0
                 $notchWaveStrokePath.Data = [System.Windows.Media.Geometry]::Parse($strokeStr)
                 $notchWaveStrokePath.Stroke = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#10B981")
                 if ($notchWaveStrokePath.Effect) {
@@ -10312,13 +10199,7 @@ $fastEyeTimer.Add_Tick({
 
             # 4. Petting / Scratching Detection: rubbing mouse back and forth over eyes
 
-            $isOverEyes = ($cursorPos.X -ge ($window.Left - 4)) -and 
-
-                          ($cursorPos.X -le ($window.Left + $window.Width + 4)) -and 
-
-                          ($cursorPos.Y -ge 0) -and 
-
-                          ($cursorPos.Y -le ($window.Height + 8))
+            $isOverEyes = ($cursorPos.X -ge ($islL - 4)) -and ($cursorPos.X -le ($islR + 4)) -and ($cursorPos.Y -ge 0) -and ($cursorPos.Y -le ($islB + 8))
 
             if ($isOverEyes) {
 
@@ -10577,13 +10458,7 @@ $fastEyeTimer.Add_Tick({
 
             # Hover detection on Status Bar to Expand
 
-            $inStatus = ($cursorPos.X -ge ($window.Left - 6)) -and 
-
-                        ($cursorPos.X -le ($window.Left + $window.Width + 6)) -and 
-
-                        ($cursorPos.Y -ge 0) -and 
-
-                        ($cursorPos.Y -le ($window.Height + 8))
+            $inStatus = ($cursorPos.X -ge ($islL - 6)) -and ($cursorPos.X -le ($islR + 6)) -and ($cursorPos.Y -ge 0) -and ($cursorPos.Y -le ($islB + 8))
 
             
 
@@ -10619,13 +10494,7 @@ $fastEyeTimer.Add_Tick({
 
         elseif ($global:islandMode -eq "toast") {
 
-            $inToast = ($cursorPos.X -ge ($window.Left - 6)) -and 
-
-                       ($cursorPos.X -le ($window.Left + $window.Width + 6)) -and 
-
-                       ($cursorPos.Y -ge 0) -and 
-
-                       ($cursorPos.Y -le ($window.Height + 8))
+            $inToast = ($cursorPos.X -ge ($islL - 6)) -and ($cursorPos.X -le ($islR + 6)) -and ($cursorPos.Y -ge 0) -and ($cursorPos.Y -le ($islB + 8))
 
             if ($inToast) {
 
@@ -10645,13 +10514,7 @@ $fastEyeTimer.Add_Tick({
 
         elseif ($global:islandMode -eq "expanded") {
 
-            $inExpanded = ($cursorPos.X -ge ($window.Left - 10)) -and 
-
-                          ($cursorPos.X -le ($window.Left + $window.Width + 10)) -and 
-
-                          ($cursorPos.Y -ge 0) -and 
-
-                          ($cursorPos.Y -le ($window.Height + 14))
+            $inExpanded = ($cursorPos.X -ge ($islL - 10)) -and ($cursorPos.X -le ($islR + 10)) -and ($cursorPos.Y -ge 0) -and ($cursorPos.Y -le ($islB + 14))
 
             if (-not $inExpanded) {
 
