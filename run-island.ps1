@@ -938,21 +938,21 @@ function Get-SpectrumBarsPathData($totalW, $h, $s, $r, $phase = 0, $beat = 0) {
 
     $sb = [System.Text.StringBuilder]::new()
 
-    # 1. Left lower half: 8 bars pointing left (-X)
-    $nLeft = 8
+    # 1. Left lower half: 10 bars pointing left (-X)
+    $nLeft = 10
     for ($i = 0; $i -lt $nLeft; $i++) {
         $t = ($i + 0.5) / $nLeft
         $bx = $s
         $by = [Math]::Round($yMidSide + $t * ($spanVert * 0.5), 1)
-        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.6) + $phase)
-        $len = [Math]::Round(4.0 + 8.0 * $wave, 1)
+        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.5) + $phase)
+        $len = [Math]::Round(7.0 + 16.0 * $wave, 1)
         $ex = [Math]::Round($bx - $len, 1)
         $ey = $by
         $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
     }
 
-    # 2. Bottom-left corner: 6 bars radiating outward
-    $nCorner = 6
+    # 2. Bottom-left corner: 8 bars radiating outward
+    $nCorner = 8
     for ($i = 0; $i -lt $nCorner; $i++) {
         $t = ($i + 0.5) / $nCorner
         $angle = [Math]::PI + $t * ([Math]::PI * 0.5)
@@ -962,30 +962,30 @@ function Get-SpectrumBarsPathData($totalW, $h, $s, $r, $phase = 0, $beat = 0) {
         $by = [Math]::Round($ccy - $r * [Math]::Sin($angle), 1)
         $nx = [Math]::Cos($angle)
         $ny = -[Math]::Sin($angle)
-        $surge = if ($beat -gt 0.2 -and $i -ge 2) { 1.8 } else { 1.0 }
-        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.7) + $phase + 0.8)
-        $len = [Math]::Round((5.0 + 12.0 * $wave) * $surge, 1)
+        $surge = if ($beat -gt 0.2 -and $i -ge 2) { 2.1 } else { 1.0 }
+        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.6) + $phase + 0.8)
+        $len = [Math]::Round((7.0 + 15.0 * $wave) * $surge, 1)
         $ex = [Math]::Round($bx + $nx * $len, 1)
         $ey = [Math]::Round($by + $ny * $len, 1)
         $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
     }
 
-    # 3. Bottom edge: 36 bars pointing down (+Y)
-    $nBot = 36
+    # 3. Bottom edge: 40 bars pointing down (+Y)
+    $nBot = 40
     for ($i = 0; $i -lt $nBot; $i++) {
         $t = ($i + 0.5) / $nBot
         $bx = [Math]::Round($x0 + $t * $spanBot, 1)
         $by = $baseH
-        $distFromSurge = [Math]::Abs($i - 6)
-        $surgeMult = [Math]::Exp(-0.5 * [Math]::Pow($distFromSurge / 4.0, 2)) * ($beat * 24.0)
-        $harmonic = 0.5 + 0.5 * [Math]::Sin(($i * 0.55) - $phase)
-        $len = [Math]::Round(4.0 + 9.0 * $harmonic + $surgeMult, 1)
+        $distFromSurge = [Math]::Abs($i - 8)
+        $surgeMult = [Math]::Exp(-0.5 * [Math]::Pow($distFromSurge / 5.0, 2)) * ($beat * 30.0)
+        $harmonic = 0.5 + 0.5 * [Math]::Sin(($i * 0.5) - $phase)
+        $len = [Math]::Round(6.0 + 13.0 * $harmonic + $surgeMult, 1)
         $ex = $bx
         $ey = [Math]::Round($by + $len, 1)
         $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
     }
 
-    # 4. Bottom-right corner: 6 bars radiating outward
+    # 4. Bottom-right corner: 8 bars radiating outward
     for ($i = 0; $i -lt $nCorner; $i++) {
         $t = ($i + 0.5) / $nCorner
         $angle = 1.5 * [Math]::PI + $t * ([Math]::PI * 0.5)
@@ -995,20 +995,20 @@ function Get-SpectrumBarsPathData($totalW, $h, $s, $r, $phase = 0, $beat = 0) {
         $by = [Math]::Round($ccy - $r * [Math]::Sin($angle), 1)
         $nx = [Math]::Cos($angle)
         $ny = -[Math]::Sin($angle)
-        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.7) + $phase + 2.2)
-        $len = [Math]::Round(4.0 + 8.0 * $wave, 1)
+        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.6) + $phase + 2.2)
+        $len = [Math]::Round(6.0 + 12.0 * $wave, 1)
         $ex = [Math]::Round($bx + $nx * $len, 1)
         $ey = [Math]::Round($by + $ny * $len, 1)
         $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
     }
 
-    # 5. Right lower half: 8 bars pointing right (+X, traveling up to yMidSide)
+    # 5. Right lower half: 10 bars pointing right (+X, traveling up to yMidSide)
     for ($i = 0; $i -lt $nLeft; $i++) {
         $t = ($i + 0.5) / $nLeft
         $bx = $totalW - $s
         $by = [Math]::Round(($baseH - $r) - $t * ($spanVert * 0.5), 1)
-        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.6) + $phase + 3.0)
-        $len = [Math]::Round(4.0 + 8.0 * $wave, 1)
+        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.5) + $phase + 3.0)
+        $len = [Math]::Round(7.0 + 14.0 * $wave, 1)
         $ex = [Math]::Round($bx + $len, 1)
         $ey = $by
         $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
@@ -1212,7 +1212,7 @@ $islandXaml = @'
 
         AllowsTransparency="True"
 
-        Background="Transparent"
+        Background="{x:Null}"
 
         Topmost="True"
 
@@ -1429,7 +1429,7 @@ $islandXaml = @'
 
     </Window.Resources>
 
-    <Grid x:Name="MasterGrid">
+    <Grid x:Name="MasterGrid" HorizontalAlignment="Center" VerticalAlignment="Top" ClipToBounds="False">
 
         <!-- ======================================================== -->
 
@@ -1451,16 +1451,9 @@ $islandXaml = @'
         <!-- Layer C: White-Hot Laser Center Filament -->
         <Path x:Name="NotchBarsWhitePath" Stroke="#FFFFFF" StrokeThickness="1.0" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0" IsHitTestVisible="False"/>
 
-        <!-- HARDWARE NOTCH SINGLE VECTOR PATH (Option B MacBook Tangential Shoulder Fillet, Pure Obsidian - No Blue Edges!) -->
+        <!-- HARDWARE NOTCH SINGLE VECTOR PATH (Option B MacBook Tangential Shoulder Fillet, Pure Obsidian - No Muddy Shadow Smudge!) -->
 
-        <Path x:Name="NotchSinglePath" Fill="#000000" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="Hand">
-            <Path.Effect>
-                <DropShadowEffect Color="#000000" BlurRadius="18" ShadowDepth="4" Opacity="0.75" Direction="270"/>
-            </Path.Effect>
-        </Path>
-
-        <!-- SPECULAR GLASS REFLECTION HIGHLIGHT (2.5D Obsidian Glass Reflection) -->
-        <Path x:Name="NotchGlassHighlight" Data="{Binding Data, ElementName=NotchSinglePath}" Stroke="#35FFFFFF" StrokeThickness="1.2" Fill="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False"/>
+        <Path x:Name="NotchSinglePath" Fill="#000000" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="Hand"/>
 
         <!-- MULTI-STAGE NEON EQUALIZER 3-SIDED WAVE LAYERS -->
 
@@ -6878,6 +6871,13 @@ $global:fromR = 18
 
 $global:toR = 18
 
+$global:fromPadX = 0
+$global:toPadX   = 0
+$global:fromPadY = 0
+$global:toPadY   = 0
+$global:curPadX  = 0
+$global:curPadY  = 0
+
 function Set-IslandMode($mode) {
 
     if ($global:targetMode -eq $mode) { return }
@@ -6898,6 +6898,9 @@ function Set-IslandMode($mode) {
 
     $global:fromR = $global:toR
 
+    $global:fromPadX = $global:curPadX
+    $global:fromPadY = $global:curPadY
+
     if ($mode -eq "eyes") {
 
         $global:toBodyW = $eyesBodyWidth
@@ -6909,6 +6912,8 @@ function Set-IslandMode($mode) {
         $global:toL = $eyesLeftPos
 
         $global:toR = 18
+        $global:toPadX = 0
+        $global:toPadY = 0
 
         $global:animDuration = 320
 
@@ -6928,6 +6933,8 @@ function Set-IslandMode($mode) {
         $global:toL = $statusLeftPos
 
         $global:toR = 18
+        $global:toPadX = 0
+        $global:toPadY = 0
 
         $global:animDuration = 330
 
@@ -6947,6 +6954,8 @@ function Set-IslandMode($mode) {
         $global:toL = [Math]::Round(($screenWidth - $totW) / 2)
 
         $global:toR = 24
+        $global:toPadX = 42
+        $global:toPadY = 42
 
         $global:animDuration = 360
 
@@ -6968,6 +6977,8 @@ function Set-IslandMode($mode) {
         $global:toL = $toastLeftPos
 
         $global:toR = 18
+        $global:toPadX = 0
+        $global:toPadY = 0
 
         $global:animDuration = 280
 
@@ -6994,16 +7005,25 @@ $global:animTimer.Add_Tick({
     } else { 0.0 }
     $ease = [Math]::Max(0.0, [Math]::Min(1.02, $sT + $cushion))
 
-    # Interpolate Window Width, Height, Left, and Corner Radius in real time
+    # Interpolate Window Width, Height, Left, Corner Radius, and Transparent Bar Padding
     $curBodyW = [Math]::Round($global:fromBodyW + ($global:toBodyW - $global:fromBodyW) * $ease)
     $curTotalW = $curBodyW + (2 * $shoulderPad)
     $curH = [Math]::Round($global:fromH + ($global:toH - $global:fromH) * $ease)
     $curL = [Math]::Round($global:fromL + ($global:toL - $global:fromL) * $ease)
     $curR = [Math]::Round($global:fromR + ($global:toR - $global:fromR) * $ease)
+    $global:curPadX = [Math]::Round($global:fromPadX + ($global:toPadX - $global:fromPadX) * $ease)
+    $global:curPadY = [Math]::Round($global:fromPadY + ($global:toPadY - $global:fromPadY) * $ease)
 
-    if ($window.Width -ne $curTotalW) { $window.Width = $curTotalW }
-    if ($window.Height -ne $curH) { $window.Height = $curH }
-    if ($window.Left -ne $curL) { $window.Left = $curL }
+    $targetWinW = $curTotalW + (2 * $global:curPadX)
+    $targetWinH = $curH + $global:curPadY
+    $targetWinL = $curL - $global:curPadX
+
+    if ($window.Width -ne $targetWinW) { $window.Width = $targetWinW }
+    if ($window.Height -ne $targetWinH) { $window.Height = $targetWinH }
+    if ($window.Left -ne $targetWinL) { $window.Left = $targetWinL }
+
+    if ($masterGrid.Width -ne $curTotalW) { $masterGrid.Width = $curTotalW }
+    if ($masterGrid.Height -ne $curH) { $masterGrid.Height = $curH }
 
     if ($notchSinglePath) {
         $pathStr = Get-NotchPathData $curTotalW $curH $shoulderPad $curR
@@ -7044,9 +7064,13 @@ $global:animTimer.Add_Tick({
     # Completion Cleanup
     if ($t -ge 1.0) {
         $global:animTimer.Stop()
-        $window.Width = $global:toTotalW
-        $window.Height = $global:toH
-        $window.Left = $global:toL
+        $global:curPadX = $global:toPadX
+        $global:curPadY = $global:toPadY
+        $window.Width = $global:toTotalW + (2 * $global:toPadX)
+        $window.Height = $global:toH + $global:toPadY
+        $window.Left = $global:toL - $global:toPadX
+        $masterGrid.Width = $global:toTotalW
+        $masterGrid.Height = $global:toH
         if ($notchSinglePath) {
             $finalPathStr = Get-NotchPathData $global:toTotalW $global:toH $shoulderPad $global:toR
             $notchSinglePath.Data = [System.Windows.Media.Geometry]::Parse($finalPathStr)
