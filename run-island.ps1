@@ -934,83 +934,98 @@ function Get-SpectrumBarsPathData($totalW, $h, $s, $r, $phase = 0, $beat = 0) {
     $x1 = $totalW - $s - $r
     $spanBot = $x1 - $x0
     $spanVert = ($baseH - $r) - $s
-    $yMidSide = [Math]::Round($s + ($spanVert * 0.5), 1)
+    $yMidSide = [Math]::Round($s + ($spanVert * 0.45), 1)
 
     $sb = [System.Text.StringBuilder]::new()
 
-    # 1. Left lower half: 10 bars pointing left (-X)
-    $nLeft = 10
+    # 1. Left lower half: 16 bars with radial fanning angles & smooth envelope taper
+    $nLeft = 16
     for ($i = 0; $i -lt $nLeft; $i++) {
-        $t = ($i + 0.5) / $nLeft
+        $t = ($i + 0.5) / $nLeft # 0 at midY (top), 1 at corner (bottom)
         $bx = $s
-        $by = [Math]::Round($yMidSide + $t * ($spanVert * 0.5), 1)
-        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.5) + $phase)
-        $len = [Math]::Round(7.0 + 16.0 * $wave, 1)
-        $ex = [Math]::Round($bx - $len, 1)
-        $ey = $by
-        $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
-    }
-
-    # 2. Bottom-left corner: 8 bars radiating outward
-    $nCorner = 8
-    for ($i = 0; $i -lt $nCorner; $i++) {
-        $t = ($i + 0.5) / $nCorner
-        $angle = [Math]::PI + $t * ([Math]::PI * 0.5)
-        $ccx = $s + $r
-        $ccy = $baseH - $r
-        $bx = [Math]::Round($ccx + $r * [Math]::Cos($angle), 1)
-        $by = [Math]::Round($ccy - $r * [Math]::Sin($angle), 1)
+        $by = [Math]::Round($yMidSide + $t * (($baseH - $r) - $yMidSide), 1)
+        # Fanning angle: from slightly upward at top to downward near corner
+        $angle = [Math]::PI - (0.28 * (1.0 - $t)) + (0.35 * $t)
         $nx = [Math]::Cos($angle)
         $ny = -[Math]::Sin($angle)
-        $surge = if ($beat -gt 0.2 -and $i -ge 2) { 2.1 } else { 1.0 }
-        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.6) + $phase + 0.8)
-        $len = [Math]::Round((7.0 + 15.0 * $wave) * $surge, 1)
+        $env = [Math]::Pow([Math]::Sin($t * [Math]::PI * 0.5), 0.8)
+        $distFromSurge = [Math]::Abs($i - 12)
+        $surgeMult = [Math]::Exp(-0.5 * [Math]::Pow($distFromSurge / 5.0, 2)) * ($beat * 28.0)
+        $harmonic = 0.5 + 0.5 * [Math]::Sin(($i * 0.45) + $phase)
+        $len = [Math]::Round(([Math]::Max(2.0, (5.0 + 13.0 * $harmonic + $surgeMult) * $env)), 1)
         $ex = [Math]::Round($bx + $nx * $len, 1)
         $ey = [Math]::Round($by + $ny * $len, 1)
         $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
     }
 
-    # 3. Bottom edge: 40 bars pointing down (+Y)
-    $nBot = 40
+    # 2. Bottom-left corner: 10 bars fanning around the corner
+    $nCorner = 10
+    $ccxBL = $s + $r
+    $ccyBL = $baseH - $r
+    for ($i = 0; $i -lt $nCorner; $i++) {
+        $t = ($i + 0.5) / $nCorner
+        $angle = [Math]::PI + 0.35 + $t * ([Math]::PI * 0.5 - 0.35)
+        $bx = [Math]::Round($ccxBL + $r * [Math]::Cos($angle), 1)
+        $by = [Math]::Round($ccyBL - $r * [Math]::Sin($angle), 1)
+        $nx = [Math]::Cos($angle)
+        $ny = -[Math]::Sin($angle)
+        $distFromSurge = [Math]::Abs($i - 2)
+        $surgeMult = [Math]::Exp(-0.5 * [Math]::Pow($distFromSurge / 4.0, 2)) * ($beat * 24.0)
+        $harmonic = 0.5 + 0.5 * [Math]::Sin(($i * 0.5) + $phase + 0.8)
+        $len = [Math]::Round(5.0 + 14.0 * $harmonic + $surgeMult, 1)
+        $ex = [Math]::Round($bx + $nx * $len, 1)
+        $ey = [Math]::Round($by + $ny * $len, 1)
+        $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
+    }
+
+    # 3. Bottom edge: 44 bars radiating down
+    $nBot = 44
     for ($i = 0; $i -lt $nBot; $i++) {
         $t = ($i + 0.5) / $nBot
         $bx = [Math]::Round($x0 + $t * $spanBot, 1)
         $by = $baseH
-        $distFromSurge = [Math]::Abs($i - 8)
-        $surgeMult = [Math]::Exp(-0.5 * [Math]::Pow($distFromSurge / 5.0, 2)) * ($beat * 30.0)
-        $harmonic = 0.5 + 0.5 * [Math]::Sin(($i * 0.5) - $phase)
-        $len = [Math]::Round(6.0 + 13.0 * $harmonic + $surgeMult, 1)
+        $distFromSurge = [Math]::Abs($i - 22)
+        $surgeMult = [Math]::Exp(-0.5 * [Math]::Pow($distFromSurge / 7.0, 2)) * ($beat * 26.0)
+        $harmonic = 0.5 + 0.5 * [Math]::Sin(($i * 0.45) - $phase)
+        $len = [Math]::Round(5.0 + 14.0 * $harmonic + $surgeMult, 1)
         $ex = $bx
         $ey = [Math]::Round($by + $len, 1)
         $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
     }
 
-    # 4. Bottom-right corner: 8 bars radiating outward
+    # 4. Bottom-right corner: 10 bars radiating around corner
+    $ccxBR = $totalW - $s - $r
+    $ccyBR = $baseH - $r
     for ($i = 0; $i -lt $nCorner; $i++) {
         $t = ($i + 0.5) / $nCorner
-        $angle = 1.5 * [Math]::PI + $t * ([Math]::PI * 0.5)
-        $ccx = $totalW - $s - $r
-        $ccy = $baseH - $r
-        $bx = [Math]::Round($ccx + $r * [Math]::Cos($angle), 1)
-        $by = [Math]::Round($ccy - $r * [Math]::Sin($angle), 1)
+        $angle = 1.5 * [Math]::PI + $t * ([Math]::PI * 0.5 - 0.35)
+        $bx = [Math]::Round($ccxBR + $r * [Math]::Cos($angle), 1)
+        $by = [Math]::Round($ccyBR - $r * [Math]::Sin($angle), 1)
         $nx = [Math]::Cos($angle)
         $ny = -[Math]::Sin($angle)
-        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.6) + $phase + 2.2)
-        $len = [Math]::Round(6.0 + 12.0 * $wave, 1)
+        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.5) + $phase + 2.0)
+        $len = [Math]::Round(5.0 + 13.0 * $wave, 1)
         $ex = [Math]::Round($bx + $nx * $len, 1)
         $ey = [Math]::Round($by + $ny * $len, 1)
         $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
     }
 
-    # 5. Right lower half: 10 bars pointing right (+X, traveling up to yMidSide)
+    # 5. Right lower half: 16 bars with radial fanning angles & smooth envelope taper
     for ($i = 0; $i -lt $nLeft; $i++) {
-        $t = ($i + 0.5) / $nLeft
+        $t = ($i + 0.5) / $nLeft # 0 at corner, 1 at midY
         $bx = $totalW - $s
-        $by = [Math]::Round(($baseH - $r) - $t * ($spanVert * 0.5), 1)
-        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.5) + $phase + 3.0)
-        $len = [Math]::Round(7.0 + 14.0 * $wave, 1)
-        $ex = [Math]::Round($bx + $len, 1)
-        $ey = $by
+        $by = [Math]::Round(($baseH - $r) - $t * (($baseH - $r) - $yMidSide), 1)
+        # Angle ranges from downward (+45 deg) at bottom to slightly upward (+15 deg) at top
+        $angle = - (0.35 * (1.0 - $t)) + (0.28 * $t)
+        $nx = [Math]::Cos($angle)
+        $ny = [Math]::Sin($angle)
+        $env = [Math]::Pow([Math]::Cos($t * [Math]::PI * 0.5), 0.8)
+        $distFromSurge = [Math]::Abs($i - 4)
+        $surgeMult = [Math]::Exp(-0.5 * [Math]::Pow($distFromSurge / 5.0, 2)) * ($beat * 20.0)
+        $harmonic = 0.5 + 0.5 * [Math]::Sin(($i * 0.45) + $phase + 3.0)
+        $len = [Math]::Round(([Math]::Max(2.0, (5.0 + 13.0 * $harmonic + $surgeMult) * $env)), 1)
+        $ex = [Math]::Round($bx + $nx * $len, 1)
+        $ey = [Math]::Round($by + $ny * $len, 1)
         $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
     }
 
@@ -10042,13 +10057,16 @@ $fastEyeTimer.Add_Tick({
             $beatAmp = if ($global:beatTick -le 4) { 0.85 } else { 0.0 }
 
             # Update Solid Top-Docked Obsidian Body
+            $curNW = if ($masterGrid -and $masterGrid.Width -gt 0) { $masterGrid.Width } else { $window.Width }
+            $curNH = if ($masterGrid -and $masterGrid.Height -gt 0) { $masterGrid.Height } else { $window.Height }
+
             if ($notchSinglePath) {
-                $flatPath = Get-NotchPathData $window.Width $window.Height $shoulderPad 24 0 0
+                $flatPath = Get-NotchPathData $curNW $curNH $shoulderPad 24 0 0
                 $notchSinglePath.Data = [System.Windows.Media.Geometry]::Parse($flatPath)
             }
 
             # Update Radial Spectrum Equalizer Bars
-            $barsPathStr = Get-SpectrumBarsPathData $window.Width $window.Height $shoulderPad 24 $global:wavePhase $beatAmp
+            $barsPathStr = Get-SpectrumBarsPathData $curNW $curNH $shoulderPad 24 $global:wavePhase $beatAmp
             if ($barsPathStr) {
                 $barsGeom = [System.Windows.Media.Geometry]::Parse($barsPathStr)
                 if ($notchBarsGlowPath) {
