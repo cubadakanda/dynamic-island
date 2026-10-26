@@ -1435,11 +1435,23 @@ $islandXaml = @'
 
             <Grid Grid.Row="0" Margin="10,6,10,0">
 
-                <!-- Left: Card Title -->
-
-                <TextBlock x:Name="HeaderTitleText" Text="" FontWeight="SemiBold" FontSize="15" Foreground="#FFFFFF"
-
-                           VerticalAlignment="Center" HorizontalAlignment="Left" Cursor="Hand"/>
+                <!-- Left: Card Title, Shelf Clear Button, and Task Badge -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <TextBlock x:Name="HeaderTitleText" Text="" FontWeight="SemiBold" FontSize="15" Foreground="#FFFFFF"
+                               VerticalAlignment="Center" Cursor="Hand"/>
+                    <Button x:Name="BtnHeaderClearShelf" Visibility="Collapsed" Margin="8,0,0,0" Padding="8,2"
+                            Background="#1E2430" BorderBrush="#2D3748" BorderThickness="1" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="10"/>
+                            </Style>
+                        </Button.Resources>
+                        <TextBlock Text="Clear" FontSize="10" FontWeight="SemiBold" Foreground="#8E9AA8"/>
+                    </Button>
+                    <Border x:Name="HeaderTaskBadge" Visibility="Collapsed" Margin="8,0,0,0" Background="#14212D" BorderBrush="#1C384D" BorderThickness="1" CornerRadius="10" Padding="8,2">
+                        <TextBlock x:Name="HeaderTaskBadgeText" Text="2/3 Selesai" FontSize="10" FontWeight="SemiBold" Foreground="#00D2FF"/>
+                    </Border>
+                </StackPanel>
 
                 <!-- Center: Green Ring + Date & Time -->
 
@@ -1708,109 +1720,95 @@ $islandXaml = @'
                 <!-- ============================================== -->
 
                 <Grid x:Name="CardNotesTodo" Visibility="Collapsed">
-
                     <Grid.ColumnDefinitions>
-
                         <ColumnDefinition Width="32"/>
-
+                        <ColumnDefinition Width="145"/>
                         <ColumnDefinition Width="*"/>
-
-                        <ColumnDefinition Width="*"/>
-
                         <ColumnDefinition Width="32"/>
-
                     </Grid.ColumnDefinitions>
 
                     <Button x:Name="BtnNotesPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
-
                         <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-
                     </Button>
 
-                    <!-- Left Half: Quick Note Editor -->
-
-                    <Border Grid.Column="1" Background="#131722" BorderBrush="#232B3D" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
-
+                    <!-- Left: Progress & Stats Summary Card -->
+                    <Border Grid.Column="1" Background="#11141C" BorderBrush="#232B3D" BorderThickness="1" CornerRadius="14" Margin="4,0" Padding="10,8">
                         <Grid>
-
                             <Grid.RowDefinitions>
-
-                                <RowDefinition Height="22"/>
-
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
-
-                                <RowDefinition Height="24"/>
-
                             </Grid.RowDefinitions>
 
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
-
-                                <TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
-
-                                <TextBlock Text="Catatan Cepat" FontSize="12" FontWeight="Bold" Foreground="#00D2FF" VerticalAlignment="Center"/>
-
+                            <!-- Top: Percentage & Title -->
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock x:Name="TodoPercentText" Text="0%" FontSize="19" FontWeight="Bold" Foreground="#10B981" VerticalAlignment="Center"/>
+                                <TextBlock Text=" Tuntas" FontSize="11" FontWeight="SemiBold" Foreground="#8E9AA8" VerticalAlignment="Bottom" Margin="4,0,0,2"/>
                             </StackPanel>
 
-                            <TextBox x:Name="InputNoteText" Grid.Row="1" Background="#0B0D13" Foreground="#FFFFFF" BorderBrush="#232B3D"
+                            <!-- Progress Bar -->
+                            <Border Grid.Row="1" Height="5" CornerRadius="2.5" Background="#1E2638" Margin="0,6,0,4">
+                                <ProgressBar x:Name="TodoProgressBar" Value="0" Maximum="100" Height="5" Background="Transparent" BorderThickness="0" Foreground="#10B981"/>
+                            </Border>
 
-                                     FontSize="11" Margin="0,3" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Hidden"
+                            <!-- Motivational Status -->
+                            <TextBlock Grid.Row="2" x:Name="TodoMotivationText" Text="Mulai Harimu &#x2728;" FontSize="9.5" Foreground="#6EE7B7" HorizontalAlignment="Center" Margin="0,2,0,4"/>
 
-                                     Text="Meeting project Oceru jam 10 pagi..."/>
-
-                            <Button x:Name="BtnSaveNote" Grid.Row="2" Style="{StaticResource PillBtn}" Padding="8,2" HorizontalAlignment="Right">
-
-                                <TextBlock Text="Simpan" FontSize="10" Foreground="#00D2FF"/>
-
+                            <!-- Clear Completed Button -->
+                            <Button Grid.Row="3" x:Name="BtnClearDoneTasks" Background="#161B26" BorderBrush="#263147" BorderThickness="1"
+                                    Padding="8,2.5" HorizontalAlignment="Center" VerticalAlignment="Bottom" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style>
+                                </Button.Resources>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="9" Foreground="#8E9AA8" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Hapus Selesai" FontSize="9.5" Foreground="#8E9AA8" VerticalAlignment="Center"/>
+                                </StackPanel>
                             </Button>
-
                         </Grid>
-
                     </Border>
 
-                    <!-- Right Half: To-Do Checklist -->
-
-                    <Border Grid.Column="2" Background="#131722" BorderBrush="#232B3D" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
-
+                    <!-- Right: Inline Quick Add & Dynamic Task List -->
+                    <Border Grid.Column="2" Background="#11141C" BorderBrush="#232B3D" BorderThickness="1" CornerRadius="14" Margin="4,0" Padding="8,6">
                         <Grid>
-
                             <Grid.RowDefinitions>
-
-                                <RowDefinition Height="22"/>
-
+                                <RowDefinition Height="26"/>
                                 <RowDefinition Height="*"/>
-
                             </Grid.RowDefinitions>
 
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                            <!-- Quick Add Box -->
+                            <Border Grid.Row="0" Background="#090C12" BorderBrush="#242E40" BorderThickness="1" CornerRadius="8" Padding="6,2">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
 
-                                <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10B981" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="NewTaskInput" Background="Transparent" BorderThickness="0" Foreground="#8E9AA8"
+                                             FontSize="10.5" VerticalAlignment="Center" CaretBrush="#10B981"
+                                             Text="+ Ketik target baru &amp; tekan Enter..."/>
 
-                                <TextBlock Text="Tugas Hari Ini" FontSize="12" FontWeight="Bold" Foreground="#10B981" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" x:Name="BtnAddNewTask" Background="#10B981" BorderThickness="0"
+                                            Width="20" Height="20" Margin="4,0,0,0" Cursor="Hand">
+                                        <Button.Resources>
+                                            <Style TargetType="Border"><Setter Property="CornerRadius" Value="10"/></Style>
+                                        </Button.Resources>
+                                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="10" FontWeight="Bold" Foreground="#0B0D13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Button>
+                                </Grid>
+                            </Border>
 
-                                <TextBlock x:Name="TodoStatusCount" Text=" (2/3)" FontSize="11" Foreground="#8E9AA8" Margin="4,0,0,0" VerticalAlignment="Center"/>
-
-                            </StackPanel>
-
-                            <StackPanel Grid.Row="1" Margin="0,4,0,0">
-
-                                <CheckBox x:Name="CbTask1" Content="Uji responsivitas Notch" IsChecked="True" Foreground="#FFFFFF" FontSize="11" Margin="0,2"/>
-
-                                <CheckBox x:Name="CbTask2" Content="Sinkronisasi audio &amp; volume" IsChecked="True" Foreground="#FFFFFF" FontSize="11" Margin="0,2"/>
-
-                                <CheckBox x:Name="CbTask3" Content="Cek catatan &amp; to-do list" IsChecked="False" Foreground="#FFFFFF" FontSize="11" Margin="0,2"/>
-
-                            </StackPanel>
-
+                            <!-- Task Items Scroll List -->
+                            <ScrollViewer Grid.Row="1" Margin="0,4,0,0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel x:Name="TaskListContainer"/>
+                            </ScrollViewer>
                         </Grid>
-
                     </Border>
 
                     <Button x:Name="BtnNotesNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
-
                         <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-
                     </Button>
-
                 </Grid>
 
                 <!-- ============================================== -->
@@ -1820,163 +1818,43 @@ $islandXaml = @'
                 <!-- ============================================== -->
 
                 <Grid x:Name="CardClipShelf" Visibility="Collapsed">
-
                     <Grid.ColumnDefinitions>
-
                         <ColumnDefinition Width="32"/>
-
                         <ColumnDefinition Width="*"/>
-
-                        <ColumnDefinition Width="*"/>
-
                         <ColumnDefinition Width="32"/>
-
                     </Grid.ColumnDefinitions>
 
                     <Button x:Name="BtnClipPrevCard" Grid.Column="0" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Left" VerticalAlignment="Center">
-
                         <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-
                     </Button>
 
-                    <!-- Left: Clipboard History -->
-
-                    <Border Grid.Column="1" Background="#131722" BorderBrush="#232B3D" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
-
+                    <!-- Center: Full-Width Dedicated File Shelf Drop Zone -->
+                    <Border x:Name="ShelfDropBorder" Grid.Column="1" Background="#11141C" BorderBrush="#232B3D" BorderThickness="1" CornerRadius="14" Margin="6,0" Padding="8,6" AllowDrop="True">
                         <Grid>
+                            <!-- State A: Empty / Drag-Over State -->
+                            <Grid x:Name="ShelfEmptyDropZone" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <Rectangle Stroke="#3B465E" StrokeThickness="1.5" StrokeDashArray="4 3" RadiusX="12" RadiusY="12" Fill="#090C12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Border Width="38" Height="38" CornerRadius="10" Background="#161B26" BorderBrush="#2A3448" BorderThickness="1" HorizontalAlignment="Center" Margin="0,0,0,4">
+                                        <TextBlock x:Name="ShelfDropIcon" Text="&#xED25;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#00D2FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock x:Name="ShelfDropPrompt" Text="Release to add" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Seret file ke sini untuk diparkirkan" FontSize="9.5" Foreground="#8E9AA8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Grid>
 
-                            <Grid.RowDefinitions>
-
-                                <RowDefinition Height="22"/>
-
-                                <RowDefinition Height="*"/>
-
-                            </Grid.RowDefinitions>
-
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
-
-                                <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
-
-                                <TextBlock Text="Riwayat Salinan" FontSize="12" FontWeight="Bold" Foreground="#00D2FF" VerticalAlignment="Center"/>
-
-                            </StackPanel>
-
-                            <StackPanel Grid.Row="1" Margin="0,4,0,0">
-
-                                <Button x:Name="BtnCopyClip1" Style="{StaticResource QuickMiniBtn}" Margin="0,2" HorizontalContentAlignment="Left">
-
-                                    <StackPanel Orientation="Horizontal">
-
-                                        <TextBlock Text="&#xE71B;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
-
-                                        <TextBlock Text="github.com/cubadakanda..." FontSize="11" Foreground="#FFFFFF" VerticalAlignment="Center"/>
-
-                                    </StackPanel>
-
-                                </Button>
-
-                                <Button x:Name="BtnCopyClip2" Style="{StaticResource QuickMiniBtn}" Margin="0,2" HorizontalContentAlignment="Left">
-
-                                    <StackPanel Orientation="Horizontal">
-
-                                        <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
-
-                                        <TextBlock Text="Oceru Dynamic Island" FontSize="11" Foreground="#FFFFFF" VerticalAlignment="Center"/>
-
-                                    </StackPanel>
-
-                                </Button>
-
-                            </StackPanel>
-
+                            <!-- State B: Populated Files Shelf with Thumbnails -->
+                            <Grid x:Name="ShelfFilesContainer" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                                    <StackPanel x:Name="ShelfFilesList" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                </ScrollViewer>
+                            </Grid>
                         </Grid>
-
                     </Border>
 
-                    <!-- Right: File Shelf Drop Zone -->
-
-                    <Border x:Name="ShelfDropBorder" Grid.Column="2" Background="#131722" BorderBrush="#232B3D" BorderThickness="1" CornerRadius="12" Padding="8,6" Margin="4,0" AllowDrop="True">
-
-                        <Grid>
-
-                            <Grid.RowDefinitions>
-
-                                <RowDefinition Height="20"/>
-
-                                <RowDefinition Height="*"/>
-
-                            </Grid.RowDefinitions>
-
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
-
-                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,5,0" VerticalAlignment="Center"/>
-
-                                <TextBlock Text="Universal File Shelf" FontSize="11.5" FontWeight="Bold" Foreground="#F59E0B" VerticalAlignment="Center"/>
-
-                            </StackPanel>
-
-                            <Border Grid.Row="1" BorderBrush="#232B3D" BorderThickness="1" CornerRadius="8" Background="#0B0D13" Margin="0,2">
-
-                                <Grid Margin="4,2">
-
-                                    <Grid.RowDefinitions>
-
-                                        <RowDefinition Height="Auto"/>
-
-                                        <RowDefinition Height="Auto"/>
-
-                                    </Grid.RowDefinitions>
-
-                                    <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2">
-
-                                        <TextBlock Text="&#xED25;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#F59E0B" Margin="0,0,4,0" VerticalAlignment="Center"/>
-
-                                        <TextBlock x:Name="ShelfFileCount" Text="0 file diparkir (Seret ke sini)" FontSize="10" FontWeight="SemiBold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
-
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2,0,2">
-
-                                        <Button x:Name="BtnShelfCopyPath" Style="{StaticResource QuickMiniBtn}" Margin="2,0" Padding="5,2" ToolTip="Salin Path">
-
-                                            <TextBlock Text="Salin Path" FontSize="9" Foreground="#00D2FF"/>
-
-                                        </Button>
-
-                                        <Button x:Name="BtnShelfZip" Style="{StaticResource QuickMiniBtn}" Margin="2,0" Padding="5,2" ToolTip="Kompres ke ZIP">
-
-                                            <TextBlock Text="ZIP" FontSize="9" Foreground="#10B981"/>
-
-                                        </Button>
-
-                                        <Button x:Name="BtnShelfOpenFolder" Style="{StaticResource QuickMiniBtn}" Margin="2,0" Padding="5,2" ToolTip="Buka di Explorer">
-
-                                            <TextBlock Text="Buka" FontSize="9" Foreground="#F59E0B"/>
-
-                                        </Button>
-
-                                        <Button x:Name="BtnShelfClear" Style="{StaticResource QuickMiniBtn}" Margin="2,0" Padding="4,2" ToolTip="Bersihkan Shelf">
-
-                                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="9" Foreground="#FF5252"/>
-
-                                        </Button>
-
-                                    </StackPanel>
-
-                                </Grid>
-
-                            </Border>
-
-                        </Grid>
-
-                    </Border>
-
-                    <Button x:Name="BtnClipNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
-
+                    <Button x:Name="BtnClipNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-
                     </Button>
-
                 </Grid>
 
                 <!-- ============================================== -->
@@ -5853,6 +5731,12 @@ $global:isForegroundFullscreen = $false
 
 $global:fullscreenCheckTick = 0
 
+$global:targetWindowTop = 0.0
+
+$global:lastCapsLockState = $null
+
+$global:capsLockCheckTick = 0
+
 $window.Width = $eyesTotalWidth
 
 $window.Height = $eyesHeight
@@ -6381,40 +6265,28 @@ $btnPomoFocusTime = $window.FindName("BtnPomoFocusTime")
 $btnNotesPrevCard = $window.FindName("BtnNotesPrevCard")
 
 $btnNotesNextCard = $window.FindName("BtnNotesNextCard")
-
-$inputNoteText = $window.FindName("InputNoteText")
-
-$btnSaveNote = $window.FindName("BtnSaveNote")
-
-$todoStatusCount = $window.FindName("TodoStatusCount")
-
-$cbTask1 = $window.FindName("CbTask1")
-
-$cbTask2 = $window.FindName("CbTask2")
-
-$cbTask3 = $window.FindName("CbTask3")
+$headerTaskBadge = $window.FindName("HeaderTaskBadge")
+$headerTaskBadgeText = $window.FindName("HeaderTaskBadgeText")
+$todoPercentText = $window.FindName("TodoPercentText")
+$todoProgressBar = $window.FindName("TodoProgressBar")
+$todoMotivationText = $window.FindName("TodoMotivationText")
+$btnClearDoneTasks = $window.FindName("BtnClearDoneTasks")
+$newTaskInput = $window.FindName("NewTaskInput")
+$btnAddNewTask = $window.FindName("BtnAddNewTask")
+$taskListContainer = $window.FindName("TaskListContainer")
 
 # Card 3: Clipboard & Shelf Handles
 
 $btnClipPrevCard = $window.FindName("BtnClipPrevCard")
 
 $btnClipNextCard = $window.FindName("BtnClipNextCard")
-
-$btnCopyClip1 = $window.FindName("BtnCopyClip1")
-
-$btnCopyClip2 = $window.FindName("BtnCopyClip2")
-
+$btnHeaderClearShelf = $window.FindName("BtnHeaderClearShelf")
 $shelfDropBorder = $window.FindName("ShelfDropBorder")
-
-$shelfFileCount = $window.FindName("ShelfFileCount")
-
-$btnShelfCopyPath = $window.FindName("BtnShelfCopyPath")
-
-$btnShelfZip = $window.FindName("BtnShelfZip")
-
-$btnShelfOpenFolder = $window.FindName("BtnShelfOpenFolder")
-
-$btnShelfClear = $window.FindName("BtnShelfClear")
+$shelfEmptyDropZone = $window.FindName("ShelfEmptyDropZone")
+$shelfFilesContainer = $window.FindName("ShelfFilesContainer")
+$shelfFilesList = $window.FindName("ShelfFilesList")
+$shelfDropPrompt = $window.FindName("ShelfDropPrompt")
+$shelfDropIcon = $window.FindName("ShelfDropIcon")
 
 # Card 4: System & Water Handles
 
@@ -6628,7 +6500,7 @@ function Show-OceruDashboard($pageIndex = 0) {
 
 $global:animTimer = New-Object System.Windows.Threading.DispatcherTimer
 
-$global:animTimer.Interval = [TimeSpan]::FromMilliseconds(16) # ~60 FPS
+$global:animTimer.Interval = [TimeSpan]::FromMilliseconds(12) # ~85 FPS Fluid Sampling
 
 $global:animSw = [System.Diagnostics.Stopwatch]::new()
 
@@ -6772,9 +6644,9 @@ $global:animTimer.Add_Tick({
 
     $t = [Math]::Min(1.0, $elapsed / $global:animDuration)
 
-    # Fluid Liquid Cubic Deceleration Curve: 1 - (1 - t)^2.8
+    # Silk Fluid Quintic Deceleration Curve (Native Easing): 1 - (1 - t)^3.8
 
-    $ease = 1.0 - [Math]::Pow(1.0 - $t, 2.8)
+    $ease = 1.0 - [Math]::Pow(1.0 - $t, 3.8)
 
     # Interpolate Window Width, Height, Left, and Corner Radius in real time
 
@@ -7272,9 +7144,17 @@ function SwitchCarouselCard($index) {
 
     # Update Header Title
 
-    $titles = @("", "Pomodoro", "Catatan & Tugas", "Papan Klip & Shelf", "Monitor & Air", "Kontrol Cepat")
+    $titles = @("", "Pomodoro", "Tugas Hari Ini", "Shelf", "Monitor & Air", "Kontrol Cepat")
 
     $headerTitleText.Text = $titles[$index]
+
+    if ($btnHeaderClearShelf) {
+        $btnHeaderClearShelf.Visibility = if ($index -eq 3 -and $global:shelfFiles.Count -gt 0) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
+    }
+
+    if ($headerTaskBadge) {
+        $headerTaskBadge.Visibility = if ($index -eq 2) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
+    }
 
     # Switch Cards Visibility
 
@@ -7725,310 +7605,480 @@ $btnPomoFocusTime.Add_Click({
 
 })
 
-# CARD 2: NOTES & TO-DO WIRING
+# CARD 2: DEDICATED TO-DO & TASK HUB WIRING
+function Update-TodoStats {
+    $tasks = $global:OceruState.tasks
+    $total = if ($tasks) { $tasks.Count } else { 0 }
+    $done = if ($tasks) { @($tasks | Where-Object { [bool]$_.done }).Count } else { 0 }
+    $pct = if ($total -gt 0) { [Math]::Round(($done / $total) * 100) } else { 0 }
 
-$btnSaveNote.Add_Click({
+    if ($todoPercentText) { $todoPercentText.Text = "$pct%" }
+    if ($todoProgressBar) { $todoProgressBar.Value = $pct }
+    if ($headerTaskBadgeText) { $headerTaskBadgeText.Text = "$done dari $total Selesai" }
 
-    $txt = $inputNoteText.Text.Trim()
-
-    if ($txt) {
-
-        $newNote = [PSCustomObject]@{ id = [DateTime]::Now.Ticks; title = "Catatan Baru"; content = $txt }
-
-        $global:OceruState.notes += $newNote
-
-        Save-OceruState
-
-        ShowActionFeedback "Catatan Disimpan!" ([char]0xE70B) "#00D2FF"
-
+    if ($todoMotivationText) {
+        $todoMotivationText.Text = if ($total -eq 0) {
+            "Mulai Harimu ✨"
+        } elseif ($pct -eq 100) {
+            "Semua Tuntas! 🎉"
+        } elseif ($pct -ge 50) {
+            "Fokus & Produktif 🔥"
+        } else {
+            "Langkah Awal ⚡"
+        }
     }
-
-})
-
-function UpdateTodoProgress {
-
-    $done = 0
-
-    if ($cbTask1.IsChecked) { $done++ }
-
-    if ($cbTask2.IsChecked) { $done++ }
-
-    if ($cbTask3.IsChecked) { $done++ }
-
-    $todoStatusCount.Text = " ($done/3)"
-
 }
 
-$cbTask1.Add_Click({ if ($cbTask1.IsChecked) { Trigger-CatWink }; UpdateTodoProgress })
+function Render-TaskItems {
+    if (-not $taskListContainer) { return }
+    $taskListContainer.Children.Clear()
 
-$cbTask2.Add_Click({ if ($cbTask2.IsChecked) { Trigger-CatWink }; UpdateTodoProgress })
-
-$cbTask3.Add_Click({ if ($cbTask3.IsChecked) { Trigger-CatWink }; UpdateTodoProgress })
-
-# CARD 3: CLIPBOARD & FILE SHELF WIRING
-
-$btnCopyClip1.Add_Click({
-
-    try {
-
-        [System.Windows.Clipboard]::SetText("https://github.com/cubadakanda/dynamic-island")
-
-        ShowActionFeedback "Tautan Disalin!" ([char]0xE77F) "#00D2FF"
-
-    } catch {}
-
-})
-
-$btnCopyClip2.Add_Click({
-
-    try {
-
-        [System.Windows.Clipboard]::SetText("Oceru Dynamic Island Desktop")
-
-        ShowActionFeedback "Teks Disalin!" ([char]0xE77F) "#00D2FF"
-
-    } catch {}
-
-})
-
-$global:shelfFiles = @()
-
-function Update-ShelfUI {
-
-    if ($shelfFileCount) {
-
-        $count = $global:shelfFiles.Count
-
-        $shelfFileCount.Text = if ($count -eq 0) { "0 file diparkir (Seret ke sini)" } else { "$count file diparkir" }
-
+    $tasks = $global:OceruState.tasks
+    if (-not $tasks -or $tasks.Count -eq 0) {
+        $emptyTxt = New-Object System.Windows.Controls.TextBlock
+        $emptyTxt.Text = "Belum ada target tugas hari ini"
+        $emptyTxt.FontSize = 10.5
+        $emptyTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
+        $emptyTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
+        $emptyTxt.Margin = [System.Windows.Thickness]::new(0, 16, 0, 0)
+        $taskListContainer.Children.Add($emptyTxt)
+        Update-TodoStats
+        return
     }
 
+    foreach ($item in $tasks) {
+        $curItem = $item
+        $isDone = [bool]$curItem.done
+        $taskText = [string]$curItem.text
+
+        $rowBorder = New-Object System.Windows.Controls.Border
+        $rowBorder.Height = 22
+        $rowBorder.Margin = [System.Windows.Thickness]::new(0, 1, 0, 1)
+        $rowBorder.CornerRadius = [System.Windows.CornerRadius]::new(7)
+        $rowBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#131722")
+        $rowBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#1E2536")
+        $rowBorder.BorderThickness = [System.Windows.Thickness]::new(1)
+        $rowBorder.Padding = [System.Windows.Thickness]::new(6, 2, 6, 2)
+
+        $rowGrid = New-Object System.Windows.Controls.Grid
+        $c0 = New-Object System.Windows.Controls.ColumnDefinition; $c0.Width = [System.Windows.GridLength]::new(20, [System.Windows.GridUnitType]::Pixel)
+        $c1 = New-Object System.Windows.Controls.ColumnDefinition; $c1.Width = [System.Windows.GridLength]::new(1, [System.Windows.GridUnitType]::Star)
+        $c2 = New-Object System.Windows.Controls.ColumnDefinition; $c2.Width = [System.Windows.GridLength]::new(18, [System.Windows.GridUnitType]::Pixel)
+        $rowGrid.ColumnDefinitions.Add($c0)
+        $rowGrid.ColumnDefinitions.Add($c1)
+        $rowGrid.ColumnDefinitions.Add($c2)
+
+        # Custom Check Button
+        $chkBorder = New-Object System.Windows.Controls.Border
+        $chkBorder.Width = 14
+        $chkBorder.Height = 14
+        $chkBorder.CornerRadius = [System.Windows.CornerRadius]::new(7)
+        $chkBorder.Cursor = [System.Windows.Input.Cursors]::Hand
+        $chkBorder.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+        $chkBorder.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Left
+
+        $chkIcon = New-Object System.Windows.Controls.TextBlock
+        $chkIcon.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe MDL2 Assets")
+        $chkIcon.FontSize = 8.5
+        $chkIcon.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
+        $chkIcon.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+
+        if ($isDone) {
+            $chkBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#10B981")
+            $chkBorder.BorderThickness = [System.Windows.Thickness]::new(0)
+            $chkIcon.Text = [char]0xE73E
+            $chkIcon.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
+        } else {
+            $chkBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#0D111A")
+            $chkBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#3B465E")
+            $chkBorder.BorderThickness = [System.Windows.Thickness]::new(1.2)
+            $chkIcon.Text = ""
+        }
+        $chkBorder.Child = $chkIcon
+        [System.Windows.Controls.Grid]::SetColumn($chkBorder, 0)
+        $rowGrid.Children.Add($chkBorder)
+
+        # Task Text
+        $txtBlock = New-Object System.Windows.Controls.TextBlock
+        $txtBlock.Text = $taskText
+        $txtBlock.FontSize = 10.0
+        $txtBlock.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+        $txtBlock.TextTrimming = [System.Windows.TextTrimming]::CharacterEllipsis
+        $txtBlock.Cursor = [System.Windows.Input.Cursors]::Hand
+
+        if ($isDone) {
+            $txtBlock.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
+            $txtBlock.TextDecorations = [System.Windows.TextDecorations]::Strikethrough
+        } else {
+            $txtBlock.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
+            $txtBlock.FontWeight = [System.Windows.FontWeights]::SemiBold
+        }
+        [System.Windows.Controls.Grid]::SetColumn($txtBlock, 1)
+        $rowGrid.Children.Add($txtBlock)
+
+        # Delete Action
+        $delBtn = New-Object System.Windows.Controls.Border
+        $delBtn.Width = 16
+        $delBtn.Height = 16
+        $delBtn.CornerRadius = [System.Windows.CornerRadius]::new(4)
+        $delBtn.Background = [System.Windows.Media.Brushes]::Transparent
+        $delBtn.Cursor = [System.Windows.Input.Cursors]::Hand
+        $delBtn.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+        $delBtn.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Right
+        $delBtn.ToolTip = "Hapus Tugas"
+
+        $delIcon = New-Object System.Windows.Controls.TextBlock
+        $delIcon.Text = [char]0xE74D
+        $delIcon.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe MDL2 Assets")
+        $delIcon.FontSize = 9.0
+        $delIcon.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
+        $delIcon.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
+        $delIcon.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+        $delBtn.Child = $delIcon
+
+        $delBtn.Add_MouseEnter({ $delIcon.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#EF4444") })
+        $delBtn.Add_MouseLeave({ $delIcon.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B") })
+
+        $targetId = $curItem.id
+        $delBtn.Add_MouseLeftButtonDown({
+            param($s, $e)
+            $global:OceruState.tasks = @($global:OceruState.tasks | Where-Object { $_.id -ne $targetId })
+            Save-OceruState
+            Render-TaskItems
+            ShowActionFeedback "Tugas Dihapus" ([char]0xE74D) "#8E9AA8"
+        })
+
+        [System.Windows.Controls.Grid]::SetColumn($delBtn, 2)
+        $rowGrid.Children.Add($delBtn)
+
+        # Toggle Done on Check or Text Click
+        $toggleHandler = {
+            param($s, $e)
+            $curItem.done = -not $curItem.done
+            Save-OceruState
+            if ($curItem.done) {
+                Trigger-CatWink
+                ShowActionFeedback "Tugas Selesai! 🎉" ([char]0xE73E) "#10B981"
+            }
+            Render-TaskItems
+        }
+        $chkBorder.Add_MouseLeftButtonDown($toggleHandler)
+        $txtBlock.Add_MouseLeftButtonDown($toggleHandler)
+
+        # Hover Effect
+        $rowBorder.Add_MouseEnter({
+            $rowBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#181E2C")
+            $rowBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#2D384E")
+        })
+        $rowBorder.Add_MouseLeave({
+            $rowBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#131722")
+            $rowBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#1E2536")
+        })
+
+        $rowBorder.Child = $rowGrid
+        $taskListContainer.Children.Add($rowBorder)
+    }
+
+    Update-TodoStats
+}
+
+function Add-NewTodoTask {
+    if (-not $newTaskInput) { return }
+    $txt = $newTaskInput.Text.Trim()
+    if (-not $txt -or $txt -like "*+ Ketik target baru*") { return }
+
+    $newId = [DateTime]::Now.Ticks
+    $newTask = [PSCustomObject]@{
+        id = $newId
+        text = $txt
+        done = $false
+    }
+    if (-not $global:OceruState.tasks) { $global:OceruState.tasks = @() }
+    $global:OceruState.tasks += $newTask
+    Save-OceruState
+
+    $newTaskInput.Text = ""
+    Render-TaskItems
+    ShowActionFeedback "Tugas Ditambahkan!" ([char]0xE710) "#10B981"
+}
+
+if ($btnAddNewTask) {
+    $btnAddNewTask.Add_Click({ Add-NewTodoTask })
+}
+
+if ($newTaskInput) {
+    $newTaskInput.Add_KeyDown({
+        param($s, $e)
+        if ($e.Key -eq [System.Windows.Input.Key]::Enter) {
+            Add-NewTodoTask
+        }
+    })
+    $newTaskInput.Add_GotFocus({
+        if ($newTaskInput.Text -like "*+ Ketik target baru*") {
+            $newTaskInput.Text = ""
+            $newTaskInput.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
+        }
+    })
+    $newTaskInput.Add_LostFocus({
+        if (-not $newTaskInput.Text.Trim()) {
+            $newTaskInput.Text = "+ Ketik target baru & tekan Enter..."
+            $newTaskInput.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#8E9AA8")
+        }
+    })
+}
+
+if ($btnClearDoneTasks) {
+    $btnClearDoneTasks.Add_Click({
+        $before = if ($global:OceruState.tasks) { $global:OceruState.tasks.Count } else { 0 }
+        $global:OceruState.tasks = @($global:OceruState.tasks | Where-Object { -not [bool]$_.done })
+        $after = $global:OceruState.tasks.Count
+        Save-OceruState
+        Render-TaskItems
+        ShowActionFeedback "$($before - $after) Tugas Selesai Dibersihkan!" ([char]0xE74D) "#8E9AA8"
+    })
+}
+
+# Initial Render of Tasks
+Render-TaskItems
+
+# CARD 3: DEDICATED FILE SHELF WIRING
+$global:shelfFiles = @()
+
+if ($btnHeaderClearShelf) {
+    $btnHeaderClearShelf.Add_Click({
+        $global:shelfFiles = @()
+        Update-ShelfUI
+        ShowActionFeedback "Shelf Dibersihkan!" ([char]0xE74D) "#FF5252"
+    })
+}
+
+function Update-ShelfUI {
+    if (-not $shelfFilesList) { return }
+    $shelfFilesList.Children.Clear()
+
+    $count = $global:shelfFiles.Count
+    if ($count -eq 0) {
+        if ($shelfEmptyDropZone) { $shelfEmptyDropZone.Visibility = [System.Windows.Visibility]::Visible }
+        if ($shelfFilesContainer) { $shelfFilesContainer.Visibility = [System.Windows.Visibility]::Collapsed }
+        if ($btnHeaderClearShelf) { $btnHeaderClearShelf.Visibility = [System.Windows.Visibility]::Collapsed }
+        if ($shelfDropBorder) { $shelfDropBorder.Cursor = [System.Windows.Input.Cursors]::Arrow }
+    } else {
+        if ($shelfEmptyDropZone) { $shelfEmptyDropZone.Visibility = [System.Windows.Visibility]::Collapsed }
+        if ($shelfFilesContainer) { $shelfFilesContainer.Visibility = [System.Windows.Visibility]::Visible }
+        if ($btnHeaderClearShelf -and $global:activeCardIndex -eq 3) { $btnHeaderClearShelf.Visibility = [System.Windows.Visibility]::Visible }
+        if ($shelfDropBorder) { $shelfDropBorder.Cursor = [System.Windows.Input.Cursors]::Hand }
+
+        foreach ($file in $global:shelfFiles) {
+            if (-not (Test-Path $file)) { continue }
+            $fi = New-Object System.IO.FileInfo($file)
+            $fName = $fi.Name
+            $fExt = $fi.Extension.ToLower()
+            $fSize = if ($fi.Length -ge 1048576) {
+                "{0:N1} MB" -f ($fi.Length / 1048576)
+            } else {
+                "{0:N0} KB" -f ($fi.Length / 1024)
+            }
+
+            # File Card Container (Matching Dedicated Shelf Design)
+            $itemBorder = New-Object System.Windows.Controls.Border
+            $itemBorder.Width = 92
+            $itemBorder.Height = 102
+            $itemBorder.Margin = [System.Windows.Thickness]::new(4, 0, 4, 0)
+            $itemBorder.CornerRadius = [System.Windows.CornerRadius]::new(12)
+            $itemBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#131722")
+            $itemBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#232B3D")
+            $itemBorder.BorderThickness = [System.Windows.Thickness]::new(1)
+            $itemBorder.Padding = [System.Windows.Thickness]::new(6, 6, 6, 6)
+            $itemBorder.Cursor = [System.Windows.Input.Cursors]::Hand
+            $itemBorder.ToolTip = "$($fi.FullName)`n(Tahan & seret untuk copy ke WA/Email, Klik 2x untuk buka)"
+
+            $itemGrid = New-Object System.Windows.Controls.Grid
+            $r0 = New-Object System.Windows.Controls.RowDefinition; $r0.Height = [System.Windows.GridLength]::new(50, [System.Windows.GridUnitType]::Pixel)
+            $r1 = New-Object System.Windows.Controls.RowDefinition; $r1.Height = [System.Windows.GridLength]::new(18, [System.Windows.GridUnitType]::Pixel)
+            $r2 = New-Object System.Windows.Controls.RowDefinition; $r2.Height = [System.Windows.GridLength]::new(14, [System.Windows.GridUnitType]::Pixel)
+            $itemGrid.RowDefinitions.Add($r0)
+            $itemGrid.RowDefinitions.Add($r1)
+            $itemGrid.RowDefinitions.Add($r2)
+
+            # Icon Box with file type styling
+            $iconBox = New-Object System.Windows.Controls.Border
+            $iconBox.Width = 46
+            $iconBox.Height = 46
+            $iconBox.CornerRadius = [System.Windows.CornerRadius]::new(12)
+            $iconBox.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
+            $iconBox.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+
+            if ($fExt -match '\.(jpg|jpeg|png|webp|gif|bmp|svg)$') {
+                # Image thumbnail style (Sky blue with yellow sun & sand)
+                $iconBox.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#2B90D9")
+                $imgGrid = New-Object System.Windows.Controls.Grid
+                $imgGrid.ClipToBounds = $true
+
+                $sun = New-Object System.Windows.Controls.Border
+                $sun.Width = 10; $sun.Height = 10; $sun.CornerRadius = [System.Windows.CornerRadius]::new(5)
+                $sun.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FCD34D")
+                $sun.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Right
+                $sun.VerticalAlignment = [System.Windows.VerticalAlignment]::Top
+                $sun.Margin = [System.Windows.Thickness]::new(0, 8, 8, 0)
+                $imgGrid.Children.Add($sun)
+
+                $ground = New-Object System.Windows.Controls.Border
+                $ground.Height = 14; $ground.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FDE68A")
+                $ground.VerticalAlignment = [System.Windows.VerticalAlignment]::Bottom
+                $imgGrid.Children.Add($ground)
+
+                $iconBox.Child = $imgGrid
+            } elseif ($fExt -match '\.(pdf|docx?|txt|md|xlsx?|pptx?)$') {
+                $iconBox.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#EA580C")
+                $iconTxt = New-Object System.Windows.Controls.TextBlock
+                $iconTxt.Text = [char]0xE8A5; $iconTxt.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe MDL2 Assets")
+                $iconTxt.FontSize = 22; $iconTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
+                $iconTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center; $iconTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+                $iconBox.Child = $iconTxt
+            } elseif ($fExt -match '\.(mp3|wav|flac|m4a|mp4|mkv|mov)$') {
+                $iconBox.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#9333EA")
+                $iconTxt = New-Object System.Windows.Controls.TextBlock
+                $iconTxt.Text = [char]0xE8D6; $iconTxt.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe MDL2 Assets")
+                $iconTxt.FontSize = 22; $iconTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
+                $iconTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center; $iconTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+                $iconBox.Child = $iconTxt
+            } else {
+                $iconBox.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#0D9488")
+                $iconTxt = New-Object System.Windows.Controls.TextBlock
+                $iconTxt.Text = [char]0xE8B7; $iconTxt.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe MDL2 Assets")
+                $iconTxt.FontSize = 22; $iconTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
+                $iconTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center; $iconTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+                $iconBox.Child = $iconTxt
+            }
+
+            [System.Windows.Controls.Grid]::SetRow($iconBox, 0)
+            $itemGrid.Children.Add($iconBox)
+
+            # File Name
+            $nameTxt = New-Object System.Windows.Controls.TextBlock
+            $nameTxt.Text = $fName
+            $nameTxt.FontSize = 10.5
+            $nameTxt.FontWeight = [System.Windows.FontWeights]::SemiBold
+            $nameTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
+            $nameTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
+            $nameTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+            $nameTxt.TextTrimming = [System.Windows.TextTrimming]::CharacterEllipsis
+            $nameTxt.MaxWidth = 84
+            [System.Windows.Controls.Grid]::SetRow($nameTxt, 1)
+            $itemGrid.Children.Add($nameTxt)
+
+            # File Size
+            $sizeTxt = New-Object System.Windows.Controls.TextBlock
+            $sizeTxt.Text = $fSize
+            $sizeTxt.FontSize = 9.5
+            $sizeTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#8E9AA8")
+            $sizeTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
+            $sizeTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+            [System.Windows.Controls.Grid]::SetRow($sizeTxt, 2)
+            $itemGrid.Children.Add($sizeTxt)
+
+            $itemBorder.Child = $itemGrid
+
+            # Wire Drag-Out & Double-Click Events
+            $capturedFile = $file
+            $dragStart = $null
+
+            $itemBorder.Add_PreviewMouseLeftButtonDown({
+                param($s, $e)
+                $dragStart = $e.GetPosition($null)
+            })
+
+            $itemBorder.Add_PreviewMouseMove({
+                param($s, $e)
+                if ($e.LeftButton -eq [System.Windows.Input.MouseButtonState]::Pressed -and $dragStart -ne $null) {
+                    $cur = $e.GetPosition($null)
+                    $diff = $cur - $dragStart
+                    if ([Math]::Abs($diff.X) -gt 6 -or [Math]::Abs($diff.Y) -gt 6) {
+                        $dragStart = $null
+                        $dataObj = New-Object System.Windows.DataObject([System.Windows.DataFormats]::FileDrop, [string[]]@($capturedFile))
+                        ShowActionFeedback "Menyeret $fName..." ([char]0xE8B7) "#00D2FF"
+                        [System.Windows.DragDrop]::DoDragDrop($itemBorder, $dataObj, [System.Windows.DragDropEffects]::Copy) | Out-Null
+                    }
+                }
+            })
+
+            $itemBorder.Add_MouseLeftButtonDown({
+                param($s, $e)
+                if ($e.ClickCount -ge 2) {
+                    try { Start-Process $capturedFile } catch {}
+                }
+            })
+
+            $shelfFilesList.Children.Add($itemBorder)
+        }
+    }
 }
 
 function Add-FilesToShelf($files) {
-
     if ($files -and $files.Count -gt 0) {
-
         foreach ($f in $files) {
-
             if ($global:shelfFiles -notcontains $f) {
-
                 $global:shelfFiles += $f
-
             }
-
         }
-
         Update-ShelfUI
-
         ShowActionFeedback "$($files.Count) File Diparkir di Shelf!" ([char]0xE8B7) "#F59E0B"
-
     }
-
 }
 
 # Drop directly on ShelfDropBorder
+if ($shelfDropBorder) {
+    $shelfDropBorder.Add_Drop({
+        param($s, $e)
+        if ($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)) {
+            $dropped = $e.Data.GetData([System.Windows.DataFormats]::FileDrop)
+            Add-FilesToShelf $dropped
+        }
+    })
+}
 
-$shelfDropBorder.Add_Drop({
-
-    param($s, $e)
-
-    if ($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)) {
-
-        $dropped = $e.Data.GetData([System.Windows.DataFormats]::FileDrop)
-
-        Add-FilesToShelf $dropped
-
-    }
-
-})
-
-# Universal Drag & Drop on the Entire Island Window (Feature 2)
-
+# Universal Drag & Drop on the Entire Island Window
 $window.Add_DragEnter({
-
     param($s, $e)
-
     if ($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)) {
-
         $e.Effects = [System.Windows.DragDropEffects]::Copy
-
         if ($global:islandMode -ne "expanded") {
-
             Set-IslandMode "expanded"
-
         }
-
         SwitchCarouselCard 3
-
         if ($shelfDropBorder) {
-
             $shelfDropBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00D2FF")
-
             $shelfDropBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#1B2130")
-
         }
-
     }
-
 })
 
 $window.Add_DragOver({
-
     param($s, $e)
-
     if ($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)) {
-
         $e.Effects = [System.Windows.DragDropEffects]::Copy
-
     }
-
 })
 
 $window.Add_DragLeave({
-
     param($s, $e)
-
     if ($shelfDropBorder) {
-
         $shelfDropBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#232B3D")
-
-        $shelfDropBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#131722")
-
+        $shelfDropBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#11141C")
     }
-
 })
 
 $window.Add_Drop({
-
     param($s, $e)
-
     if ($shelfDropBorder) {
-
         $shelfDropBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#232B3D")
-
-        $shelfDropBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#131722")
-
+        $shelfDropBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#11141C")
     }
-
     if ($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)) {
-
         $dropped = $e.Data.GetData([System.Windows.DataFormats]::FileDrop)
-
         Add-FilesToShelf $dropped
-
     }
-
 })
-
-# Quick Action Buttons for Shelf
-
-if ($btnShelfCopyPath) {
-
-    $btnShelfCopyPath.Add_Click({
-
-        if ($global:shelfFiles.Count -eq 0) {
-
-            ShowActionFeedback "Shelf masih kosong!" ([char]0xE783) "#F59E0B"
-
-            return
-
-        }
-
-        $paths = $global:shelfFiles -join "`r`n"
-
-        try {
-
-            [System.Windows.Clipboard]::SetText($paths)
-
-            ShowActionFeedback "Semua path disalin!" ([char]0xE77F) "#00D2FF"
-
-        } catch {}
-
-    })
-
-}
-
-if ($btnShelfZip) {
-
-    $btnShelfZip.Add_Click({
-
-        if ($global:shelfFiles.Count -eq 0) {
-
-            ShowActionFeedback "Tidak ada file untuk di-ZIP!" ([char]0xE783) "#F59E0B"
-
-            return
-
-        }
-
-        try {
-
-            $firstDir = [System.IO.Path]::GetDirectoryName($global:shelfFiles[0])
-
-            if (-not $firstDir) { $firstDir = [Environment]::GetFolderPath("Desktop") }
-
-            $timestamp = (Get-Date).ToString("yyyyMMdd_HHmmss")
-
-            $zipPath = Join-Path $firstDir "Oceru_Archive_$timestamp.zip"
-
-            Compress-Archive -Path $global:shelfFiles -DestinationPath $zipPath -Force
-
-            ShowActionFeedback "ZIP Dibuat di Folder Asal!" ([char]0xE710) "#10B981"
-
-        } catch {
-
-            ShowActionFeedback "Gagal membuat ZIP!" ([char]0xE783) "#FF5252"
-
-        }
-
-    })
-
-}
-
-if ($btnShelfOpenFolder) {
-
-    $btnShelfOpenFolder.Add_Click({
-
-        if ($global:shelfFiles.Count -eq 0) {
-
-            ShowActionFeedback "Shelf masih kosong!" ([char]0xE783) "#F59E0B"
-
-            return
-
-        }
-
-        try {
-
-            $firstFile = $global:shelfFiles[0]
-
-            if (Test-Path $firstFile) {
-
-                [System.Diagnostics.Process]::Start("explorer.exe", "/select,`"$firstFile`"") | Out-Null
-
-                ShowActionFeedback "Membuka Explorer..." ([char]0xE8B7) "#00D2FF"
-
-            }
-
-        } catch {}
-
-    })
-
-}
-
-if ($btnShelfClear) {
-
-    $btnShelfClear.Add_Click({
-
-        $global:shelfFiles = @()
-
-        Update-ShelfUI
-
-        ShowActionFeedback "Shelf dibersihkan" ([char]0xE74D) "#8E9AA8"
-
-    })
-
-}
-
 # CARD 4: SYSTEM MONITOR & WATER WIRING
 
 $btnSysTaskMgr.Add_Click({
@@ -9563,7 +9613,7 @@ $fastEyeTimer.Add_Tick({
 
         $cursorPos = [System.Windows.Forms.Cursor]::Position
 
-        # Feature: Smart Fullscreen Auto-Hide (Auto hides notch when YouTube / Game is Fullscreen)
+        # FEATURE 3: SMART FULLSCREEN AUTO-HIDE WITH SMOOTH BEZEL GLIDE
         $global:fullscreenCheckTick = ($global:fullscreenCheckTick + 1) % 6
         if ($global:fullscreenCheckTick -eq 0) {
             $global:isForegroundFullscreen = [Win32Helper]::IsForegroundFullscreen($global:islandHwnd, [int]$screenWidth, [int]$screenHeight)
@@ -9573,14 +9623,36 @@ $fastEyeTimer.Add_Tick({
             $nearTop = ($cursorPos.Y -le 14) -and ($cursorPos.X -ge ($window.Left - 25)) -and ($cursorPos.X -le ($window.Left + $window.Width + 25))
             $inIslandArea = ($cursorPos.X -ge ($window.Left - 10)) -and ($cursorPos.X -le ($window.Left + $window.Width + 10)) -and ($cursorPos.Y -ge 0) -and ($cursorPos.Y -le ($window.Height + 14))
             if ($nearTop -or $inIslandArea) {
-                if ($window.Top -ne 0) { $window.Top = 0 }
-                if ($window.Opacity -ne 1.0) { $window.Opacity = 1.0 }
+                $global:targetWindowTop = 0.0
             } else {
-                if ($window.Top -ne -38) { $window.Top = -38 }
+                # Smoothly retract into the monitor bezel, leaving a 3px sleek rim
+                $global:targetWindowTop = -([Math]::Max(30, $window.Height - 3))
             }
         } else {
-            if ($window.Top -ne 0) { $window.Top = 0 }
-            if ($window.Opacity -ne 1.0) { $window.Opacity = 1.0 }
+            $global:targetWindowTop = 0.0
+        }
+
+        # Fluid glide interpolation for Window.Top
+        if ([Math]::Abs($window.Top - $global:targetWindowTop) -gt 0.8) {
+            $window.Top = [Math]::Round($window.Top + ($global:targetWindowTop - $window.Top) * 0.35)
+        } else {
+            $window.Top = $global:targetWindowTop
+        }
+
+        # FEATURE 4: HARDWARE HUD OVERLAY - CAPS LOCK MONITOR
+        $global:capsLockCheckTick = ($global:capsLockCheckTick + 1) % 4
+        if ($global:capsLockCheckTick -eq 0) {
+            $curCaps = [System.Windows.Forms.Control]::IsKeyLocked([System.Windows.Forms.Keys]::CapsLock)
+            if ($global:lastCapsLockState -ne $null -and $curCaps -ne $global:lastCapsLockState) {
+                $global:lastCapsLockState = $curCaps
+                if ($curCaps) {
+                    Show-OceruDynamicToast "CAPS LOCK" "Huruf Besar: AKTIF" ([char]0xE756) "#F59E0B" 1300
+                } else {
+                    Show-OceruDynamicToast "Caps Lock" "Huruf Normal: Nonaktif" ([char]0xE756) "#8E9AA8" 1100
+                }
+            } else {
+                $global:lastCapsLockState = $curCaps
+            }
         }
 
         # Reference Image 2: Dynamic Audio Waveform Bottom Rim (EXCLUSIVE TO MUSIC CARD 0 WHEN MUSIC IS ACTIVELY PLAYING)

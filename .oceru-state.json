@@ -8,12 +8,12 @@
     "islandOpacity":  0.95,
     "autoCollapseSeconds":  5,
     "language":  "id",
-    "volume":  50,
+    "volume":  72,
     "isMuted":  false,
     "currentMedia":  {
-                         "title":  "(91)TikTok - Make Your Day",
-                         "artist":  "YouTube / Chrome",
-                         "isPlaying":  false,
+                         "title":  "Pamungkas - Monolog (Cover) // Jeje.",
+                         "artist":  "Aku Jeje (YouTube / Chrome)",
+                         "isPlaying":  true,
                          "progress":  42
                      },
     "pomodoro":  {
@@ -49,6 +49,11 @@
                       "id":  639285221894795599,
                       "title":  "Catatan Baru",
                       "content":  "hallo gess"
+                  },
+                  {
+                      "id":  639286422626337678,
+                      "title":  "Catatan Baru",
+                      "content":  "Meeting project Oceru jam 10 pagi..."
                   }
               ],
     "tasks":  [
