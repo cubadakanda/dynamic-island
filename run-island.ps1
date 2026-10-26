@@ -1317,7 +1317,14 @@ $islandXaml = @'
 
         <!-- HARDWARE NOTCH SINGLE VECTOR PATH (Option B MacBook Tangential Shoulder Fillet, Pure Obsidian - No Blue Edges!) -->
 
-        <Path x:Name="NotchSinglePath" Fill="#000000" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="Hand"/>
+        <Path x:Name="NotchSinglePath" Fill="#000000" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="Hand">
+            <Path.Effect>
+                <DropShadowEffect Color="#000000" BlurRadius="18" ShadowDepth="4" Opacity="0.75" Direction="270"/>
+            </Path.Effect>
+        </Path>
+
+        <!-- SPECULAR GLASS REFLECTION HIGHLIGHT (2.5D Obsidian Glass Reflection) -->
+        <Path x:Name="NotchGlassHighlight" Data="{Binding Data, ElementName=NotchSinglePath}" Stroke="#35FFFFFF" StrokeThickness="1.2" Fill="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False"/>
 
         <!-- MULTI-STAGE NEON EQUALIZER 3-SIDED WAVE LAYERS -->
 
@@ -1356,6 +1363,19 @@ $islandXaml = @'
         <!-- ======================================================== -->
 
         <Grid x:Name="EyesGrid" Visibility="Visible" HorizontalAlignment="Center" VerticalAlignment="Center" Cursor="Hand" Opacity="1">
+
+            <!-- FLOATING SLEEP ZZZ PARTICLES CANVAS (Active during deep idle sleep) -->
+            <Canvas x:Name="CatZzzCanvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False" Opacity="0">
+                <TextBlock x:Name="Zzz1" Text="z" FontSize="11" FontWeight="Bold" Foreground="#9000D2FF" Canvas.Left="38" Canvas.Top="6">
+                    <TextBlock.Effect><DropShadowEffect Color="#00D2FF" BlurRadius="6" ShadowDepth="0" Opacity="0.9"/></TextBlock.Effect>
+                </TextBlock>
+                <TextBlock x:Name="Zzz2" Text="z" FontSize="13" FontWeight="Bold" Foreground="#C000D2FF" Canvas.Left="50" Canvas.Top="-2">
+                    <TextBlock.Effect><DropShadowEffect Color="#00D2FF" BlurRadius="7" ShadowDepth="0" Opacity="0.9"/></TextBlock.Effect>
+                </TextBlock>
+                <TextBlock x:Name="Zzz3" Text="Z" FontSize="16" FontWeight="Bold" Foreground="#FF00D2FF" Canvas.Left="64" Canvas.Top="-12">
+                    <TextBlock.Effect><DropShadowEffect Color="#00D2FF" BlurRadius="8" ShadowDepth="0" Opacity="0.95"/></TextBlock.Effect>
+                </TextBlock>
+            </Canvas>
 
             <!-- Centered Interactive Heterochromia Cat Eyes (Odd-Eyed: Amber Gold & Sapphire Blue) -->
 
@@ -5588,6 +5608,19 @@ function New-OceruWavBytes {
             $samples[$i] = [int16][Math]::Max(-32767, [Math]::Min(32767, ($val * $amp * 32767)))
         }
     }
+    elseif ($Type -eq "purr") {
+        # Soothing cat purr (~450ms, low-frequency 28Hz modulated rumble with 110Hz body warmth)
+        $durationMs = 450
+        $numSamples = [int]($sampleRate * ($durationMs / 1000.0))
+        $samples = New-Object Int16[] $numSamples
+        for ($i = 0; $i -lt $numSamples; $i++) {
+            $t = $i / [double]$numSamples
+            $pulse = 0.5 + 0.5 * [Math]::Sin(2.0 * [Math]::PI * 28.0 * ($i / $sampleRate))
+            $tone = [Math]::Sin(2.0 * [Math]::PI * 110.0 * ($i / $sampleRate)) + 0.4 * [Math]::Sin(2.0 * [Math]::PI * 75.0 * ($i / $sampleRate))
+            $env = [Math]::Sin($t * [Math]::PI) * 0.38
+            $samples[$i] = [int16][Math]::Max(-32767, [Math]::Min(32767, ($tone * $pulse * $env * 32767)))
+        }
+    }
     elseif ($Type -eq "water") {
         # Crisp refreshing water droplet (~120ms, 950Hz -> 1650Hz resonance)
         $durationMs = 120
@@ -5909,6 +5942,14 @@ $sysPingText = $window.FindName("SysPingText")
 $notchWaveStrokePath = $window.FindName("NotchWaveStrokePath")
 $notchWaveCorePath   = $window.FindName("NotchWaveCorePath")
 $notchApexCanvas     = $window.FindName("NotchApexCanvas")
+$notchGlassHighlight = $window.FindName("NotchGlassHighlight")
+$catZzzCanvas        = $window.FindName("CatZzzCanvas")
+$zzz1                = $window.FindName("Zzz1")
+$zzz2                = $window.FindName("Zzz2")
+$zzz3                = $window.FindName("Zzz3")
+$global:catChargingHappyTicks = 0
+$global:zzzTick               = 0
+$global:musicWinkTick         = 0
 
 # Initialize Neon Apex Spark Dot Pool in $notchApexCanvas
 $global:apexSparkBorders = New-Object System.Collections.Generic.List[System.Windows.Controls.Border]
@@ -6796,9 +6837,11 @@ $global:animTimer.Add_Tick({
 
     $t = [Math]::Min(1.0, $elapsed / $global:animDuration)
 
-    # Silk Fluid Quintic Deceleration Curve (Native Easing): 1 - (1 - t)^3.8
-
-    $ease = 1.0 - [Math]::Pow(1.0 - $t, 3.8)
+    # Squash & Stretch Spring Physics Curve with Rebound Easing
+    $rebound = if ($global:targetMode -eq "expanded" -or $global:targetMode -eq "status") {
+        0.05 * [Math]::Sin($t * [Math]::PI) * [Math]::Cos($t * [Math]::PI * 1.8)
+    } else { 0.0 }
+    $ease = [Math]::Max(0.0, [Math]::Min(1.03, (1.0 - [Math]::Pow(1.0 - $t, 3.6)) + $rebound))
 
     # Interpolate Window Width, Height, Left, and Corner Radius in real time
 
@@ -10212,9 +10255,9 @@ $fastEyeTimer.Add_Tick({
 
                     $global:petStrokeCount = 0
 
-                    Play-OceruSound "meow"
+                    Play-OceruSound "purr"
 
-                    Show-OceruDynamicToast "Oceru Cat (^ ^)" "Purrrr... Senang dielus! (♥)" ([char]0xEB51) "#EC4899" 2400
+                    Show-OceruDynamicToast "Kucing Kesayangan" "Purrrr... Senang dielus! (^.^)" ([char]0xEB51) "#EC4899" 2400
 
                 }
 
@@ -10256,74 +10299,69 @@ $fastEyeTimer.Add_Tick({
 
             # 6. Mood Priority Hierarchy
 
-            # Mood A: Petting Happy Squint (^ ^) with Purr Breathing Vibration
+            # Mood A: Charging Happy Squint (^.^) when charger just plugged in
+            if ($global:catChargingHappyTicks -gt 0) {
 
-            if ($global:catPettingHappyTicks -gt 0) {
-
-                $global:catPettingHappyTicks--
-
-                $leftEye.Height = 3.2
-
-                $rightEye.Height = 3.2
-
-                $global:purrTick = ($global:purrTick + 1) % 360
-
-                $purrY = [Math]::Sin($global:purrTick * 0.35) * 1.5
-
-                if ($catEyesTransform) { $catEyesTransform.Y = $purrY }
+                $global:catChargingHappyTicks--
+                $leftEye.Height = 3.5
+                $rightEye.Height = 3.5
+                $leftEye.CornerRadius = [System.Windows.CornerRadius]::new(1, 1, 7.5, 7.5)
+                $rightEye.CornerRadius = [System.Windows.CornerRadius]::new(1, 1, 7.5, 7.5)
+                $happyY = [Math]::Sin($global:catChargingHappyTicks * 0.4) * 1.2
+                if ($catEyesTransform) { $catEyesTransform.Y = $happyY }
+                if ($catZzzCanvas) { $catZzzCanvas.Opacity = 0.0 }
 
             }
 
-            # Mood B: Playful Double Wink
+            # Mood B: Petting Happy Squint (^.^) with Purr Vibration
+            elseif ($global:catPettingHappyTicks -gt 0) {
 
+                $global:catPettingHappyTicks--
+                $leftEye.Height = 3.5
+                $rightEye.Height = 3.5
+                $leftEye.CornerRadius = [System.Windows.CornerRadius]::new(1, 1, 7.5, 7.5)
+                $rightEye.CornerRadius = [System.Windows.CornerRadius]::new(1, 1, 7.5, 7.5)
+                $global:purrTick = ($global:purrTick + 1) % 360
+                $purrY = [Math]::Sin($global:purrTick * 0.35) * 1.5
+                if ($catEyesTransform) { $catEyesTransform.Y = $purrY }
+                if ($catZzzCanvas) { $catZzzCanvas.Opacity = 0.0 }
+
+            }
+
+            # Mood C: Playful Double Wink
             elseif ($global:catDoubleWinkTicks -gt 0) {
 
                 $global:catDoubleWinkTicks--
-
                 if (($global:catDoubleWinkTicks -ge 14 -and $global:catDoubleWinkTicks -le 18) -or
-
                     ($global:catDoubleWinkTicks -ge 5 -and $global:catDoubleWinkTicks -le 9)) {
-
                     $leftEye.Height = 2.5
-
                     $rightEye.Height = 2.5
-
                 } else {
-
-                    $leftEye.Height = 17
-
-                    $rightEye.Height = 17
-
+                    $leftEye.Height = 17.0
+                    $rightEye.Height = 17.0
+                    $leftEye.CornerRadius = [System.Windows.CornerRadius]::new(7.5)
+                    $rightEye.CornerRadius = [System.Windows.CornerRadius]::new(7.5)
                 }
 
             }
 
-            # Mood 0: 🌿 20-20-20 Eye-Care Break
-
+            # Mood D: 🌿 20-20-20 Eye-Care Break
             elseif ($global:eyeCareActive) {
 
                 $leftEye.Height = 2.5
-
                 $rightEye.Height = 2.5
-
                 $global:sleepBreathTick = ($global:sleepBreathTick + 1) % 360
-
                 $breathY = [Math]::Sin($global:sleepBreathTick * 0.08) * 1.5
-
                 if ($catEyesTransform) { $catEyesTransform.Y = $breathY }
 
             }
 
-            # Mood 1: 😉 Appreciation Wink
-
+            # Mood E: 😉 Appreciation Wink
             elseif ($global:catWinkTicks -gt 0) {
 
                 $global:catWinkTicks--
-
                 $leftEye.Height = 2.5
-
-                $rightEye.Height = 16
-
+                $rightEye.Height = 16.0
                 $rightPupilTransform.Y = -1.5
 
             }
@@ -10334,14 +10372,35 @@ $fastEyeTimer.Add_Tick({
                 $sysIdle = [Win32Helper]::GetSystemIdleMillis()
                 $idleMs = if ($sysIdle -gt 0) { $sysIdle } else { $global:cursorIdleSw.ElapsedMilliseconds }
 
-                # Tahap 1: Tidur lelap jika laptop ditinggal diam > 5 menit (300.000 ms)
+                # Tahap 1: Tidur lelap jika laptop ditinggal diam > 5 menit (300.000 ms) + Floating Zzz
                 if ($idleMs -ge 300000) {
 
                     $leftEye.Height = 2.5
                     $rightEye.Height = 2.5
+                    $leftEye.CornerRadius = [System.Windows.CornerRadius]::new(7.5, 7.5, 1, 1)
+                    $rightEye.CornerRadius = [System.Windows.CornerRadius]::new(7.5, 7.5, 1, 1)
                     $global:sleepBreathTick = ($global:sleepBreathTick + 1) % 360
                     $breathY = [Math]::Sin($global:sleepBreathTick * 0.08) * 1.5
                     if ($catEyesTransform) { $catEyesTransform.Y = $breathY }
+
+                    # Floating 'Zzz' sleep particles animation
+                    if ($catZzzCanvas) {
+                        $catZzzCanvas.Opacity = [Math]::Min(1.0, $catZzzCanvas.Opacity + 0.1)
+                        $global:zzzTick = ($global:zzzTick + 1) % 90
+                        $pZ = $global:zzzTick / 90.0
+                        if ($zzz1) {
+                            [System.Windows.Controls.Canvas]::SetTop($zzz1, 6 - ($pZ * 10))
+                            $zzz1.Opacity = [Math]::Sin($pZ * [Math]::PI) * 0.85
+                        }
+                        if ($zzz2) {
+                            [System.Windows.Controls.Canvas]::SetTop($zzz2, -2 - ($pZ * 12))
+                            $zzz2.Opacity = [Math]::Sin($pZ * [Math]::PI) * 0.95
+                        }
+                        if ($zzz3) {
+                            [System.Windows.Controls.Canvas]::SetTop($zzz3, -12 - ($pZ * 14))
+                            $zzz3.Opacity = [Math]::Sin($pZ * [Math]::PI) * 1.0
+                        }
+                    }
 
                 }
                 # Tahap 2: Mengantuk sayu jika ditinggal diam 2 - 5 menit (120.000 - 300.000 ms)
@@ -10349,50 +10408,68 @@ $fastEyeTimer.Add_Tick({
 
                     $leftEye.Height = 8.0
                     $rightEye.Height = 8.0
+                    $leftEye.CornerRadius = [System.Windows.CornerRadius]::new(6.0)
+                    $rightEye.CornerRadius = [System.Windows.CornerRadius]::new(6.0)
                     $global:sleepBreathTick = ($global:sleepBreathTick + 1) % 360
                     $breathY = [Math]::Sin($global:sleepBreathTick * 0.05) * 0.8
                     if ($catEyesTransform) { $catEyesTransform.Y = $breathY }
+                    if ($catZzzCanvas) { $catZzzCanvas.Opacity = 0.0 }
 
                 }
                 # Tahap 3: SELALU MELEK SEGAR & AKTIF selama laptop sedang digunakan!
                 else {
 
-                    # Mood 4: 🎵 Audio Bop jika musik sedang diputar
+                    if ($catZzzCanvas) { $catZzzCanvas.Opacity = 0.0 }
+
+                    # Restore normal rounded corners for eyes
+                    $leftEye.CornerRadius = [System.Windows.CornerRadius]::new(7.5)
+                    $rightEye.CornerRadius = [System.Windows.CornerRadius]::new(7.5)
+
+                    # Worried Eyes Reaction when battery <= 20% on battery power
+                    $power = [System.Windows.Forms.SystemInformation]::PowerStatus
+                    $isLowBat = ($power.PowerLineStatus -ne "Online" -and ($power.BatteryLifePercent * 100) -le 20)
+
+                    # Musical Playful Wink when music is actively playing
+                    $isMusicWink = $false
                     if ($global:gsmtcPlaying -eq $true) {
+                        $global:musicWinkTick = ($global:musicWinkTick + 1) % 220
+                        if ($global:musicWinkTick -le 5) {
+                            $isMusicWink = $true
+                        }
 
                         $global:audioBopTick = ($global:audioBopTick + 1) % 360
                         $bopY = [Math]::Abs([Math]::Sin($global:audioBopTick * 0.15)) * 2.8
                         if ($catEyesTransform) { $catEyesTransform.Y = -$bopY }
-
                     } else {
-
                         if ($catEyesTransform -and $global:catPlayTicks -le 0) { $catEyesTransform.Y = 0 }
-
                     }
 
-                    # Kedipan alami mata saat melek segar
-                    $blinkInterval = if ($fastEyeTimer.Interval.TotalMilliseconds -ge 100) { 24 } else { 90 }
-
-                    $global:eyeBlinkTick = ($global:eyeBlinkTick + 1) % $blinkInterval
-
-                    if ($global:eyeBlinkTick -eq 0) {
-
-                        $leftEye.Height = 2.0
-                        $rightEye.Height = 2.0
-
-                    } elseif ($global:eyeBlinkTick -eq 1 -or ($global:eyeBlinkTick -eq 3 -and $blinkInterval -eq 90)) {
-
-                        $leftEye.Height = 17.0
+                    if ($isMusicWink) {
+                        $leftEye.Height = 2.5
                         $rightEye.Height = 17.0
-
+                    } elseif ($isLowBat) {
+                        # Dilated worried eyes
+                        $leftEye.Height = 13.0
+                        $rightEye.Height = 13.0
+                        if ($leftPupilBorder) { $leftPupilBorder.Width = 5.2 }
+                        if ($rightPupilBorder) { $rightPupilBorder.Width = 5.2 }
                     } else {
+                        # Natural eye blinking when awake
+                        $blinkInterval = if ($fastEyeTimer.Interval.TotalMilliseconds -ge 100) { 24 } else { 90 }
+                        $global:eyeBlinkTick = ($global:eyeBlinkTick + 1) % $blinkInterval
 
-                        # Pastikan mata selalu melek segar penuh di antara kedipan
-                        if ($leftEye.Height -lt 15.0) {
+                        if ($global:eyeBlinkTick -eq 0) {
+                            $leftEye.Height = 2.0
+                            $rightEye.Height = 2.0
+                        } elseif ($global:eyeBlinkTick -eq 1 -or ($global:eyeBlinkTick -eq 3 -and $blinkInterval -eq 90)) {
                             $leftEye.Height = 17.0
                             $rightEye.Height = 17.0
+                        } else {
+                            if ($leftEye.Height -lt 15.0) {
+                                $leftEye.Height = 17.0
+                                $rightEye.Height = 17.0
+                            }
                         }
-
                     }
 
                 }
@@ -11151,6 +11228,8 @@ $mainTimer.Add_Tick({
             $global:lastPowerLineStatus = $isOnline
             if ($isOnline) {
                 try { [System.Media.SystemSounds]::Asterisk.Play() } catch {}
+                $global:catChargingHappyTicks = 65
+                Play-OceruSound "purr"
                 Show-OceruDynamicToast "PENGISIAN DAYA" "Kabel Charger Terhubung • Baterai $batPct%" ([char]0xEA93) "#10B981" 2500
             } else {
                 Show-OceruDynamicToast "SUMBER DAYA" "Menggunakan Daya Baterai • $batPct%" ([char]0xEBAA) "#F59E0B" 2200
