@@ -1654,55 +1654,54 @@ $islandXaml = @'
                     </Button>
 
                     <Grid Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-
                         <Grid.ColumnDefinitions>
-
-                            <ColumnDefinition Width="90"/>
-
+                            <ColumnDefinition Width="80"/>
                             <ColumnDefinition Width="Auto"/>
-
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
                         <!-- Circular Timer Dial -->
-
-                        <Grid Grid.Column="0" Width="82" Height="82" HorizontalAlignment="Center" VerticalAlignment="Center">
-
-                            <Border Width="82" Height="82" CornerRadius="41" BorderThickness="2.5" BorderBrush="#232B3D" Background="#131722"/>
-
-                            <Border Width="82" Height="82" CornerRadius="41" BorderThickness="2.5" BorderBrush="#FF5252"
-
+                        <Grid Grid.Column="0" Width="76" Height="76" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="76" Height="76" CornerRadius="38" BorderThickness="2.5" BorderBrush="#232B3D" Background="#131722"/>
+                            <Border Width="76" Height="76" CornerRadius="38" BorderThickness="2.5" BorderBrush="#FF5252"
                                     Opacity="0.85" Background="Transparent"/>
-
                             <Border Width="6" Height="6" CornerRadius="3" Background="#FF5252" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0"/>
-
-                            <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#FF5252"
-
+                            <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#FF5252"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
                         </Grid>
 
                         <!-- Timer Typography and Reset -->
-
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0">
-
-                            <TextBlock Text="Waktu Fokus" FontSize="12" Foreground="#8E9AA8" Margin="0,0,0,2"/>
-
-                            <TextBlock x:Name="PomoSubtitle" Text="Focus time" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF"/>
-
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
+                            <TextBlock Text="Waktu Fokus" FontSize="11" Foreground="#8E9AA8" Margin="0,0,0,2"/>
+                            <TextBlock x:Name="PomoSubtitle" Text="Focus time" FontSize="13" FontWeight="SemiBold" Foreground="#FFFFFF"/>
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-
-                                <TextBlock x:Name="PomoDisplayTime" Text="25:00" FontFamily="Segoe UI, Consolas" FontSize="30" FontWeight="Bold" Foreground="#FFFFFF"/>
-
-                                <Button x:Name="BtnPomoReset" Style="{StaticResource CircleNavBtn}" Width="24" Height="24" Margin="10,0,0,0" ToolTip="Reset Timer">
-
-                                    <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#8E9AA8"/>
-
+                                <TextBlock x:Name="PomoDisplayTime" Text="25:00" FontFamily="Segoe UI, Consolas" FontSize="26" FontWeight="Bold" Foreground="#FFFFFF"/>
+                                <Button x:Name="BtnPomoReset" Style="{StaticResource CircleNavBtn}" Width="22" Height="22" Margin="8,0,0,0" ToolTip="Reset Timer">
+                                    <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#8E9AA8"/>
                                 </Button>
-
                             </StackPanel>
-
                         </StackPanel>
 
+                        <!-- FEATURE F: Ambient Focus Sounds (Rain, Waves, Cafe) -->
+                        <Border Grid.Column="2" Background="#111520" BorderBrush="#1F283B" BorderThickness="1" CornerRadius="12" Padding="8,6" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <StackPanel>
+                                <TextBlock Text="Suara Fokus Latar" FontSize="9.5" FontWeight="SemiBold" Foreground="#8E9AA8" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Button x:Name="BtnAmbientRain" Background="#161B26" BorderBrush="#253147" BorderThickness="1" Padding="6,2.5" Margin="2,0" Cursor="Hand" ToolTip="Suara Hujan Alami">
+                                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style></Button.Resources>
+                                        <TextBlock Text="&#x1F327;&#xFE0F; Hujan" FontSize="9.5" Foreground="#8E9AA8"/>
+                                    </Button>
+                                    <Button x:Name="BtnAmbientWaves" Background="#161B26" BorderBrush="#253147" BorderThickness="1" Padding="6,2.5" Margin="2,0" Cursor="Hand" ToolTip="Suara Ombak Laut">
+                                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style></Button.Resources>
+                                        <TextBlock Text="&#x1F30A; Ombak" FontSize="9.5" Foreground="#8E9AA8"/>
+                                    </Button>
+                                    <Button x:Name="BtnAmbientCafe" Background="#161B26" BorderBrush="#253147" BorderThickness="1" Padding="6,2.5" Margin="2,0" Cursor="Hand" ToolTip="Suara Kafe Tenang">
+                                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style></Button.Resources>
+                                        <TextBlock Text="&#x2615; Kafe" FontSize="9.5" Foreground="#8E9AA8"/>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
                     </Grid>
 
                     <Button x:Name="BtnPomoNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -1925,50 +1924,31 @@ $islandXaml = @'
 
                     </Border>
 
-                    <!-- Right: Water Reminder -->
-
+                    <!-- Right: Top Apps Memory Hogs (Konsumsi RAM Aplikasi) -->
                     <Border Grid.Column="2" Background="#131722" BorderBrush="#232B3D" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="4,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="20"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="18"/>
+                            </Grid.RowDefinitions>
 
-                        <StackPanel VerticalAlignment="Center">
-
-                            <StackPanel Orientation="Horizontal">
-
-                                <TextBlock Text="&#xE798;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
-
-                                <TextBlock Text="Air Minum" FontSize="12" FontWeight="Bold" Foreground="#00D2FF" VerticalAlignment="Center"/>
-
-                                <TextBlock x:Name="WaterAmountText" Text=" (1.250 ml)" FontSize="11" Foreground="#8E9AA8" Margin="4,0,0,0" VerticalAlignment="Center"/>
-
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                                <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#00D2FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Aplikasi Aktif (RAM)" FontSize="11" FontWeight="Bold" Foreground="#00D2FF" VerticalAlignment="Center"/>
                             </StackPanel>
 
-                            <Grid Margin="0,6">
+                            <!-- Dynamic Top 3 Processes -->
+                            <StackPanel Grid.Row="1" x:Name="TopAppsListContainer" VerticalAlignment="Center" Margin="0,2,0,2"/>
 
-                                <Border Height="5" CornerRadius="2.5" Background="#232B3D"/>
-
-                                <Border x:Name="WaterProgressBar" Height="5" CornerRadius="2.5" Background="#00D2FF" HorizontalAlignment="Left" Width="110"/>
-
-                            </Grid>
-
-                            <Button x:Name="BtnAddWater" Style="{StaticResource PillBtn}" Padding="8,3" HorizontalAlignment="Left">
-
-                                <TextBlock Text="+ 250 ml (1 Gelas)" FontSize="10" Foreground="#FFFFFF"/>
-
-                            </Button>
-
-                            <Border Margin="0,6,0,0" Background="#0C101A" BorderBrush="#1E2638" BorderThickness="1" CornerRadius="8" Padding="6,3">
-
+                            <!-- Bottom: Mini Prayer/Time Status -->
+                            <Border Grid.Row="2" Background="#0C101A" BorderBrush="#1E2638" BorderThickness="1" CornerRadius="6" Padding="4,1">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-
-                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="#10B981" Margin="0,0,4,0" VerticalAlignment="Center"/>
-
-                                    <TextBlock x:Name="CardPrayerScheduleText" Text="Subuh 04:09 • Ashar 14:51" FontSize="9.5" FontFamily="Segoe UI, Consolas" Foreground="#10B981" VerticalAlignment="Center"/>
-
+                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="9" Foreground="#10B981" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="CardPrayerScheduleText" Text="Subuh 04:09 • Ashar 14:51" FontSize="9" FontFamily="Segoe UI, Consolas" Foreground="#10B981" VerticalAlignment="Center"/>
                                 </StackPanel>
-
                             </Border>
-
-                        </StackPanel>
-
+                        </Grid>
                     </Border>
 
                     <Button x:Name="BtnSysNextCard" Grid.Column="3" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -5737,6 +5717,10 @@ $global:lastCapsLockState = $null
 
 $global:capsLockCheckTick = 0
 
+$global:lastPowerLineStatus = $null
+
+$global:topProcTick = 0
+
 $window.Width = $eyesTotalWidth
 
 $window.Height = $eyesHeight
@@ -6302,9 +6286,7 @@ $btnSysTaskMgr = $window.FindName("BtnSysTaskMgr")
 
 $waterAmountText = $window.FindName("WaterAmountText")
 
-$waterProgressBar = $window.FindName("WaterProgressBar")
-
-$btnAddWater = $window.FindName("BtnAddWater")
+$topAppsListContainer = $window.FindName("TopAppsListContainer")
 
 # Card 5: Quick Settings Handles
 
@@ -7144,7 +7126,7 @@ function SwitchCarouselCard($index) {
 
     # Update Header Title
 
-    $titles = @("", "Pomodoro", "Tugas Hari Ini", "Shelf", "Monitor & Air", "Kontrol Cepat")
+    $titles = @("", "Pomodoro", "Tugas Hari Ini", "Shelf", "Monitor Sistem", "Kontrol Cepat")
 
     $headerTitleText.Text = $titles[$index]
 
@@ -7544,22 +7526,78 @@ $btnPomoPlay.Add_Click({
 })
 
 $btnPomoReset.Add_Click({
-
     $pomoEngine.Stop()
-
     $global:OceruState.pomodoro.isRunning = $false
-
     $pomoPlayPauseIcon.Text = [char]0xE768
-
     $global:OceruState.pomodoro.remainingSeconds = [int]$global:OceruState.pomodoro.totalSeconds
-
     $pomoDisplayTime.Text = [TimeSpan]::FromSeconds($global:OceruState.pomodoro.remainingSeconds).ToString("mm\:ss")
-
     ShowActionFeedback "Timer Direset" ([char]0xE72C) "#FF5252"
-
     Save-OceruState
-
 })
+
+# FEATURE F: AMBIENT FOCUS SOUNDS CONTROLLER
+$global:activeAmbientSound = $null
+$global:ambientSoundPlayer = $null
+
+function Update-AmbientButtonsUI {
+    $activeBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#10B981")
+    $activeBg = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#182A24")
+    $normalBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#253147")
+    $normalBg = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#161B26")
+
+    if ($btnAmbientRain) {
+        $btnAmbientRain.BorderBrush = if ($global:activeAmbientSound -eq "rain") { $activeBrush } else { $normalBrush }
+        $btnAmbientRain.Background = if ($global:activeAmbientSound -eq "rain") { $activeBg } else { $normalBg }
+    }
+    if ($btnAmbientWaves) {
+        $btnAmbientWaves.BorderBrush = if ($global:activeAmbientSound -eq "waves") { $activeBrush } else { $normalBrush }
+        $btnAmbientWaves.Background = if ($global:activeAmbientSound -eq "waves") { $activeBg } else { $normalBg }
+    }
+    if ($btnAmbientCafe) {
+        $btnAmbientCafe.BorderBrush = if ($global:activeAmbientSound -eq "cafe") { $activeBrush } else { $normalBrush }
+        $btnAmbientCafe.Background = if ($global:activeAmbientSound -eq "cafe") { $activeBg } else { $normalBg }
+    }
+}
+
+function Toggle-OceruAmbientSound($type) {
+    if ($global:activeAmbientSound -eq $type) {
+        if ($global:ambientSoundPlayer) {
+            $global:ambientSoundPlayer.Stop()
+            $global:ambientSoundPlayer.Dispose()
+            $global:ambientSoundPlayer = $null
+        }
+        $global:activeAmbientSound = $null
+        Update-AmbientButtonsUI
+        ShowActionFeedback "Suara Latar Dimatikan" ([char]0xE768) "#8E9AA8"
+        return
+    }
+
+    try {
+        if ($global:ambientSoundPlayer) {
+            $global:ambientSoundPlayer.Stop()
+            $global:ambientSoundPlayer.Dispose()
+        }
+        $bytes = New-OceruWavBytes -Type $type
+        $ms = New-Object System.IO.MemoryStream(,$bytes)
+        $global:ambientSoundPlayer = New-Object System.Media.SoundPlayer($ms)
+        $global:ambientSoundPlayer.Load()
+        $global:ambientSoundPlayer.PlayLooping()
+        $global:activeAmbientSound = $type
+        Update-AmbientButtonsUI
+
+        $label = switch ($type) {
+            "rain" { "Hujan Rintik" }
+            "waves" { "Ombak Pantai" }
+            "cafe" { "Kafe Tenang" }
+            default { $type }
+        }
+        ShowActionFeedback "Suara $label Aktif" ([char]0xE8D6) "#10B981"
+    } catch {}
+}
+
+if ($btnAmbientRain) { $btnAmbientRain.Add_Click({ Toggle-OceruAmbientSound "rain" }) }
+if ($btnAmbientWaves) { $btnAmbientWaves.Add_Click({ Toggle-OceruAmbientSound "waves" }) }
+if ($btnAmbientCafe) { $btnAmbientCafe.Add_Click({ Toggle-OceruAmbientSound "cafe" }) }
 
 $btnPomoShortBreak.Add_Click({
 
@@ -8079,32 +8117,71 @@ $window.Add_Drop({
         Add-FilesToShelf $dropped
     }
 })
-# CARD 4: SYSTEM MONITOR & WATER WIRING
-
+# CARD 4: SYSTEM MONITOR & TOP MEMORY PROCESSES WIRING
 $btnSysTaskMgr.Add_Click({
-
     ShowActionFeedback "Membuka Task Manager..." ([char]0xE9D9) "#00D2FF"
-
     [System.Diagnostics.Process]::Start("taskmgr.exe")
-
 })
 
-$global:waterCurrent = 1250
+function Update-TopProcesses {
+    if (-not $topAppsListContainer) { return }
+    $topAppsListContainer.Children.Clear()
 
-$btnAddWater.Add_Click({
-    Play-OceruSound "water"
+    try {
+        $procs = Get-Process | Where-Object { $_.MainWindowTitle -or $_.ProcessName -match '(chrome|msedge|firefox|code|spotify|discord|slack|teams|steam|node|powershell)' } |
+                 Sort-Object WorkingSet64 -Descending |
+                 Select-Object -First 3
 
-    $global:waterCurrent = [Math]::Min(2000, $global:waterCurrent + 250)
+        if (-not $procs -or $procs.Count -eq 0) {
+            $procs = Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First 3
+        }
 
-    $waterAmountText.Text = " ($($global:waterCurrent) ml)"
+        foreach ($p in $procs) {
+            $pName = $p.ProcessName
+            $memMB = [Math]::Round($p.WorkingSet64 / 1MB)
+            $memText = if ($memMB -ge 1024) { "{0:N1} GB" -f ($memMB / 1024) } else { "$memMB MB" }
 
-    $pct = $global:waterCurrent / 2000
+            $rowGrid = New-Object System.Windows.Controls.Grid
+            $rowGrid.Margin = [System.Windows.Thickness]::new(0, 1.5, 0, 1.5)
+            $c0 = New-Object System.Windows.Controls.ColumnDefinition; $c0.Width = [System.Windows.GridLength]::new(1, [System.Windows.GridUnitType]::Star)
+            $c1 = New-Object System.Windows.Controls.ColumnDefinition; $c1.Width = [System.Windows.GridLength]::new(1, [System.Windows.GridUnitType]::Auto)
+            $rowGrid.ColumnDefinitions.Add($c0)
+            $rowGrid.ColumnDefinitions.Add($c1)
 
-    $waterProgressBar.Width = [Math]::Round(110 * $pct)
+            # Process Name
+            $nameTxt = New-Object System.Windows.Controls.TextBlock
+            $nameTxt.Text = $pName
+            $nameTxt.FontSize = 10.0
+            $nameTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
+            $nameTxt.TextTrimming = [System.Windows.TextTrimming]::CharacterEllipsis
+            $nameTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+            [System.Windows.Controls.Grid]::SetColumn($nameTxt, 0)
+            $rowGrid.Children.Add($nameTxt)
 
-    ShowActionFeedback "+250 ml Air Minum (Total $($global:waterCurrent) ml)" ([char]0xE73E) "#00D2FF"
+            # Memory Badge Pill
+            $pillBorder = New-Object System.Windows.Controls.Border
+            $pillBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#182030")
+            $pillBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#28364D")
+            $pillBorder.BorderThickness = [System.Windows.Thickness]::new(1)
+            $pillBorder.CornerRadius = [System.Windows.CornerRadius]::new(6)
+            $pillBorder.Padding = [System.Windows.Thickness]::new(5, 1, 5, 1)
 
-})
+            $pillTxt = New-Object System.Windows.Controls.TextBlock
+            $pillTxt.Text = $memText
+            $pillTxt.FontSize = 9.0
+            $pillTxt.FontWeight = [System.Windows.FontWeights]::SemiBold
+            $pillTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00D2FF")
+            $pillBorder.Child = $pillTxt
+
+            [System.Windows.Controls.Grid]::SetColumn($pillBorder, 1)
+            $rowGrid.Children.Add($pillBorder)
+
+            $topAppsListContainer.Children.Add($rowGrid)
+        }
+    } catch {}
+}
+
+Update-TopProcesses
 
 # CARD 5: QUICK SETTINGS & AUDIO MASTER WIRING
 
@@ -10660,20 +10737,31 @@ $mainTimer.Add_Tick({
     # Connectivity Polling (every ~3 seconds = 10 ticks)
 
     $global:connTick = ($global:connTick + 1) % 10
-
     if ($global:connTick -eq 0) {
-
         try {
-
             $c = Get-OceruConnectivity
-
             if ($dashQuickWifiText) { $dashQuickWifiText.Text = "Wi-Fi: $($c.WifiStatus)" }
-
             if ($dashQuickBtText) { $dashQuickBtText.Text = "Bluetooth: $($c.BluetoothStatus)" }
-
         } catch {}
 
+        # FEATURE B: BLUETOOTH AUDIO DEVICE CONNECT HUD
+        try {
+            $curAudioId = [OceruAudioManager]::GetDefaultDeviceId()
+            if ($global:lastAudioEndpointId -ne $null -and $curAudioId -ne $null -and $curAudioId -ne $global:lastAudioEndpointId) {
+                $global:lastAudioEndpointId = $curAudioId
+                $devName = [OceruAudioManager]::GetDeviceFriendlyName($curAudioId)
+                if ($devName -match '(Bluetooth|Headphone|Headset|Earbuds|AirPods|Buds|Wireless)') {
+                    Play-OceruSound "chime"
+                    Show-OceruDynamicToast "BLUETOOTH AUDIO" "$devName Terhubung" ([char]0xE7F6) "#00D2FF" 2600
+                } else {
+                    Show-OceruDynamicToast "OUTPUT AUDIO" "$devName Aktif" ([char]0xE767) "#8E9AA8" 2000
+                }
+            } elseif ($global:lastAudioEndpointId -eq $null -and $curAudioId -ne $null) {
+                $global:lastAudioEndpointId = $curAudioId
+            }
+        } catch {}
     }
+
 
     # Real-time Synchronization to Dashboard Overview & Detail Pages
 
@@ -10817,40 +10905,45 @@ $mainTimer.Add_Tick({
 
     } catch {}
 
-    # Battery Monitoring
-
+    # Battery Monitoring & Real-time Charging Bolt HUD
     try {
-
         $power = [System.Windows.Forms.SystemInformation]::PowerStatus
-
         $batPct = [Math]::Round($power.BatteryLifePercent * 100)
-
         $isOnline = $power.PowerLineStatus -eq "Online"
-
         $compactBatPct.Text = "$batPct%"
-
         $dashBatVal.Text = "$batPct%"
 
         if ($isOnline) {
-
             $compactBatIcon.Text = [char]0xEA93
-
+            $compactBatIcon.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#10B981")
             $sysBatStatusText.Text = "Baterai $batPct% - Mengisi Daya"
-
             $dashBatStatus.Text = "Mengisi Daya"
-
         } else {
-
             $compactBatIcon.Text = [char]0xEBAA
-
+            $compactBatIcon.Foreground = if ($batPct -le 20) { [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FF5252") } else { [System.Windows.Media.BrushConverter]::new().ConvertFromString("#8E9AA8") }
             $sysBatStatusText.Text = "Baterai $batPct% - Daya Laptop"
-
             $dashBatStatus.Text = "Daya Baterai"
-
         }
 
-    } catch {}
+        # FEATURE A: REAL-TIME CHARGING BOLT HUD TOAST NOTIFICATION
+        if ($global:lastPowerLineStatus -ne $null -and $isOnline -ne $global:lastPowerLineStatus) {
+            $global:lastPowerLineStatus = $isOnline
+            if ($isOnline) {
+                try { [System.Media.SystemSounds]::Asterisk.Play() } catch {}
+                Show-OceruDynamicToast "PENGISIAN DAYA" "Kabel Charger Terhubung • Baterai $batPct%" ([char]0xEA93) "#10B981" 2500
+            } else {
+                Show-OceruDynamicToast "SUMBER DAYA" "Menggunakan Daya Baterai • $batPct%" ([char]0xEBAA) "#F59E0B" 2200
+            }
+        } else {
+            $global:lastPowerLineStatus = $isOnline
+        }
 
+        # Periodically refresh top memory apps when Card 4 is active
+        $global:topProcTick = ($global:topProcTick + 1) % 6
+        if ($global:topProcTick -eq 0 -and $global:activeCardIndex -eq 4) {
+            Update-TopProcesses
+        }
+    } catch {}
 })
 
 $mainTimer.Start()
