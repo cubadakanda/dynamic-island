@@ -803,35 +803,43 @@ function Get-Notch3SidedWaveGeometry($totalW, $h, $s, $r, $waveAmp = 0, $wavePha
     $x1 = $totalW - $s - $r
     $spanBot = $x1 - $x0
     $spanVert = ($baseH - $r) - $s
+    $yMidSide = [Math]::Round($s + ($spanVert * 0.5), 1)
 
     $apexPoints = New-Object System.Collections.Generic.List[PSCustomObject]
 
     # If wave amplitude is negligible, return flat top-docked notch
     if ($waveAmp -le 0.5) {
         $flatBody = "M 0,0 A $s,$s 0 0,1 $s,$s L $s,$($baseH-$r) A $r,$r 0 0,0 $x0,$baseH L $x1,$baseH A $r,$r 0 0,0 $($totalW-$s),$($baseH-$r) L $($totalW-$s),$s A $s,$s 0 0,1 $totalW,0 Z"
-        $flatStroke = "M $s,$s L $s,$($baseH-$r) A $r,$r 0 0,0 $x0,$baseH L $x1,$baseH A $r,$r 0 0,0 $($totalW-$s),$($baseH-$r) L $($totalW-$s),$s"
+        $flatStroke = "M $s,$yMidSide L $s,$($baseH-$r) A $r,$r 0 0,0 $x0,$baseH L $x1,$baseH A $r,$r 0 0,0 $($totalW-$s),$($baseH-$r) L $($totalW-$s),$yMidSide"
         return [PSCustomObject]@{
             BodyPath = $flatBody
             StrokePath = $flatStroke
+            Ribbon2Path = $flatStroke
             ApexPoints = $apexPoints
         }
     }
 
-    # 1. Left Side Ribs (3 scallops protruding to left: -dx)
-    $N_left = if ($spanVert -ge 40) { 3 } else { 1 }
-    $hSegL = $spanVert / $N_left
+    # 1. Left Side: Upper half is flat straight line (L s,yMidSide). Lower half has 2 fluid scallops
+    $N_left = 2
+    $hSegL = ($baseH - $r - $yMidSide) / $N_left
     $leftSb = [System.Text.StringBuilder]::new()
+    $leftR2Sb = [System.Text.StringBuilder]::new()
+
     for ($i = 0; $i -lt $N_left; $i++) {
-        $ya = [Math]::Round($s + ($i * $hSegL), 1)
+        $ya = [Math]::Round($yMidSide + ($i * $hSegL), 1)
         $yb = [Math]::Round($ya + $hSegL, 1)
         $ymid = [Math]::Round(($ya + $yb) / 2, 1)
         $ti = ($i + 0.5) / $N_left
-        $env = [Math]::Sin($ti * [Math]::PI)
-        $bounce = 0.55 + 0.45 * [Math]::Sin(($i * 2.1) + $wavePhase)
+        $env = [Math]::Sin(($i + 1) / ($N_left + 0.8) * [Math]::PI * 0.5)
+        $bounce = 0.65 + 0.35 * [Math]::Sin(($i * 2.4) + $wavePhase)
+        $bounce2 = 0.65 + 0.35 * [Math]::Sin(($i * 2.4) + $wavePhase + 1.2)
         $isBeat = ($beatAmp -gt 0.3 -and $i -eq 1)
         $beatMult = if ($isBeat) { 1.45 } else { 1.0 }
+
         $dip = [Math]::Round($waveAmp * 0.55 * $env * $bounce * $beatMult, 1)
+        $dip2 = [Math]::Round($waveAmp * 0.45 * $env * $bounce2 * $beatMult, 1)
         $xapex = [Math]::Round($s - $dip, 1)
+        $xapex2 = [Math]::Round($s - $dip2, 1)
 
         $cp1X = [Math]::Round($s - ($dip * 0.45), 1)
         $cp1Y = [Math]::Round($ya + ($hSegL * 0.42), 1)
@@ -839,24 +847,31 @@ function Get-Notch3SidedWaveGeometry($totalW, $h, $s, $r, $waveAmp = 0, $wavePha
         $cp2Y = [Math]::Round($yb - ($hSegL * 0.42), 1)
 
         $leftSb.Append(" Q $cp1X,$cp1Y $xapex,$ymid Q $cp2X,$cp2Y $s,$yb") | Out-Null
+        $leftR2Sb.Append(" Q $cp1X,$cp1Y $xapex2,$ymid Q $cp2X,$cp2Y $s,$yb") | Out-Null
         $apexPoints.Add([PSCustomObject]@{ X = $xapex; Y = $ymid; IsBeat = $isBeat })
     }
 
-    # 2. Bottom Scallops (15 scallops protruding downwards: +dy)
-    $N_bot = if ($totalW -gt 400) { 15 } elseif ($totalW -gt 200) { 8 } else { 4 }
+    # 2. Bottom Scallops (14 scallops protruding downwards: +dy)
+    $N_bot = if ($totalW -gt 400) { 14 } elseif ($totalW -gt 200) { 8 } else { 4 }
     $wSeg = $spanBot / $N_bot
     $botSb = [System.Text.StringBuilder]::new()
+    $botR2Sb = [System.Text.StringBuilder]::new()
+
     for ($i = 0; $i -lt $N_bot; $i++) {
         $xa = [Math]::Round($x0 + ($i * $wSeg), 1)
         $xb = [Math]::Round($xa + $wSeg, 1)
         $xmid = [Math]::Round(($xa + $xb) / 2, 1)
         $ti = ($i + 0.5) / $N_bot
         $env = [Math]::Sin($ti * [Math]::PI)
-        $bounce = 0.55 + 0.45 * [Math]::Sin(($i * 1.55) + $wavePhase)
-        $isBeat = ($beatAmp -gt 0.3 -and ($i -eq 3 -or $i -eq 7 -or $i -eq 11))
+        $bounce = 0.65 + 0.35 * [Math]::Sin(($i * 1.55) + $wavePhase)
+        $bounce2 = 0.65 + 0.35 * [Math]::Sin(($i * 1.55) + $wavePhase + 1.4)
+        $isBeat = ($beatAmp -gt 0.3 -and ($i -eq 3 -or $i -eq 7 -or $i -eq 10))
         $beatMult = if ($isBeat) { 1.55 } else { 1.0 }
+
         $dip = [Math]::Round($waveAmp * $env * $bounce * $beatMult, 1)
+        $dip2 = [Math]::Round($waveAmp * 0.8 * $env * $bounce2 * $beatMult, 1)
         $ytrough = [Math]::Round($baseH + $dip, 1)
+        $ytrough2 = [Math]::Round($baseH + $dip2, 1)
 
         $cp1X = [Math]::Round($xa + ($wSeg * 0.42), 1)
         $cp1Y = [Math]::Round($baseH + ($dip * 0.45), 1)
@@ -864,24 +879,31 @@ function Get-Notch3SidedWaveGeometry($totalW, $h, $s, $r, $waveAmp = 0, $wavePha
         $cp2Y = [Math]::Round($baseH + ($dip * 0.45), 1)
 
         $botSb.Append(" Q $cp1X,$cp1Y $xmid,$ytrough Q $cp2X,$cp2Y $xb,$baseH") | Out-Null
+        $botR2Sb.Append(" Q $cp1X,$cp1Y $xmid,$ytrough2 Q $cp2X,$cp2Y $xb,$baseH") | Out-Null
         $apexPoints.Add([PSCustomObject]@{ X = $xmid; Y = $ytrough; IsBeat = $isBeat })
     }
 
-    # 3. Right Side Ribs (3 scallops protruding to right: +dx, traveling upwards)
-    $N_right = if ($spanVert -ge 40) { 3 } else { 1 }
-    $hSegR = $spanVert / $N_right
+    # 3. Right Side: Lower half has 2 fluid scallops traveling up to yMidSide. Upper half is flat line to $s
+    $N_right = 2
+    $hSegR = ($baseH - $r - $yMidSide) / $N_right
     $rightSb = [System.Text.StringBuilder]::new()
+    $rightR2Sb = [System.Text.StringBuilder]::new()
+
     for ($i = 0; $i -lt $N_right; $i++) {
         $ya = [Math]::Round(($baseH - $r) - ($i * $hSegR), 1)
         $yb = [Math]::Round($ya - $hSegR, 1)
         $ymid = [Math]::Round(($ya + $yb) / 2, 1)
         $ti = ($i + 0.5) / $N_right
-        $env = [Math]::Sin($ti * [Math]::PI)
-        $bounce = 0.55 + 0.45 * [Math]::Sin(($i * 2.1) + $wavePhase + 1.5)
-        $isBeat = ($beatAmp -gt 0.3 -and $i -eq 1)
+        $env = [Math]::Sin((($N_right - $i) / ($N_right + 0.8)) * [Math]::PI * 0.5)
+        $bounce = 0.65 + 0.35 * [Math]::Sin(($i * 2.4) + $wavePhase + 1.5)
+        $bounce2 = 0.65 + 0.35 * [Math]::Sin(($i * 2.4) + $wavePhase + 2.7)
+        $isBeat = ($beatAmp -gt 0.3 -and $i -eq 0)
         $beatMult = if ($isBeat) { 1.45 } else { 1.0 }
+
         $dip = [Math]::Round($waveAmp * 0.55 * $env * $bounce * $beatMult, 1)
+        $dip2 = [Math]::Round($waveAmp * 0.45 * $env * $bounce2 * $beatMult, 1)
         $xapex = [Math]::Round(($totalW - $s) + $dip, 1)
+        $xapex2 = [Math]::Round(($totalW - $s) + $dip2, 1)
 
         $cp1X = [Math]::Round(($totalW - $s) + ($dip * 0.45), 1)
         $cp1Y = [Math]::Round($ya - ($hSegR * 0.42), 1)
@@ -889,15 +911,19 @@ function Get-Notch3SidedWaveGeometry($totalW, $h, $s, $r, $waveAmp = 0, $wavePha
         $cp2Y = [Math]::Round($yb + ($hSegR * 0.42), 1)
 
         $rightSb.Append(" Q $cp1X,$cp1Y $xapex,$ymid Q $cp2X,$cp2Y $($totalW-$s),$yb") | Out-Null
+        $rightR2Sb.Append(" Q $cp1X,$cp1Y $xapex2,$ymid Q $cp2X,$cp2Y $($totalW-$s),$yb") | Out-Null
         $apexPoints.Add([PSCustomObject]@{ X = $xapex; Y = $ymid; IsBeat = $isBeat })
     }
 
-    $bodyStr = "M 0,0 A $s,$s 0 0,1 $s,$s$($leftSb.ToString()) A $r,$r 0 0,0 $x0,$baseH$($botSb.ToString()) A $r,$r 0 0,0 $($totalW-$s),$($baseH-$r)$($rightSb.ToString()) A $s,$s 0 0,1 $totalW,0 Z"
-    $strokeStr = "M $s,$s$($leftSb.ToString()) A $r,$r 0 0,0 $x0,$baseH$($botSb.ToString()) A $r,$r 0 0,0 $($totalW-$s),$($baseH-$r)$($rightSb.ToString())"
+    # Assembled paths: Upper half of left & right sides are clean straight lines (L s,yMidSide and L totalW-s,s)
+    $bodyStr = "M 0,0 A $s,$s 0 0,1 $s,$s L $s,$yMidSide$($leftSb.ToString()) A $r,$r 0 0,0 $x0,$baseH$($botSb.ToString()) A $r,$r 0 0,0 $($totalW-$s),$($baseH-$r)$($rightSb.ToString()) L $($totalW-$s),$s A $s,$s 0 0,1 $totalW,0 Z"
+    $strokeStr = "M $s,$yMidSide$($leftSb.ToString()) A $r,$r 0 0,0 $x0,$baseH$($botSb.ToString()) A $r,$r 0 0,0 $($totalW-$s),$($baseH-$r)$($rightSb.ToString()) L $($totalW-$s),$yMidSide"
+    $ribbon2Str = "M $s,$yMidSide$($leftR2Sb.ToString()) A $r,$r 0 0,0 $x0,$baseH$($botR2Sb.ToString()) A $r,$r 0 0,0 $($totalW-$s),$($baseH-$r)$($rightR2Sb.ToString()) L $($totalW-$s),$yMidSide"
 
     return [PSCustomObject]@{
         BodyPath = $bodyStr
         StrokePath = $strokeStr
+        Ribbon2Path = $ribbon2Str
         ApexPoints = $apexPoints
     }
 }
@@ -1338,6 +1364,13 @@ $islandXaml = @'
 
             </Path.Effect>
 
+        </Path>
+
+        <!-- Layer 1B: Intertwined Harmonic Secondary Aura Ribbon (Cyan/Violet) -->
+        <Path x:Name="NotchWaveRibbon2Path" Stroke="#00D2FF" StrokeThickness="1.8" Fill="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0" IsHitTestVisible="False">
+            <Path.Effect>
+                <DropShadowEffect Color="#00D2FF" BlurRadius="10" ShadowDepth="0" Opacity="0.85"/>
+            </Path.Effect>
         </Path>
 
         <!-- Layer 2: Laser White-Hot Core Tube -->
@@ -5941,6 +5974,7 @@ $sysPingText = $window.FindName("SysPingText")
 
 $notchWaveStrokePath = $window.FindName("NotchWaveStrokePath")
 $notchWaveCorePath   = $window.FindName("NotchWaveCorePath")
+$notchWaveRibbon2Path = $window.FindName("NotchWaveRibbon2Path")
 $notchApexCanvas     = $window.FindName("NotchApexCanvas")
 $notchGlassHighlight = $window.FindName("NotchGlassHighlight")
 $catZzzCanvas        = $window.FindName("CatZzzCanvas")
@@ -6693,7 +6727,7 @@ function Show-OceruDashboard($pageIndex = 0) {
 
 $global:animTimer = New-Object System.Windows.Threading.DispatcherTimer
 
-$global:animTimer.Interval = [TimeSpan]::FromMilliseconds(12) # ~85 FPS Fluid Sampling
+$global:animTimer.Interval = [TimeSpan]::FromMilliseconds(14) # ~71 FPS High-Fidelity VSync
 
 $global:animSw = [System.Diagnostics.Stopwatch]::new()
 
@@ -6763,9 +6797,10 @@ function Set-IslandMode($mode) {
 
         $global:toR = 18
 
-        $global:animDuration = 260
+        $global:animDuration = 320
 
         $eyesGrid.Visibility = [System.Windows.Visibility]::Visible
+        if ($expandedGrid) { $expandedGrid.Visibility = [System.Windows.Visibility]::Visible }
 
     }
 
@@ -6781,11 +6816,12 @@ function Set-IslandMode($mode) {
 
         $global:toR = 18
 
-        $global:animDuration = 260
+        $global:animDuration = 330
 
         $global:statusIdleTicks = 0
 
         $statusGrid.Visibility = [System.Windows.Visibility]::Visible
+        if ($expandedGrid) { $expandedGrid.Visibility = [System.Windows.Visibility]::Visible }
 
     }
 
@@ -6799,11 +6835,12 @@ function Set-IslandMode($mode) {
 
         $global:toR = 24
 
-        $global:animDuration = 300
+        $global:animDuration = 360
 
         $global:outsideTicks = 0
 
         $expandedGrid.Visibility = [System.Windows.Visibility]::Visible
+        if ($eyesGrid) { $eyesGrid.Visibility = [System.Windows.Visibility]::Visible }
 
     }
 
@@ -6819,7 +6856,7 @@ function Set-IslandMode($mode) {
 
         $global:toR = 18
 
-        $global:animDuration = 240
+        $global:animDuration = 280
 
         if ($dynamicToastGrid) { $dynamicToastGrid.Visibility = [System.Windows.Visibility]::Visible }
 
@@ -6837,190 +6874,96 @@ $global:animTimer.Add_Tick({
 
     $t = [Math]::Min(1.0, $elapsed / $global:animDuration)
 
-    # Squash & Stretch Spring Physics Curve with Rebound Easing
-    $rebound = if ($global:targetMode -eq "expanded" -or $global:targetMode -eq "status") {
-        0.05 * [Math]::Sin($t * [Math]::PI) * [Math]::Cos($t * [Math]::PI * 1.8)
+    # Buttery-Smooth Smootherstep Easing (Perlin Curve: Zero Initial Jerk & Gentle Fluid Landing)
+    $sT = $t * $t * $t * (10.0 + $t * (-15.0 + 6.0 * $t))
+    $cushion = if (($global:targetMode -eq "expanded" -or $global:targetMode -eq "status") -and $t -gt 0.82) {
+        0.012 * [Math]::Sin(($t - 0.82) / 0.18 * [Math]::PI) * (1.0 - $t)
     } else { 0.0 }
-    $ease = [Math]::Max(0.0, [Math]::Min(1.03, (1.0 - [Math]::Pow(1.0 - $t, 3.6)) + $rebound))
+    $ease = [Math]::Max(0.0, [Math]::Min(1.02, $sT + $cushion))
 
     # Interpolate Window Width, Height, Left, and Corner Radius in real time
-
     $curBodyW = [Math]::Round($global:fromBodyW + ($global:toBodyW - $global:fromBodyW) * $ease)
-
     $curTotalW = $curBodyW + (2 * $shoulderPad)
-
     $curH = [Math]::Round($global:fromH + ($global:toH - $global:fromH) * $ease)
-
     $curL = [Math]::Round($global:fromL + ($global:toL - $global:fromL) * $ease)
-
     $curR = [Math]::Round($global:fromR + ($global:toR - $global:fromR) * $ease)
 
-    $window.Width = $curTotalW
-
-    $window.Height = $curH
-
-    $window.Left = $curL
-
-    
+    if ($window.Width -ne $curTotalW) { $window.Width = $curTotalW }
+    if ($window.Height -ne $curH) { $window.Height = $curH }
+    if ($window.Left -ne $curL) { $window.Left = $curL }
 
     if ($notchSinglePath) {
-
         $pathStr = Get-NotchPathData $curTotalW $curH $shoulderPad $curR
-
         $notchGeom = [System.Windows.Media.Geometry]::Parse($pathStr)
-
         $notchSinglePath.Data = $notchGeom
-
     }
 
-    # Cross-fading Opacities between active views during interpolation
-
+    # Cinematic Cross-Dissolve Opacities between active views during interpolation
     if ($global:targetMode -eq "expanded") {
-
-        $compactOp = [Math]::Max(0.0, 1.0 - ($t / 0.28))
-
+        $compactOp = [Math]::Max(0.0, 1.0 - ($t / 0.35))
         $eyesGrid.Opacity = $compactOp
-
         $statusGrid.Opacity = $compactOp
-
         if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = $compactOp }
-
-        if ($t -ge 0.18) {
-
-            $expandedGrid.Opacity = [Math]::Min(1.0, ($t - 0.18) / 0.82)
-
-        } else {
-
-            $expandedGrid.Opacity = 0.0
-
-        }
-
+        $expandedGrid.Opacity = if ($t -lt 0.20) { 0.0 } else { [Math]::Min(1.0, ($t - 0.20) / 0.75) }
     }
-
-    elseif ($global:targetMode -eq "status") {
-
-        $expandedGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.35))
-
-        if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.35)) }
-
-        $eyesGrid.Opacity = 0.0
-
-        if ($t -ge 0.2) {
-
-            $statusGrid.Opacity = [Math]::Min(1.0, ($t - 0.2) / 0.8)
-
-        }
-
-    }
-
     elseif ($global:targetMode -eq "eyes") {
-
+        $expandedGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.45))
         $statusGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.35))
-
-        $expandedGrid.Opacity = 0.0
-
         if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.35)) }
-
-        if ($t -ge 0.2) {
-
-            $eyesGrid.Opacity = [Math]::Min(1.0, ($t - 0.2) / 0.8)
-
-        }
-
+        $eyesGrid.Opacity = if ($t -lt 0.30) { 0.0 } else { [Math]::Min(1.0, ($t - 0.30) / 0.65) }
     }
-
+    elseif ($global:targetMode -eq "status") {
+        $expandedGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.45))
+        $eyesGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.35))
+        if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.35)) }
+        $statusGrid.Opacity = if ($t -lt 0.25) { 0.0 } else { [Math]::Min(1.0, ($t - 0.25) / 0.70) }
+    }
     elseif ($global:targetMode -eq "toast") {
-
-        $compactOp = [Math]::Max(0.0, 1.0 - ($t / 0.28))
-
+        $compactOp = [Math]::Max(0.0, 1.0 - ($t / 0.35))
         $eyesGrid.Opacity = $compactOp
-
         $statusGrid.Opacity = $compactOp
-
-        $expandedGrid.Opacity = $compactOp
-
-        if ($t -ge 0.18) {
-
-            if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = [Math]::Min(1.0, ($t - 0.18) / 0.82) }
-
-        } else {
-
-            if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = 0.0 }
-
+        $expandedGrid.Opacity = [Math]::Max(0.0, 1.0 - ($t / 0.45))
+        if ($dynamicToastGrid) {
+            $dynamicToastGrid.Opacity = if ($t -lt 0.20) { 0.0 } else { [Math]::Min(1.0, ($t - 0.20) / 0.75) }
         }
-
     }
 
     # Completion Cleanup
-
     if ($t -ge 1.0) {
-
         $global:animTimer.Stop()
-
         $window.Width = $global:toTotalW
-
         $window.Height = $global:toH
-
         $window.Left = $global:toL
-
         if ($notchSinglePath) {
-
             $finalPathStr = Get-NotchPathData $global:toTotalW $global:toH $shoulderPad $global:toR
-
             $notchSinglePath.Data = [System.Windows.Media.Geometry]::Parse($finalPathStr)
-
         }
-
         if ($global:targetMode -eq "expanded") {
-
             $expandedGrid.Opacity = 1.0
-
             $eyesGrid.Visibility = [System.Windows.Visibility]::Collapsed
-
             $statusGrid.Visibility = [System.Windows.Visibility]::Collapsed
-
             if ($dynamicToastGrid) { $dynamicToastGrid.Visibility = [System.Windows.Visibility]::Collapsed }
-
         }
-
-        elseif ($global:targetMode -eq "status") {
-
-            $statusGrid.Opacity = 1.0
-
-            $eyesGrid.Visibility = [System.Windows.Visibility]::Collapsed
-
-            $expandedGrid.Visibility = [System.Windows.Visibility]::Collapsed
-
-            if ($dynamicToastGrid) { $dynamicToastGrid.Visibility = [System.Windows.Visibility]::Collapsed }
-
-        }
-
         elseif ($global:targetMode -eq "eyes") {
-
             $eyesGrid.Opacity = 1.0
-
-            $statusGrid.Visibility = [System.Windows.Visibility]::Collapsed
-
             $expandedGrid.Visibility = [System.Windows.Visibility]::Collapsed
-
+            $statusGrid.Visibility = [System.Windows.Visibility]::Collapsed
             if ($dynamicToastGrid) { $dynamicToastGrid.Visibility = [System.Windows.Visibility]::Collapsed }
-
         }
-
-        elseif ($global:targetMode -eq "toast") {
-
-            if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = 1.0 }
-
-            $eyesGrid.Visibility = [System.Windows.Visibility]::Collapsed
-
-            $statusGrid.Visibility = [System.Windows.Visibility]::Collapsed
-
+        elseif ($global:targetMode -eq "status") {
+            $statusGrid.Opacity = 1.0
             $expandedGrid.Visibility = [System.Windows.Visibility]::Collapsed
-
+            $eyesGrid.Visibility = [System.Windows.Visibility]::Collapsed
+            if ($dynamicToastGrid) { $dynamicToastGrid.Visibility = [System.Windows.Visibility]::Collapsed }
         }
-
+        elseif ($global:targetMode -eq "toast") {
+            if ($dynamicToastGrid) { $dynamicToastGrid.Opacity = 1.0 }
+            $expandedGrid.Visibility = [System.Windows.Visibility]::Collapsed
+            $eyesGrid.Visibility = [System.Windows.Visibility]::Collapsed
+            $statusGrid.Visibility = [System.Windows.Visibility]::Collapsed
+        }
+        $global:islandMode = $global:targetMode
     }
-
 })
 
 # Interactive Virtual Pet: Double Click for Greeting & 2x Wink, Single Click to Expand
@@ -9970,10 +9913,16 @@ $fastEyeTimer.Add_Tick({
                     $notchSinglePath.Data = [System.Windows.Media.Geometry]::Parse($w3.BodyPath)
                 }
 
-                # 2. Update Outer Neon Glow Stroke
+                # 2. Update Outer Neon Glow Stroke (Primary Aurora Strand)
                 if ($notchWaveStrokePath) {
                     $notchWaveStrokePath.Opacity = [Math]::Min(1.0, $notchWaveStrokePath.Opacity + 0.2)
                     $notchWaveStrokePath.Data = [System.Windows.Media.Geometry]::Parse($w3.StrokePath)
+                }
+
+                # 2B. Update Intertwined Secondary Harmonic Ribbon (Cyan/Violet Aura Strand)
+                if ($notchWaveRibbon2Path) {
+                    $notchWaveRibbon2Path.Opacity = [Math]::Min(0.85, $notchWaveRibbon2Path.Opacity + 0.2)
+                    $notchWaveRibbon2Path.Data = [System.Windows.Media.Geometry]::Parse($w3.Ribbon2Path)
                 }
 
                 # 3. Update Laser White-Hot Core Stroke
@@ -10026,6 +9975,10 @@ $fastEyeTimer.Add_Tick({
                         $notchWaveStrokePath.Data = [System.Windows.Media.Geometry]::Parse($w3.StrokePath)
                         $notchWaveStrokePath.Opacity = [Math]::Max(0.0, $notchWaveStrokePath.Opacity - 0.25)
                     }
+                    if ($notchWaveRibbon2Path) {
+                        $notchWaveRibbon2Path.Data = [System.Windows.Media.Geometry]::Parse($w3.Ribbon2Path)
+                        $notchWaveRibbon2Path.Opacity = [Math]::Max(0.0, $notchWaveRibbon2Path.Opacity - 0.25)
+                    }
                     if ($notchWaveCorePath) {
                         $notchWaveCorePath.Data = [System.Windows.Media.Geometry]::Parse($w3.StrokePath)
                         $notchWaveCorePath.Opacity = [Math]::Max(0.0, $notchWaveCorePath.Opacity - 0.25)
@@ -10038,6 +9991,9 @@ $fastEyeTimer.Add_Tick({
                 $global:waveAmp = 0.0
                 if ($notchWaveStrokePath -and $notchWaveStrokePath.Opacity -gt 0 -and $global:magSafeGlowTicks -le 0) {
                     $notchWaveStrokePath.Opacity = 0.0
+                }
+                if ($notchWaveRibbon2Path -and $notchWaveRibbon2Path.Opacity -gt 0) {
+                    $notchWaveRibbon2Path.Opacity = 0.0
                 }
                 if ($notchWaveCorePath -and $notchWaveCorePath.Opacity -gt 0) {
                     $notchWaveCorePath.Opacity = 0.0
