@@ -8,12 +8,12 @@
     "islandOpacity":  0.95,
     "autoCollapseSeconds":  5,
     "language":  "id",
-    "volume":  72,
+    "volume":  64,
     "isMuted":  false,
     "currentMedia":  {
-                         "title":  "Pamungkas - Monolog (Cover) // Jeje.",
-                         "artist":  "Aku Jeje (YouTube / Chrome)",
-                         "isPlaying":  true,
+                         "title":  "Piche Kota - Bahagia Lagi (Official Music Video)",
+                         "artist":  "Piche Kota (YouTube / Chrome)",
+                         "isPlaying":  false,
                          "progress":  42
                      },
     "pomodoro":  {

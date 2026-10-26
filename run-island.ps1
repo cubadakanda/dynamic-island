@@ -777,6 +777,111 @@ $screenHeight = [System.Windows.SystemParameters]::PrimaryScreenHeight
 
 $shoulderPad = 8 # 8px tangential shoulder fillet for seamless bezel integration
 
+function Get-Notch3SidedWaveGeometry($totalW, $h, $s, $r, $waveAmp = 0, $wavePhase = 0, $beatAmp = 0) {
+    $baseH = if ($h -gt 100) { 205 } else { $h }
+    $x0 = $s + $r
+    $x1 = $totalW - $s - $r
+    $spanBot = $x1 - $x0
+    $spanVert = ($baseH - $r) - $s
+
+    $apexPoints = New-Object System.Collections.Generic.List[PSCustomObject]
+
+    # If wave amplitude is negligible, return flat top-docked notch
+    if ($waveAmp -le 0.5) {
+        $flatBody = "M 0,0 A $s,$s 0 0,1 $s,$s L $s,$($baseH-$r) A $r,$r 0 0,0 $x0,$baseH L $x1,$baseH A $r,$r 0 0,0 $($totalW-$s),$($baseH-$r) L $($totalW-$s),$s A $s,$s 0 0,1 $totalW,0 Z"
+        $flatStroke = "M $s,$s L $s,$($baseH-$r) A $r,$r 0 0,0 $x0,$baseH L $x1,$baseH A $r,$r 0 0,0 $($totalW-$s),$($baseH-$r) L $($totalW-$s),$s"
+        return [PSCustomObject]@{
+            BodyPath = $flatBody
+            StrokePath = $flatStroke
+            ApexPoints = $apexPoints
+        }
+    }
+
+    # 1. Left Side Ribs (3 scallops protruding to left: -dx)
+    $N_left = if ($spanVert -ge 40) { 3 } else { 1 }
+    $hSegL = $spanVert / $N_left
+    $leftSb = [System.Text.StringBuilder]::new()
+    for ($i = 0; $i -lt $N_left; $i++) {
+        $ya = [Math]::Round($s + ($i * $hSegL), 1)
+        $yb = [Math]::Round($ya + $hSegL, 1)
+        $ymid = [Math]::Round(($ya + $yb) / 2, 1)
+        $ti = ($i + 0.5) / $N_left
+        $env = [Math]::Sin($ti * [Math]::PI)
+        $bounce = 0.55 + 0.45 * [Math]::Sin(($i * 2.1) + $wavePhase)
+        $isBeat = ($beatAmp -gt 0.3 -and $i -eq 1)
+        $beatMult = if ($isBeat) { 1.45 } else { 1.0 }
+        $dip = [Math]::Round($waveAmp * 0.55 * $env * $bounce * $beatMult, 1)
+        $xapex = [Math]::Round($s - $dip, 1)
+
+        $cp1X = [Math]::Round($s - ($dip * 0.45), 1)
+        $cp1Y = [Math]::Round($ya + ($hSegL * 0.42), 1)
+        $cp2X = [Math]::Round($s - ($dip * 0.45), 1)
+        $cp2Y = [Math]::Round($yb - ($hSegL * 0.42), 1)
+
+        $leftSb.Append(" Q $cp1X,$cp1Y $xapex,$ymid Q $cp2X,$cp2Y $s,$yb") | Out-Null
+        $apexPoints.Add([PSCustomObject]@{ X = $xapex; Y = $ymid; IsBeat = $isBeat })
+    }
+
+    # 2. Bottom Scallops (15 scallops protruding downwards: +dy)
+    $N_bot = if ($totalW -gt 400) { 15 } elseif ($totalW -gt 200) { 8 } else { 4 }
+    $wSeg = $spanBot / $N_bot
+    $botSb = [System.Text.StringBuilder]::new()
+    for ($i = 0; $i -lt $N_bot; $i++) {
+        $xa = [Math]::Round($x0 + ($i * $wSeg), 1)
+        $xb = [Math]::Round($xa + $wSeg, 1)
+        $xmid = [Math]::Round(($xa + $xb) / 2, 1)
+        $ti = ($i + 0.5) / $N_bot
+        $env = [Math]::Sin($ti * [Math]::PI)
+        $bounce = 0.55 + 0.45 * [Math]::Sin(($i * 1.55) + $wavePhase)
+        $isBeat = ($beatAmp -gt 0.3 -and ($i -eq 3 -or $i -eq 7 -or $i -eq 11))
+        $beatMult = if ($isBeat) { 1.55 } else { 1.0 }
+        $dip = [Math]::Round($waveAmp * $env * $bounce * $beatMult, 1)
+        $ytrough = [Math]::Round($baseH + $dip, 1)
+
+        $cp1X = [Math]::Round($xa + ($wSeg * 0.42), 1)
+        $cp1Y = [Math]::Round($baseH + ($dip * 0.45), 1)
+        $cp2X = [Math]::Round($xb - ($wSeg * 0.42), 1)
+        $cp2Y = [Math]::Round($baseH + ($dip * 0.45), 1)
+
+        $botSb.Append(" Q $cp1X,$cp1Y $xmid,$ytrough Q $cp2X,$cp2Y $xb,$baseH") | Out-Null
+        $apexPoints.Add([PSCustomObject]@{ X = $xmid; Y = $ytrough; IsBeat = $isBeat })
+    }
+
+    # 3. Right Side Ribs (3 scallops protruding to right: +dx, traveling upwards)
+    $N_right = if ($spanVert -ge 40) { 3 } else { 1 }
+    $hSegR = $spanVert / $N_right
+    $rightSb = [System.Text.StringBuilder]::new()
+    for ($i = 0; $i -lt $N_right; $i++) {
+        $ya = [Math]::Round(($baseH - $r) - ($i * $hSegR), 1)
+        $yb = [Math]::Round($ya - $hSegR, 1)
+        $ymid = [Math]::Round(($ya + $yb) / 2, 1)
+        $ti = ($i + 0.5) / $N_right
+        $env = [Math]::Sin($ti * [Math]::PI)
+        $bounce = 0.55 + 0.45 * [Math]::Sin(($i * 2.1) + $wavePhase + 1.5)
+        $isBeat = ($beatAmp -gt 0.3 -and $i -eq 1)
+        $beatMult = if ($isBeat) { 1.45 } else { 1.0 }
+        $dip = [Math]::Round($waveAmp * 0.55 * $env * $bounce * $beatMult, 1)
+        $xapex = [Math]::Round(($totalW - $s) + $dip, 1)
+
+        $cp1X = [Math]::Round(($totalW - $s) + ($dip * 0.45), 1)
+        $cp1Y = [Math]::Round($ya - ($hSegR * 0.42), 1)
+        $cp2X = [Math]::Round(($totalW - $s) + ($dip * 0.45), 1)
+        $cp2Y = [Math]::Round($yb + ($hSegR * 0.42), 1)
+
+        $rightSb.Append(" Q $cp1X,$cp1Y $xapex,$ymid Q $cp2X,$cp2Y $($totalW-$s),$yb") | Out-Null
+        $apexPoints.Add([PSCustomObject]@{ X = $xapex; Y = $ymid; IsBeat = $isBeat })
+    }
+
+    $bodyStr = "M 0,0 A $s,$s 0 0,1 $s,$s$($leftSb.ToString()) A $r,$r 0 0,0 $x0,$baseH$($botSb.ToString()) A $r,$r 0 0,0 $($totalW-$s),$($baseH-$r)$($rightSb.ToString()) A $s,$s 0 0,1 $totalW,0 Z"
+    $strokeStr = "M $s,$s$($leftSb.ToString()) A $r,$r 0 0,0 $x0,$baseH$($botSb.ToString()) A $r,$r 0 0,0 $($totalW-$s),$($baseH-$r)$($rightSb.ToString())"
+
+    return [PSCustomObject]@{
+        BodyPath = $bodyStr
+        StrokePath = $strokeStr
+        ApexPoints = $apexPoints
+    }
+}
+
 function Get-NotchPathData($totalW, $h, $s, $r, $waveAmp = 0, $wavePhase = 0) {
 
     $baseH = if ($h -gt 100) { 205 } else { $h }
@@ -1194,17 +1299,35 @@ $islandXaml = @'
 
         <Path x:Name="NotchSinglePath" Fill="#000000" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Cursor="Hand"/>
 
-        <!-- AUDIO WAVE BOTTOM CONTOUR STROKE (Exclusively for Music Player Card 0 when Music is Playing) -->
+        <!-- MULTI-STAGE NEON EQUALIZER 3-SIDED WAVE LAYERS -->
 
-        <Path x:Name="NotchWaveStrokePath" Stroke="#FF385C" StrokeThickness="2.2" Fill="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0" IsHitTestVisible="False">
+        <!-- Layer 1: Diffuse Outer Neon Bloom -->
+
+        <Path x:Name="NotchWaveStrokePath" Stroke="#FF385C" StrokeThickness="3.0" Fill="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0" IsHitTestVisible="False">
 
             <Path.Effect>
 
-                <DropShadowEffect Color="#FF385C" BlurRadius="10" ShadowDepth="0" Opacity="0.95"/>
+                <DropShadowEffect Color="#FF385C" BlurRadius="14" ShadowDepth="0" Opacity="0.95"/>
 
             </Path.Effect>
 
         </Path>
+
+        <!-- Layer 2: Laser White-Hot Core Tube -->
+
+        <Path x:Name="NotchWaveCorePath" Stroke="#FFFFFF" StrokeThickness="1.2" Fill="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0" IsHitTestVisible="False">
+
+            <Path.Effect>
+
+                <DropShadowEffect Color="#FFFFFF" BlurRadius="3" ShadowDepth="0" Opacity="0.9"/>
+
+            </Path.Effect>
+
+        </Path>
+
+        <!-- Layer 3: Neon Apex Sparks Micro-LED Canvas Overlay -->
+
+        <Canvas x:Name="NotchApexCanvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False" Opacity="0"/>
 
         <!-- ======================================================== -->
 
@@ -5764,6 +5887,33 @@ $sysNetStatsText = $window.FindName("SysNetStatsText")
 $sysPingText = $window.FindName("SysPingText")
 
 $notchWaveStrokePath = $window.FindName("NotchWaveStrokePath")
+$notchWaveCorePath   = $window.FindName("NotchWaveCorePath")
+$notchApexCanvas     = $window.FindName("NotchApexCanvas")
+
+# Initialize Neon Apex Spark Dot Pool in $notchApexCanvas
+$global:apexSparkBorders = New-Object System.Collections.Generic.List[System.Windows.Controls.Border]
+if ($notchApexCanvas) {
+    for ($i = 0; $i -lt 25; $i++) {
+        $sp = New-Object System.Windows.Controls.Border
+        $sp.Width = 4.5
+        $sp.Height = 4.5
+        $sp.CornerRadius = [System.Windows.CornerRadius]::new(2.25)
+        $sp.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
+        $sp.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FF385C")
+        $sp.BorderThickness = [System.Windows.Thickness]::new(1.0)
+        $spEffect = New-Object System.Windows.Media.Effects.DropShadowEffect
+        $spEffect.Color = [System.Windows.Media.ColorConverter]::ConvertFromString("#FF385C")
+        $spEffect.BlurRadius = 8.0
+        $spEffect.ShadowDepth = 0.0
+        $spEffect.Opacity = 0.95
+        $sp.Effect = $spEffect
+        $sp.Visibility = [System.Windows.Visibility]::Collapsed
+        [System.Windows.Controls.Canvas]::SetLeft($sp, 0)
+        [System.Windows.Controls.Canvas]::SetTop($sp, 0)
+        $notchApexCanvas.Children.Add($sp) | Out-Null
+        $global:apexSparkBorders.Add($sp)
+    }
+}
 
 # Handles: Resting Eyes
 
@@ -9741,67 +9891,100 @@ $fastEyeTimer.Add_Tick({
         if ($isMusicCardActive) {
 
             # Animate wave phase & ramp up amplitude
-
             $global:wavePhase = ($global:wavePhase + 0.18) % 360
-
             $global:waveAmp = [Math]::Min(14.0, $global:waveAmp + 1.2)
 
-            if ($notchWaveStrokePath) {
+            # Dynamic Beat Burst simulation (every ~16 ticks, a burst fires for 4 ticks)
+            $global:beatTick = ($global:beatTick + 1) % 16
+            $beatAmp = if ($global:beatTick -le 4) { 0.85 } else { 0.0 }
 
-                $notchWaveStrokePath.Opacity = [Math]::Min(1.0, $notchWaveStrokePath.Opacity + 0.2)
+            # 3-Sided Neon Waveform & Apex Points
+            $w3 = Get-Notch3SidedWaveGeometry $window.Width $window.Height $shoulderPad 24 $global:waveAmp $global:wavePhase $beatAmp
 
-                $strokeStr = Get-NotchBottomWavePathData $window.Width $window.Height $shoulderPad 24 $global:waveAmp $global:wavePhase
+            if ($w3) {
+                # 1. Update Black Island Body
+                if ($notchSinglePath) {
+                    $notchSinglePath.Data = [System.Windows.Media.Geometry]::Parse($w3.BodyPath)
+                }
 
-                $notchWaveStrokePath.Data = [System.Windows.Media.Geometry]::Parse($strokeStr)
+                # 2. Update Outer Neon Glow Stroke
+                if ($notchWaveStrokePath) {
+                    $notchWaveStrokePath.Opacity = [Math]::Min(1.0, $notchWaveStrokePath.Opacity + 0.2)
+                    $notchWaveStrokePath.Data = [System.Windows.Media.Geometry]::Parse($w3.StrokePath)
+                }
 
+                # 3. Update Laser White-Hot Core Stroke
+                if ($notchWaveCorePath) {
+                    $notchWaveCorePath.Opacity = [Math]::Min(0.95, $notchWaveCorePath.Opacity + 0.2)
+                    $notchWaveCorePath.Data = [System.Windows.Media.Geometry]::Parse($w3.StrokePath)
+                }
+
+                # 4. Update Neon Apex Sparks Overlay
+                if ($notchApexCanvas) {
+                    $notchApexCanvas.Opacity = [Math]::Min(1.0, $notchApexCanvas.Opacity + 0.2)
+                    $numPts = $w3.ApexPoints.Count
+                    for ($k = 0; $k -lt $global:apexSparkBorders.Count; $k++) {
+                        $spBorder = $global:apexSparkBorders[$k]
+                        if ($k -lt $numPts) {
+                            $pt = $w3.ApexPoints[$k]
+                            if ($pt.IsBeat) {
+                                $spBorder.Width = 6.5
+                                $spBorder.Height = 6.5
+                                $spBorder.CornerRadius = [System.Windows.CornerRadius]::new(3.25)
+                                [System.Windows.Controls.Canvas]::SetLeft($spBorder, $pt.X - 3.25)
+                                [System.Windows.Controls.Canvas]::SetTop($spBorder, $pt.Y - 3.25)
+                            } else {
+                                $spBorder.Width = 4.0
+                                $spBorder.Height = 4.0
+                                $spBorder.CornerRadius = [System.Windows.CornerRadius]::new(2.0)
+                                [System.Windows.Controls.Canvas]::SetLeft($spBorder, $pt.X - 2.0)
+                                [System.Windows.Controls.Canvas]::SetTop($spBorder, $pt.Y - 2.0)
+                            }
+                            $spBorder.Visibility = [System.Windows.Visibility]::Visible
+                        } else {
+                            $spBorder.Visibility = [System.Windows.Visibility]::Collapsed
+                        }
+                    }
+                }
             }
-
-            # Update live geometry with sharp audio wave scallops
-
-            $wStr = Get-NotchPathData $window.Width $window.Height $shoulderPad 24 $global:waveAmp $global:wavePhase
-
-            $wGeom = [System.Windows.Media.Geometry]::Parse($wStr)
-
-            if ($notchSinglePath) { $notchSinglePath.Data = $wGeom }
 
         } else {
 
             # In Resting Eyes Mode, Status Mode, Other Cards, or Music Paused / Inactive:
-
-            # RAPIDLY FLATTEN wave to 0 & hide red stroke!
-
+            # RAPIDLY FLATTEN wave to 0 & hide neon strokes & apex sparks!
             if ($global:waveAmp -gt 0.2) {
-
                 $global:waveAmp = [Math]::Max(0.0, $global:waveAmp - 2.0)
-
                 $curR = if ($global:islandMode -eq "expanded") { 24 } else { 18 }
 
-                $wStr = Get-NotchPathData $window.Width $window.Height $shoulderPad $curR $global:waveAmp $global:wavePhase
-
-                $wGeom = [System.Windows.Media.Geometry]::Parse($wStr)
-
-                if ($notchSinglePath) { $notchSinglePath.Data = $wGeom }
-
-                if ($notchWaveStrokePath) {
-
-                    $strokeStr = Get-NotchBottomWavePathData $window.Width $window.Height $shoulderPad $curR $global:waveAmp $global:wavePhase
-
-                    $notchWaveStrokePath.Data = [System.Windows.Media.Geometry]::Parse($strokeStr)
-
-                    $notchWaveStrokePath.Opacity = [Math]::Max(0.0, $notchWaveStrokePath.Opacity - 0.25)
-
+                $w3 = Get-Notch3SidedWaveGeometry $window.Width $window.Height $shoulderPad $curR $global:waveAmp $global:wavePhase 0.0
+                if ($w3) {
+                    if ($notchSinglePath) { $notchSinglePath.Data = [System.Windows.Media.Geometry]::Parse($w3.BodyPath) }
+                    if ($notchWaveStrokePath) {
+                        $notchWaveStrokePath.Data = [System.Windows.Media.Geometry]::Parse($w3.StrokePath)
+                        $notchWaveStrokePath.Opacity = [Math]::Max(0.0, $notchWaveStrokePath.Opacity - 0.25)
+                    }
+                    if ($notchWaveCorePath) {
+                        $notchWaveCorePath.Data = [System.Windows.Media.Geometry]::Parse($w3.StrokePath)
+                        $notchWaveCorePath.Opacity = [Math]::Max(0.0, $notchWaveCorePath.Opacity - 0.25)
+                    }
+                    if ($notchApexCanvas) {
+                        $notchApexCanvas.Opacity = [Math]::Max(0.0, $notchApexCanvas.Opacity - 0.25)
+                    }
                 }
-
             } else {
-
                 $global:waveAmp = 0.0
-
                 if ($notchWaveStrokePath -and $notchWaveStrokePath.Opacity -gt 0 -and $global:magSafeGlowTicks -le 0) {
-
                     $notchWaveStrokePath.Opacity = 0.0
-
                 }
-
+                if ($notchWaveCorePath -and $notchWaveCorePath.Opacity -gt 0) {
+                    $notchWaveCorePath.Opacity = 0.0
+                }
+                if ($notchApexCanvas -and $notchApexCanvas.Opacity -gt 0) {
+                    $notchApexCanvas.Opacity = 0.0
+                    if ($global:apexSparkBorders) {
+                        foreach ($sp in $global:apexSparkBorders) { $sp.Visibility = [System.Windows.Visibility]::Collapsed }
+                    }
+                }
             }
 
         }
@@ -10617,6 +10800,19 @@ $mainTimer.Add_Tick({
 
                         }
 
+                    }
+
+                    if ($notchWaveCorePath) {
+                        $notchWaveCorePath.Stroke = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
+                    }
+
+                    if ($global:apexSparkBorders) {
+                        foreach ($sp in $global:apexSparkBorders) {
+                            $sp.BorderBrush = $colorBrush
+                            if ($sp.Effect) {
+                                $sp.Effect.Color = [System.Windows.Media.ColorConverter]::ConvertFromString($accentColor)
+                            }
+                        }
                     }
 
                     if ($musicPlayBtnBg) {
