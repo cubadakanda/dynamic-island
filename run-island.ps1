@@ -6022,6 +6022,8 @@ $reader1 = [System.Xml.XmlReader]::Create([System.IO.StringReader]::new($islandX
 
 $window = [System.Windows.Markup.XamlReader]::Load($reader1)
 
+$masterGrid = $window.FindName("MasterGrid")
+
 $reader2 = [System.Xml.XmlReader]::Create([System.IO.StringReader]::new($dashXaml))
 
 $dashWindow = [System.Windows.Markup.XamlReader]::Load($reader2)
@@ -6874,7 +6876,6 @@ function Set-IslandMode($mode) {
         $global:toR = 18
         $global:animDuration = 290
         $eyesGrid.Visibility = [System.Windows.Visibility]::Visible
-        if ($expandedGrid) { $expandedGrid.Visibility = [System.Windows.Visibility]::Visible }
     }
     elseif ($mode -eq "status") {
         $global:toW = $statusTotalWidth
@@ -6883,7 +6884,6 @@ function Set-IslandMode($mode) {
         $global:animDuration = 300
         $global:statusIdleTicks = 0
         $statusGrid.Visibility = [System.Windows.Visibility]::Visible
-        if ($expandedGrid) { $expandedGrid.Visibility = [System.Windows.Visibility]::Visible }
     }
     elseif ($mode -eq "expanded") {
         $totW = if ($global:isLyricsSideOpen -and $global:activeCardIndex -eq 0) { $expandedLyricsTotalWidth } else { $expandedTotalWidth }
@@ -6893,7 +6893,6 @@ function Set-IslandMode($mode) {
         $global:animDuration = 340
         $global:outsideTicks = 0
         $expandedGrid.Visibility = [System.Windows.Visibility]::Visible
-        if ($eyesGrid) { $eyesGrid.Visibility = [System.Windows.Visibility]::Visible }
     }
     elseif ($mode -eq "toast") {
         $global:toW = $toastTotalWidth
