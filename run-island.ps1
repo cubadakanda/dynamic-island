@@ -848,7 +848,7 @@ function Get-Notch3SidedWaveGeometry($totalW, $h, $s, $r, $waveAmp = 0, $wavePha
 
         $leftSb.Append(" Q $cp1X,$cp1Y $xapex,$ymid Q $cp2X,$cp2Y $s,$yb") | Out-Null
         $leftR2Sb.Append(" Q $cp1X,$cp1Y $xapex2,$ymid Q $cp2X,$cp2Y $s,$yb") | Out-Null
-        $apexPoints.Add([PSCustomObject]@{ X = $xapex; Y = $ymid; IsBeat = $isBeat })
+        [void]$apexPoints.Add([PSCustomObject]@{ X = $xapex; Y = $ymid; IsBeat = $isBeat })
     }
 
     # 2. Bottom Scallops (14 scallops protruding downwards: +dy)
@@ -880,7 +880,7 @@ function Get-Notch3SidedWaveGeometry($totalW, $h, $s, $r, $waveAmp = 0, $wavePha
 
         $botSb.Append(" Q $cp1X,$cp1Y $xmid,$ytrough Q $cp2X,$cp2Y $xb,$baseH") | Out-Null
         $botR2Sb.Append(" Q $cp1X,$cp1Y $xmid,$ytrough2 Q $cp2X,$cp2Y $xb,$baseH") | Out-Null
-        $apexPoints.Add([PSCustomObject]@{ X = $xmid; Y = $ytrough; IsBeat = $isBeat })
+        [void]$apexPoints.Add([PSCustomObject]@{ X = $xmid; Y = $ytrough; IsBeat = $isBeat })
     }
 
     # 3. Right Side: Lower half has 2 fluid scallops traveling up to yMidSide. Upper half is flat line to $s
@@ -912,7 +912,7 @@ function Get-Notch3SidedWaveGeometry($totalW, $h, $s, $r, $waveAmp = 0, $wavePha
 
         $rightSb.Append(" Q $cp1X,$cp1Y $xapex,$ymid Q $cp2X,$cp2Y $($totalW-$s),$yb") | Out-Null
         $rightR2Sb.Append(" Q $cp1X,$cp1Y $xapex2,$ymid Q $cp2X,$cp2Y $($totalW-$s),$yb") | Out-Null
-        $apexPoints.Add([PSCustomObject]@{ X = $xapex; Y = $ymid; IsBeat = $isBeat })
+        [void]$apexPoints.Add([PSCustomObject]@{ X = $xapex; Y = $ymid; IsBeat = $isBeat })
     }
 
     # Assembled paths: Upper half of left & right sides are clean straight lines (L s,yMidSide and L totalW-s,s)
@@ -6127,7 +6127,7 @@ if ($notchApexCanvas) {
         [System.Windows.Controls.Canvas]::SetLeft($sp, 0)
         [System.Windows.Controls.Canvas]::SetTop($sp, 0)
         $notchApexCanvas.Children.Add($sp) | Out-Null
-        $global:apexSparkBorders.Add($sp)
+        [void]$global:apexSparkBorders.Add($sp)
     }
 }
 
@@ -7863,7 +7863,7 @@ function Render-TaskItems {
         $emptyTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
         $emptyTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
         $emptyTxt.Margin = [System.Windows.Thickness]::new(0, 16, 0, 0)
-        $taskListContainer.Children.Add($emptyTxt)
+        [void]$taskListContainer.Children.Add($emptyTxt)
         Update-TodoStats
         return
     }
@@ -7886,9 +7886,9 @@ function Render-TaskItems {
         $c0 = New-Object System.Windows.Controls.ColumnDefinition; $c0.Width = [System.Windows.GridLength]::new(20, [System.Windows.GridUnitType]::Pixel)
         $c1 = New-Object System.Windows.Controls.ColumnDefinition; $c1.Width = [System.Windows.GridLength]::new(1, [System.Windows.GridUnitType]::Star)
         $c2 = New-Object System.Windows.Controls.ColumnDefinition; $c2.Width = [System.Windows.GridLength]::new(18, [System.Windows.GridUnitType]::Pixel)
-        $rowGrid.ColumnDefinitions.Add($c0)
-        $rowGrid.ColumnDefinitions.Add($c1)
-        $rowGrid.ColumnDefinitions.Add($c2)
+        [void]$rowGrid.ColumnDefinitions.Add($c0)
+        [void]$rowGrid.ColumnDefinitions.Add($c1)
+        [void]$rowGrid.ColumnDefinitions.Add($c2)
 
         # Custom Check Button
         $chkBorder = New-Object System.Windows.Controls.Border
@@ -7918,7 +7918,7 @@ function Render-TaskItems {
         }
         $chkBorder.Child = $chkIcon
         [System.Windows.Controls.Grid]::SetColumn($chkBorder, 0)
-        $rowGrid.Children.Add($chkBorder)
+        [void]$rowGrid.Children.Add($chkBorder)
 
         # Task Text
         $txtBlock = New-Object System.Windows.Controls.TextBlock
@@ -7936,7 +7936,7 @@ function Render-TaskItems {
             $txtBlock.FontWeight = [System.Windows.FontWeights]::SemiBold
         }
         [System.Windows.Controls.Grid]::SetColumn($txtBlock, 1)
-        $rowGrid.Children.Add($txtBlock)
+        [void]$rowGrid.Children.Add($txtBlock)
 
         # Delete Action
         $delBtn = New-Object System.Windows.Controls.Border
@@ -7971,7 +7971,7 @@ function Render-TaskItems {
         })
 
         [System.Windows.Controls.Grid]::SetColumn($delBtn, 2)
-        $rowGrid.Children.Add($delBtn)
+        [void]$rowGrid.Children.Add($delBtn)
 
         # Toggle Done on Check or Text Click
         $toggleHandler = {
@@ -7998,7 +7998,7 @@ function Render-TaskItems {
         })
 
         $rowBorder.Child = $rowGrid
-        $taskListContainer.Children.Add($rowBorder)
+        [void]$taskListContainer.Children.Add($rowBorder)
     }
 
     Update-TodoStats
@@ -8118,9 +8118,9 @@ function Update-ShelfUI {
             $r0 = New-Object System.Windows.Controls.RowDefinition; $r0.Height = [System.Windows.GridLength]::new(50, [System.Windows.GridUnitType]::Pixel)
             $r1 = New-Object System.Windows.Controls.RowDefinition; $r1.Height = [System.Windows.GridLength]::new(18, [System.Windows.GridUnitType]::Pixel)
             $r2 = New-Object System.Windows.Controls.RowDefinition; $r2.Height = [System.Windows.GridLength]::new(14, [System.Windows.GridUnitType]::Pixel)
-            $itemGrid.RowDefinitions.Add($r0)
-            $itemGrid.RowDefinitions.Add($r1)
-            $itemGrid.RowDefinitions.Add($r2)
+            [void]$itemGrid.RowDefinitions.Add($r0)
+            [void]$itemGrid.RowDefinitions.Add($r1)
+            [void]$itemGrid.RowDefinitions.Add($r2)
 
             # Icon Box with file type styling
             $iconBox = New-Object System.Windows.Controls.Border
@@ -8142,12 +8142,12 @@ function Update-ShelfUI {
                 $sun.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Right
                 $sun.VerticalAlignment = [System.Windows.VerticalAlignment]::Top
                 $sun.Margin = [System.Windows.Thickness]::new(0, 8, 8, 0)
-                $imgGrid.Children.Add($sun)
+                [void]$imgGrid.Children.Add($sun)
 
                 $ground = New-Object System.Windows.Controls.Border
                 $ground.Height = 14; $ground.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FDE68A")
                 $ground.VerticalAlignment = [System.Windows.VerticalAlignment]::Bottom
-                $imgGrid.Children.Add($ground)
+                [void]$imgGrid.Children.Add($ground)
 
                 $iconBox.Child = $imgGrid
             } elseif ($fExt -match '\.(pdf|docx?|txt|md|xlsx?|pptx?)$') {
@@ -8174,7 +8174,7 @@ function Update-ShelfUI {
             }
 
             [System.Windows.Controls.Grid]::SetRow($iconBox, 0)
-            $itemGrid.Children.Add($iconBox)
+            [void]$itemGrid.Children.Add($iconBox)
 
             # File Name
             $nameTxt = New-Object System.Windows.Controls.TextBlock
@@ -8187,7 +8187,7 @@ function Update-ShelfUI {
             $nameTxt.TextTrimming = [System.Windows.TextTrimming]::CharacterEllipsis
             $nameTxt.MaxWidth = 84
             [System.Windows.Controls.Grid]::SetRow($nameTxt, 1)
-            $itemGrid.Children.Add($nameTxt)
+            [void]$itemGrid.Children.Add($nameTxt)
 
             # File Size
             $sizeTxt = New-Object System.Windows.Controls.TextBlock
@@ -8197,7 +8197,7 @@ function Update-ShelfUI {
             $sizeTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
             $sizeTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
             [System.Windows.Controls.Grid]::SetRow($sizeTxt, 2)
-            $itemGrid.Children.Add($sizeTxt)
+            [void]$itemGrid.Children.Add($sizeTxt)
 
             $itemBorder.Child = $itemGrid
 
@@ -8231,7 +8231,7 @@ function Update-ShelfUI {
                 }
             })
 
-            $shelfFilesList.Children.Add($itemBorder)
+            [void]$shelfFilesList.Children.Add($itemBorder)
         }
     }
 }
@@ -8329,8 +8329,8 @@ function Update-TopProcesses {
             $rowGrid.Margin = [System.Windows.Thickness]::new(0, 1.5, 0, 1.5)
             $c0 = New-Object System.Windows.Controls.ColumnDefinition; $c0.Width = [System.Windows.GridLength]::new(1, [System.Windows.GridUnitType]::Star)
             $c1 = New-Object System.Windows.Controls.ColumnDefinition; $c1.Width = [System.Windows.GridLength]::new(1, [System.Windows.GridUnitType]::Auto)
-            $rowGrid.ColumnDefinitions.Add($c0)
-            $rowGrid.ColumnDefinitions.Add($c1)
+            [void]$rowGrid.ColumnDefinitions.Add($c0)
+            [void]$rowGrid.ColumnDefinitions.Add($c1)
 
             # Process Name
             $nameTxt = New-Object System.Windows.Controls.TextBlock
@@ -8340,7 +8340,7 @@ function Update-TopProcesses {
             $nameTxt.TextTrimming = [System.Windows.TextTrimming]::CharacterEllipsis
             $nameTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
             [System.Windows.Controls.Grid]::SetColumn($nameTxt, 0)
-            $rowGrid.Children.Add($nameTxt)
+            [void]$rowGrid.Children.Add($nameTxt)
 
             # Memory Badge Pill
             $pillBorder = New-Object System.Windows.Controls.Border
@@ -8358,9 +8358,9 @@ function Update-TopProcesses {
             $pillBorder.Child = $pillTxt
 
             [System.Windows.Controls.Grid]::SetColumn($pillBorder, 1)
-            $rowGrid.Children.Add($pillBorder)
+            [void]$rowGrid.Children.Add($pillBorder)
 
-            $topAppsListContainer.Children.Add($rowGrid)
+            [void]$topAppsListContainer.Children.Add($rowGrid)
         }
     } catch {}
 }
