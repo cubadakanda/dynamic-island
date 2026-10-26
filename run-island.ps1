@@ -928,6 +928,95 @@ function Get-Notch3SidedWaveGeometry($totalW, $h, $s, $r, $waveAmp = 0, $wavePha
     }
 }
 
+function Get-SpectrumBarsPathData($totalW, $h, $s, $r, $phase = 0, $beat = 0) {
+    $baseH = if ($h -gt 100) { 205 } else { $h }
+    $x0 = $s + $r
+    $x1 = $totalW - $s - $r
+    $spanBot = $x1 - $x0
+    $spanVert = ($baseH - $r) - $s
+    $yMidSide = [Math]::Round($s + ($spanVert * 0.5), 1)
+
+    $sb = [System.Text.StringBuilder]::new()
+
+    # 1. Left lower half: 8 bars pointing left (-X)
+    $nLeft = 8
+    for ($i = 0; $i -lt $nLeft; $i++) {
+        $t = ($i + 0.5) / $nLeft
+        $bx = $s
+        $by = [Math]::Round($yMidSide + $t * ($spanVert * 0.5), 1)
+        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.6) + $phase)
+        $len = [Math]::Round(4.0 + 8.0 * $wave, 1)
+        $ex = [Math]::Round($bx - $len, 1)
+        $ey = $by
+        $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
+    }
+
+    # 2. Bottom-left corner: 6 bars radiating outward
+    $nCorner = 6
+    for ($i = 0; $i -lt $nCorner; $i++) {
+        $t = ($i + 0.5) / $nCorner
+        $angle = [Math]::PI + $t * ([Math]::PI * 0.5)
+        $ccx = $s + $r
+        $ccy = $baseH - $r
+        $bx = [Math]::Round($ccx + $r * [Math]::Cos($angle), 1)
+        $by = [Math]::Round($ccy - $r * [Math]::Sin($angle), 1)
+        $nx = [Math]::Cos($angle)
+        $ny = -[Math]::Sin($angle)
+        $surge = if ($beat -gt 0.2 -and $i -ge 2) { 1.8 } else { 1.0 }
+        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.7) + $phase + 0.8)
+        $len = [Math]::Round((5.0 + 12.0 * $wave) * $surge, 1)
+        $ex = [Math]::Round($bx + $nx * $len, 1)
+        $ey = [Math]::Round($by + $ny * $len, 1)
+        $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
+    }
+
+    # 3. Bottom edge: 36 bars pointing down (+Y)
+    $nBot = 36
+    for ($i = 0; $i -lt $nBot; $i++) {
+        $t = ($i + 0.5) / $nBot
+        $bx = [Math]::Round($x0 + $t * $spanBot, 1)
+        $by = $baseH
+        $distFromSurge = [Math]::Abs($i - 6)
+        $surgeMult = [Math]::Exp(-0.5 * [Math]::Pow($distFromSurge / 4.0, 2)) * ($beat * 24.0)
+        $harmonic = 0.5 + 0.5 * [Math]::Sin(($i * 0.55) - $phase)
+        $len = [Math]::Round(4.0 + 9.0 * $harmonic + $surgeMult, 1)
+        $ex = $bx
+        $ey = [Math]::Round($by + $len, 1)
+        $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
+    }
+
+    # 4. Bottom-right corner: 6 bars radiating outward
+    for ($i = 0; $i -lt $nCorner; $i++) {
+        $t = ($i + 0.5) / $nCorner
+        $angle = 1.5 * [Math]::PI + $t * ([Math]::PI * 0.5)
+        $ccx = $totalW - $s - $r
+        $ccy = $baseH - $r
+        $bx = [Math]::Round($ccx + $r * [Math]::Cos($angle), 1)
+        $by = [Math]::Round($ccy - $r * [Math]::Sin($angle), 1)
+        $nx = [Math]::Cos($angle)
+        $ny = -[Math]::Sin($angle)
+        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.7) + $phase + 2.2)
+        $len = [Math]::Round(4.0 + 8.0 * $wave, 1)
+        $ex = [Math]::Round($bx + $nx * $len, 1)
+        $ey = [Math]::Round($by + $ny * $len, 1)
+        $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
+    }
+
+    # 5. Right lower half: 8 bars pointing right (+X, traveling up to yMidSide)
+    for ($i = 0; $i -lt $nLeft; $i++) {
+        $t = ($i + 0.5) / $nLeft
+        $bx = $totalW - $s
+        $by = [Math]::Round(($baseH - $r) - $t * ($spanVert * 0.5), 1)
+        $wave = 0.5 + 0.5 * [Math]::Sin(($i * 0.6) + $phase + 3.0)
+        $len = [Math]::Round(4.0 + 8.0 * $wave, 1)
+        $ex = [Math]::Round($bx + $len, 1)
+        $ey = $by
+        $sb.Append(" M $bx,$by L $ex,$ey") | Out-Null
+    }
+
+    return $sb.ToString().Trim()
+}
+
 function Get-NotchPathData($totalW, $h, $s, $r, $waveAmp = 0, $wavePhase = 0) {
 
     $baseH = if ($h -gt 100) { 205 } else { $h }
@@ -1143,6 +1232,15 @@ $islandXaml = @'
 
     <Window.Resources>
 
+        <!-- Audio Spectrum Radial Bar Gradient (Cyan -> Emerald -> Violet -> Magenta) -->
+        <LinearGradientBrush x:Key="SpectrumBarGrad" StartPoint="0.0,0.5" EndPoint="1.0,0.5">
+            <GradientStop Color="#00F5D4" Offset="0.00"/>
+            <GradientStop Color="#10B981" Offset="0.22"/>
+            <GradientStop Color="#8B5CF6" Offset="0.55"/>
+            <GradientStop Color="#EC4899" Offset="0.85"/>
+            <GradientStop Color="#00D2FF" Offset="1.00"/>
+        </LinearGradientBrush>
+
         <!-- Circle Navigation Button -->
 
         <Style x:Key="CircleNavBtn" TargetType="Button">
@@ -1340,6 +1438,18 @@ $islandXaml = @'
         <!-- Clean, unified pill with organic continuous curvature    -->
 
         <!-- ======================================================== -->
+
+        <!-- RADIAL SPECTRUM BARS (Garis-garis LED Frekuensi Spektrum Sesuai Referensi Pengguna) -->
+        <!-- Layer A: Diffuse Outer Glow -->
+        <Path x:Name="NotchBarsGlowPath" Stroke="{StaticResource SpectrumBarGrad}" StrokeThickness="4.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0" IsHitTestVisible="False">
+            <Path.Effect>
+                <DropShadowEffect Color="#00F5D4" BlurRadius="12" ShadowDepth="0" Opacity="0.95"/>
+            </Path.Effect>
+        </Path>
+        <!-- Layer B: Crisp Core Bars -->
+        <Path x:Name="NotchBarsCorePath" Stroke="{StaticResource SpectrumBarGrad}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0" IsHitTestVisible="False"/>
+        <!-- Layer C: White-Hot Laser Center Filament -->
+        <Path x:Name="NotchBarsWhitePath" Stroke="#FFFFFF" StrokeThickness="1.0" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0" IsHitTestVisible="False"/>
 
         <!-- HARDWARE NOTCH SINGLE VECTOR PATH (Option B MacBook Tangential Shoulder Fillet, Pure Obsidian - No Blue Edges!) -->
 
@@ -5975,6 +6085,9 @@ $sysPingText = $window.FindName("SysPingText")
 $notchWaveStrokePath = $window.FindName("NotchWaveStrokePath")
 $notchWaveCorePath   = $window.FindName("NotchWaveCorePath")
 $notchWaveRibbon2Path = $window.FindName("NotchWaveRibbon2Path")
+$notchBarsGlowPath   = $window.FindName("NotchBarsGlowPath")
+$notchBarsCorePath   = $window.FindName("NotchBarsCorePath")
+$notchBarsWhitePath  = $window.FindName("NotchBarsWhitePath")
 $notchApexCanvas     = $window.FindName("NotchApexCanvas")
 $notchGlassHighlight = $window.FindName("NotchGlassHighlight")
 $catZzzCanvas        = $window.FindName("CatZzzCanvas")
@@ -9904,63 +10017,41 @@ $fastEyeTimer.Add_Tick({
             $global:beatTick = ($global:beatTick + 1) % 16
             $beatAmp = if ($global:beatTick -le 4) { 0.85 } else { 0.0 }
 
-            # 3-Sided Neon Waveform & Apex Points
-            $w3 = Get-Notch3SidedWaveGeometry $window.Width $window.Height $shoulderPad 24 $global:waveAmp $global:wavePhase $beatAmp
+            # Update Solid Top-Docked Obsidian Body
+            if ($notchSinglePath) {
+                $flatPath = Get-NotchPathData $window.Width $window.Height $shoulderPad 24 0 0
+                $notchSinglePath.Data = [System.Windows.Media.Geometry]::Parse($flatPath)
+            }
 
-            if ($w3) {
-                # 1. Update Black Island Body
-                if ($notchSinglePath) {
-                    $notchSinglePath.Data = [System.Windows.Media.Geometry]::Parse($w3.BodyPath)
+            # Update Radial Spectrum Equalizer Bars
+            $barsPathStr = Get-SpectrumBarsPathData $window.Width $window.Height $shoulderPad 24 $global:wavePhase $beatAmp
+            if ($barsPathStr) {
+                $barsGeom = [System.Windows.Media.Geometry]::Parse($barsPathStr)
+                if ($notchBarsGlowPath) {
+                    $notchBarsGlowPath.Data = $barsGeom
+                    $notchBarsGlowPath.Opacity = [Math]::Min(1.0, $notchBarsGlowPath.Opacity + 0.2)
                 }
-
-                # 2. Update Outer Neon Glow Stroke (Primary Aurora Strand)
-                if ($notchWaveStrokePath) {
-                    $notchWaveStrokePath.Opacity = [Math]::Min(1.0, $notchWaveStrokePath.Opacity + 0.2)
-                    $notchWaveStrokePath.Data = [System.Windows.Media.Geometry]::Parse($w3.StrokePath)
+                if ($notchBarsCorePath) {
+                    $notchBarsCorePath.Data = $barsGeom
+                    $notchBarsCorePath.Opacity = [Math]::Min(1.0, $notchBarsCorePath.Opacity + 0.2)
                 }
-
-                # 2B. Update Intertwined Secondary Harmonic Ribbon (Cyan/Violet Aura Strand)
-                if ($notchWaveRibbon2Path) {
-                    $notchWaveRibbon2Path.Opacity = [Math]::Min(0.85, $notchWaveRibbon2Path.Opacity + 0.2)
-                    $notchWaveRibbon2Path.Data = [System.Windows.Media.Geometry]::Parse($w3.Ribbon2Path)
-                }
-
-                # 3. Update Laser White-Hot Core Stroke
-                if ($notchWaveCorePath) {
-                    $notchWaveCorePath.Opacity = [Math]::Min(0.95, $notchWaveCorePath.Opacity + 0.2)
-                    $notchWaveCorePath.Data = [System.Windows.Media.Geometry]::Parse($w3.StrokePath)
-                }
-
-                # 4. Update Neon Apex Sparks Overlay
-                if ($notchApexCanvas) {
-                    $notchApexCanvas.Opacity = [Math]::Min(1.0, $notchApexCanvas.Opacity + 0.2)
-                    $numPts = $w3.ApexPoints.Count
-                    for ($k = 0; $k -lt $global:apexSparkBorders.Count; $k++) {
-                        $spBorder = $global:apexSparkBorders[$k]
-                        if ($k -lt $numPts) {
-                            $pt = $w3.ApexPoints[$k]
-                            if ($pt.IsBeat) {
-                                $spBorder.Width = 6.5
-                                $spBorder.Height = 6.5
-                                $spBorder.CornerRadius = [System.Windows.CornerRadius]::new(3.25)
-                                [System.Windows.Controls.Canvas]::SetLeft($spBorder, $pt.X - 3.25)
-                                [System.Windows.Controls.Canvas]::SetTop($spBorder, $pt.Y - 3.25)
-                            } else {
-                                $spBorder.Width = 4.0
-                                $spBorder.Height = 4.0
-                                $spBorder.CornerRadius = [System.Windows.CornerRadius]::new(2.0)
-                                [System.Windows.Controls.Canvas]::SetLeft($spBorder, $pt.X - 2.0)
-                                [System.Windows.Controls.Canvas]::SetTop($spBorder, $pt.Y - 2.0)
-                            }
-                            $spBorder.Visibility = [System.Windows.Visibility]::Visible
-                        } else {
-                            $spBorder.Visibility = [System.Windows.Visibility]::Collapsed
-                        }
-                    }
+                if ($notchBarsWhitePath) {
+                    $notchBarsWhitePath.Data = $barsGeom
+                    $notchBarsWhitePath.Opacity = [Math]::Min(0.85, $notchBarsWhitePath.Opacity + 0.2)
                 }
             }
 
         } else {
+            # Fade out Spectrum Bars smoothly when paused or inactive
+            if ($notchBarsGlowPath -and $notchBarsGlowPath.Opacity -gt 0) {
+                $notchBarsGlowPath.Opacity = [Math]::Max(0.0, $notchBarsGlowPath.Opacity - 0.25)
+            }
+            if ($notchBarsCorePath -and $notchBarsCorePath.Opacity -gt 0) {
+                $notchBarsCorePath.Opacity = [Math]::Max(0.0, $notchBarsCorePath.Opacity - 0.25)
+            }
+            if ($notchBarsWhitePath -and $notchBarsWhitePath.Opacity -gt 0) {
+                $notchBarsWhitePath.Opacity = [Math]::Max(0.0, $notchBarsWhitePath.Opacity - 0.25)
+            }
 
             # In Resting Eyes Mode, Status Mode, Other Cards, or Music Paused / Inactive:
             # RAPIDLY FLATTEN wave to 0 & hide neon strokes & apex sparks!
