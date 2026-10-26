@@ -349,6 +349,26 @@ public class Win32Helper {
         return false;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LASTINPUTINFO {
+        public uint cbSize;
+        public uint dwTime;
+    }
+
+    [DllImport("user32.dll")]
+    public static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+
+    public static uint GetSystemIdleMillis() {
+        try {
+            LASTINPUTINFO lii = new LASTINPUTINFO();
+            lii.cbSize = (uint)Marshal.SizeOf(lii);
+            if (GetLastInputInfo(ref lii)) {
+                return (uint)Environment.TickCount - lii.dwTime;
+            }
+        } catch {}
+        return 0;
+    }
+
     public const byte VK_MEDIA_NEXT_TRACK = 0xB0;
 
     public const byte VK_MEDIA_PREV_TRACK = 0xB1;
@@ -10310,38 +10330,38 @@ $fastEyeTimer.Add_Tick({
 
             else {
 
-                # Mood 2: 😴 Sleepy Mode
+                # Deteksi aktivitas sistem real-time (kursor & keyboard)
+                $sysIdle = [Win32Helper]::GetSystemIdleMillis()
+                $idleMs = if ($sysIdle -gt 0) { $sysIdle } else { $global:cursorIdleSw.ElapsedMilliseconds }
 
-                $curHour = (Get-Date).Hour
-
-                $isLateNight = ($curHour -ge 23 -or $curHour -lt 5)
-
-                $isLongIdle = ($global:cursorIdleSw.ElapsedMilliseconds -ge 300000)
-
-                if ($isLateNight -or $isLongIdle) {
+                # Tahap 1: Tidur lelap jika laptop ditinggal diam > 5 menit (300.000 ms)
+                if ($idleMs -ge 300000) {
 
                     $leftEye.Height = 2.5
-
                     $rightEye.Height = 2.5
-
                     $global:sleepBreathTick = ($global:sleepBreathTick + 1) % 360
-
                     $breathY = [Math]::Sin($global:sleepBreathTick * 0.08) * 1.5
-
                     if ($catEyesTransform) { $catEyesTransform.Y = $breathY }
 
                 }
+                # Tahap 2: Mengantuk sayu jika ditinggal diam 2 - 5 menit (120.000 - 300.000 ms)
+                elseif ($idleMs -ge 120000) {
 
+                    $leftEye.Height = 8.0
+                    $rightEye.Height = 8.0
+                    $global:sleepBreathTick = ($global:sleepBreathTick + 1) % 360
+                    $breathY = [Math]::Sin($global:sleepBreathTick * 0.05) * 0.8
+                    if ($catEyesTransform) { $catEyesTransform.Y = $breathY }
+
+                }
+                # Tahap 3: SELALU MELEK SEGAR & AKTIF selama laptop sedang digunakan!
                 else {
 
-                    # Mood 4: 🎵 Audio Bop
-
+                    # Mood 4: 🎵 Audio Bop jika musik sedang diputar
                     if ($global:gsmtcPlaying -eq $true) {
 
                         $global:audioBopTick = ($global:audioBopTick + 1) % 360
-
                         $bopY = [Math]::Abs([Math]::Sin($global:audioBopTick * 0.15)) * 2.8
-
                         if ($catEyesTransform) { $catEyesTransform.Y = -$bopY }
 
                     } else {
@@ -10350,23 +10370,28 @@ $fastEyeTimer.Add_Tick({
 
                     }
 
-                    # Natural eye blinking when awake
-
+                    # Kedipan alami mata saat melek segar
                     $blinkInterval = if ($fastEyeTimer.Interval.TotalMilliseconds -ge 100) { 24 } else { 90 }
 
                     $global:eyeBlinkTick = ($global:eyeBlinkTick + 1) % $blinkInterval
 
                     if ($global:eyeBlinkTick -eq 0) {
 
-                        $leftEye.Height = 2
-
-                        $rightEye.Height = 2
+                        $leftEye.Height = 2.0
+                        $rightEye.Height = 2.0
 
                     } elseif ($global:eyeBlinkTick -eq 1 -or ($global:eyeBlinkTick -eq 3 -and $blinkInterval -eq 90)) {
 
-                        $leftEye.Height = 17
+                        $leftEye.Height = 17.0
+                        $rightEye.Height = 17.0
 
-                        $rightEye.Height = 17
+                    } else {
+
+                        # Pastikan mata selalu melek segar penuh di antara kedipan
+                        if ($leftEye.Height -lt 15.0) {
+                            $leftEye.Height = 17.0
+                            $rightEye.Height = 17.0
+                        }
 
                     }
 
