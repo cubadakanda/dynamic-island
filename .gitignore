@@ -21,3 +21,8 @@ $RECYCLE.BIN/
 *.log
 *.bak
 scratch/
+
+# Screenshots Cache (5-item FIFO buffer)
+screenshots/
+run-island.ps1.bak*
+tests/test_cache/
