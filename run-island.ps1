@@ -1,4 +1,4 @@
-﻿Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Drawing, System.Windows.Forms, System.Runtime.WindowsRuntime
+﻿﻿Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Drawing, System.Windows.Forms, System.Runtime.WindowsRuntime
 
 # Embedded Native Win32 Helper & Core Audio Engine (COM Interop)
 
@@ -2133,11 +2133,8 @@ $islandXaml = @'
                 </Grid>
 
                 <!-- ============================================== -->
-
-                <!-- CARD 3: PAPAN KLIP & FILE SHELF                -->
-
+                <!-- CARD 3: UNIFIED FILE & SCREENSHOT SHELF         -->
                 <!-- ============================================== -->
-
                 <Grid x:Name="CardClipShelf" Visibility="Collapsed">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="32"/>
@@ -2149,83 +2146,29 @@ $islandXaml = @'
                         <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
                     </Button>
 
-                    <!-- Center: Segmented Tabs (Screenshots vs Parked Files) + Shelf Containers -->
-                    <Grid Grid.Column="1" Margin="4,0,4,0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
+                    <!-- Center: Full-Width Dedicated File & Screenshot Shelf Drop Zone -->
+                    <Border x:Name="ShelfDropBorder" Grid.Column="1" Background="#11141C" BorderBrush="#232B3D" BorderThickness="1" CornerRadius="14" Margin="6,0" Padding="6,4" AllowDrop="True">
+                        <Grid>
+                            <!-- State A: Empty / Drag-Over State -->
+                            <Grid x:Name="ShelfEmptyDropZone" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <Rectangle Stroke="#3B465E" StrokeThickness="1.5" StrokeDashArray="4 3" RadiusX="12" RadiusY="12" Fill="#090C12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Border Width="38" Height="38" CornerRadius="10" Background="#161B26" BorderBrush="#2A3448" BorderThickness="1" HorizontalAlignment="Center" Margin="0,0,0,4">
+                                        <TextBlock x:Name="ShelfDropIcon" Text="&#xED25;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="#00D2FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock x:Name="ShelfDropPrompt" Text="Parkir File &amp; Screenshot" FontSize="12" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Tekan PrtScn untuk menangkap atau seret file ke sini untuk diparkirkan" FontSize="9.5" Foreground="#8E9AA8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Grid>
 
-                        <!-- Row 0: Segmented Switcher Header -->
-                        <Grid Grid.Row="0" Margin="4,0,4,5">
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                <!-- Tab 1: 5 Screenshots -->
-                                <Border x:Name="BtnTabScreenshots" Background="#1E293B" BorderBrush="#38BDF8" BorderThickness="1" CornerRadius="8" Padding="7,2.5" Margin="0,0,5,0" Cursor="Hand">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="&#xE722;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="#38BDF8" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                        <TextBlock x:Name="TxtTabScreenshotsTitle" Text="Screenshots (5)" FontSize="9.5" FontWeight="SemiBold" Foreground="#38BDF8" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                                <!-- Tab 2: Parkir File -->
-                                <Border x:Name="BtnTabParkedFiles" Background="Transparent" BorderBrush="#2A3448" BorderThickness="1" CornerRadius="8" Padding="7,2.5" Cursor="Hand">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="&#xED25;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="#8E9AA8" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                        <TextBlock x:Name="TxtTabParkedFilesTitle" Text="Parkir File" FontSize="9.5" FontWeight="SemiBold" Foreground="#8E9AA8" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                            <TextBlock Text="Drag &amp; Drop Ready" FontSize="8.5" Foreground="#64748B" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <!-- State B: Populated Shelf with Real Image Thumbnails & Files (NO SCROLLBAR) -->
+                            <Grid x:Name="ShelfFilesContainer" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                                    <StackPanel x:Name="ShelfFilesList" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </ScrollViewer>
+                            </Grid>
                         </Grid>
-
-                        <!-- Row 1: Active Content Container -->
-                        <Grid Grid.Row="1">
-                            <!-- Container 1: 5 Recent Screenshots Shelf (Default Active) -->
-                            <Border x:Name="ShelfScreenshotsContainer" Visibility="Visible" Background="#11141C" BorderBrush="#232B3D" BorderThickness="1" CornerRadius="12" Padding="5,4">
-                                <Grid>
-                                    <!-- Empty State for Screenshots -->
-                                    <Grid x:Name="ShelfEmptyScreenshotsZone" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                                        <Rectangle Stroke="#334155" StrokeThickness="1.2" StrokeDashArray="4 3" RadiusX="10" RadiusY="10" Fill="#090C12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <Border Width="32" Height="32" CornerRadius="8" Background="#161B26" BorderBrush="#2A3448" BorderThickness="1" HorizontalAlignment="Center" Margin="0,0,0,3">
-                                                <TextBlock Text="&#xE722;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="#38BDF8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <TextBlock Text="Belum ada tangkapan layar" FontSize="10.5" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="Tekan PrtScn di keyboard untuk menangkap seketika" FontSize="8.5" Foreground="#8E9AA8" HorizontalAlignment="Center" Margin="0,1,0,0"/>
-                                        </StackPanel>
-                                    </Grid>
-
-                                    <!-- 5 Thumbnails Horizontal Stack -->
-                                    <ScrollViewer x:Name="ShelfScreenshotsScrollViewer" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Stretch" VerticalAlignment="Center">
-                                        <StackPanel x:Name="ShelfScreenshotsList" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </ScrollViewer>
-                                </Grid>
-                            </Border>
-
-                            <!-- Container 2: General Parked Files Drop Zone -->
-                            <Border x:Name="ShelfDropBorder" Visibility="Collapsed" Background="#11141C" BorderBrush="#232B3D" BorderThickness="1" CornerRadius="12" Padding="6,4" AllowDrop="True">
-                                <Grid>
-                                    <!-- State A: Empty / Drag-Over State -->
-                                    <Grid x:Name="ShelfEmptyDropZone" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                                        <Rectangle Stroke="#3B465E" StrokeThickness="1.5" StrokeDashArray="4 3" RadiusX="10" RadiusY="10" Fill="#090C12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <Border Width="34" Height="34" CornerRadius="8" Background="#161B26" BorderBrush="#2A3448" BorderThickness="1" HorizontalAlignment="Center" Margin="0,0,0,3">
-                                                <TextBlock x:Name="ShelfDropIcon" Text="&#xED25;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="#00D2FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <TextBlock x:Name="ShelfDropPrompt" Text="Release to add" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="Seret file ke sini untuk diparkirkan" FontSize="8.5" Foreground="#8E9AA8" HorizontalAlignment="Center" Margin="0,1,0,0"/>
-                                        </StackPanel>
-                                    </Grid>
-
-                                    <!-- State B: Populated Files Shelf with Thumbnails -->
-                                    <Grid x:Name="ShelfFilesContainer" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Stretch" VerticalAlignment="Center">
-                                            <StackPanel x:Name="ShelfFilesList" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                        </ScrollViewer>
-                                    </Grid>
-                                </Grid>
-                            </Border>
-                        </Grid>
-                    </Grid>
+                    </Border>
 
                     <Button x:Name="BtnClipNextCard" Grid.Column="2" Style="{StaticResource CircleNavBtn}" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
@@ -2233,7 +2176,6 @@ $islandXaml = @'
                 </Grid>
 
                 <!-- ============================================== -->
-
                 <!-- CARD 4: MONITOR SISTEM & WATER REMINDER        -->
 
                 <!-- ============================================== -->
@@ -6690,7 +6632,6 @@ $taskListContainer = $window.FindName("TaskListContainer")
 # Card 3: Clipboard & Shelf Handles
 
 $btnClipPrevCard = $window.FindName("BtnClipPrevCard")
-
 $btnClipNextCard = $window.FindName("BtnClipNextCard")
 $btnHeaderClearShelf = $window.FindName("BtnHeaderClearShelf")
 $shelfDropBorder = $window.FindName("ShelfDropBorder")
@@ -6699,13 +6640,6 @@ $shelfFilesContainer = $window.FindName("ShelfFilesContainer")
 $shelfFilesList = $window.FindName("ShelfFilesList")
 $shelfDropPrompt = $window.FindName("ShelfDropPrompt")
 $shelfDropIcon = $window.FindName("ShelfDropIcon")
-$btnTabScreenshots = $window.FindName("BtnTabScreenshots")
-$btnTabParkedFiles = $window.FindName("BtnTabParkedFiles")
-$txtTabScreenshotsTitle = $window.FindName("TxtTabScreenshotsTitle")
-$txtTabParkedFilesTitle = $window.FindName("TxtTabParkedFilesTitle")
-$shelfScreenshotsContainer = $window.FindName("ShelfScreenshotsContainer")
-$shelfScreenshotsList = $window.FindName("ShelfScreenshotsList")
-$shelfEmptyScreenshotsZone = $window.FindName("ShelfEmptyScreenshotsZone")
 
 # Card 4: System & Water Handles
 
@@ -8132,10 +8066,8 @@ if ($btnClearDoneTasks) {
 # Initial Render of Tasks
 Render-TaskItems
 
-# CARD 3: 5 RECENT SCREENSHOTS & UNIVERSAL FILE SHELF WIRING
-$global:shelfActiveTab = "screenshots" # "screenshots" or "files"
+# CARD 3: UNIFIED FILE & SCREENSHOT SHELF WIRING
 $global:screenshotCacheDir = Join-Path $PSScriptRoot "screenshots"
-$global:screenshotHistory = @()
 $global:lastScreenshotHash = ""
 $global:lastPrtScnTick = [int64]0
 $global:isDragging = $false
@@ -8146,13 +8078,18 @@ function Initialize-ScreenshotStorage {
         if (-not (Test-Path $global:screenshotCacheDir)) {
             [void](New-Item -ItemType Directory -Path $global:screenshotCacheDir -Force)
         }
-        $files = Get-ChildItem -Path $global:screenshotCacheDir -Filter "screenshot_*.png" -ErrorAction SilentlyContinue |
-                 Where-Object { $_.Length -gt 1024 } |
-                 Sort-Object CreationTime -Descending |
-                 Select-Object -First 5
-        $global:screenshotHistory = @($files | ForEach-Object { $_.FullName })
+        # Load up to 5 latest screenshots into shelfFiles at boot
+        $scFiles = Get-ChildItem -Path $global:screenshotCacheDir -Filter "screenshot_*.png" -ErrorAction SilentlyContinue |
+                   Where-Object { $_.Length -gt 1024 } |
+                   Sort-Object CreationTime -Descending |
+                   Select-Object -First 5
+        foreach ($sc in $scFiles) {
+            if ($global:shelfFiles -notcontains $sc.FullName) {
+                $global:shelfFiles += $sc.FullName
+            }
+        }
     } catch {}
-    return $global:screenshotHistory
+    Update-ShelfUI
 }
 
 function Save-ClipboardScreenshot([System.Windows.Media.Imaging.BitmapSource]$bitmap) {
@@ -8172,18 +8109,28 @@ function Save-ClipboardScreenshot([System.Windows.Media.Imaging.BitmapSource]$bi
         $fs.Close()
         $fs.Dispose()
 
-        # Update History with FIFO (Max 5)
-        $newHistory = @($filePath) + @($global:screenshotHistory | Where-Object { $_ -ne $filePath })
-        if ($newHistory.Count -gt 5) {
-            $evicted = $newHistory[5..($newHistory.Count - 1)]
-            foreach ($old in $evicted) {
-                try { Remove-Item -Force $old -ErrorAction SilentlyContinue } catch {}
-            }
-            $newHistory = @($newHistory[0..4])
-        }
-        $global:screenshotHistory = $newHistory
+        # Add to the front of $global:shelfFiles
+        $newFiles = @($filePath) + @($global:shelfFiles | Where-Object { $_ -ne $filePath })
 
-        # Also purge any dangling files beyond the 5 latest on disk
+        # Keep max 5 screenshots in shelfFiles to prevent overcrowding
+        $scCount = 0
+        $filtered = @()
+        foreach ($item in $newFiles) {
+            $isSc = ($item -like "*screenshot_*.png" -or (Test-Path $item -and (Get-Item $item).DirectoryName -eq $global:screenshotCacheDir))
+            if ($isSc) {
+                $scCount++
+                if ($scCount -le 5) {
+                    $filtered += $item
+                } else {
+                    try { Remove-Item -Force $item -ErrorAction SilentlyContinue } catch {}
+                }
+            } else {
+                $filtered += $item
+            }
+        }
+        $global:shelfFiles = $filtered
+
+        # Clean old disk files beyond the 5 latest
         $allDiskFiles = Get-ChildItem -Path $global:screenshotCacheDir -Filter "screenshot_*.png" -ErrorAction SilentlyContinue |
                         Sort-Object CreationTime -Descending
         if ($allDiskFiles.Count -gt 5) {
@@ -8193,135 +8140,61 @@ function Save-ClipboardScreenshot([System.Windows.Media.Imaging.BitmapSource]$bi
             }
         }
 
-        # Update UI if shelf is available
-        Update-ScreenshotShelfUI
+        Update-ShelfUI
         return $filePath
     } catch {
         return $null
     }
 }
 
-function Clear-ScreenshotCache {
-    try {
-        foreach ($f in $global:screenshotHistory) {
-            try { Remove-Item -Force $f -ErrorAction SilentlyContinue } catch {}
-        }
-        $global:screenshotHistory = @()
-        if (Test-Path $global:screenshotCacheDir) {
-            Get-ChildItem -Path $global:screenshotCacheDir -Filter "screenshot_*.png" -ErrorAction SilentlyContinue |
-                ForEach-Object { try { Remove-Item -Force $_.FullName -ErrorAction SilentlyContinue } catch {} }
-        }
-        Update-ScreenshotShelfUI
-        ShowActionFeedback "5 Screenshot Dibersihkan!" ([char]0xE74D) "#FF5252"
-    } catch {}
-}
-
-function Switch-ShelfTab([string]$tabName) {
-    $global:shelfActiveTab = $tabName
-    if ($tabName -eq "screenshots") {
-        if ($btnTabScreenshots) {
-            $btnTabScreenshots.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#1E293B")
-            $btnTabScreenshots.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#38BDF8")
-        }
-        if ($txtTabScreenshotsTitle) {
-            $txtTabScreenshotsTitle.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#38BDF8")
-        }
-        if ($btnTabParkedFiles) {
-            $btnTabParkedFiles.Background = [System.Windows.Media.Brushes]::Transparent
-            $btnTabParkedFiles.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#2A3448")
-        }
-        if ($txtTabParkedFilesTitle) {
-            $txtTabParkedFilesTitle.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#8E9AA8")
-        }
-        if ($shelfScreenshotsContainer) { $shelfScreenshotsContainer.Visibility = [System.Windows.Visibility]::Visible }
-        if ($shelfDropBorder) { $shelfDropBorder.Visibility = [System.Windows.Visibility]::Collapsed }
-        
-        # Update Clear Button visibility for screenshots
-        if ($btnHeaderClearShelf -and $global:activeCardIndex -eq 3) {
-            $btnHeaderClearShelf.Visibility = if ($global:screenshotHistory.Count -gt 0) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
-        }
-    } else {
-        if ($btnTabParkedFiles) {
-            $btnTabParkedFiles.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#1E293B")
-            $btnTabParkedFiles.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00D2FF")
-        }
-        if ($txtTabParkedFilesTitle) {
-            $txtTabParkedFilesTitle.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00D2FF")
-        }
-        if ($btnTabScreenshots) {
-            $btnTabScreenshots.Background = [System.Windows.Media.Brushes]::Transparent
-            $btnTabScreenshots.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#2A3448")
-        }
-        if ($txtTabScreenshotsTitle) {
-            $txtTabScreenshotsTitle.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#8E9AA8")
-        }
-        if ($shelfScreenshotsContainer) { $shelfScreenshotsContainer.Visibility = [System.Windows.Visibility]::Collapsed }
-        if ($shelfDropBorder) { $shelfDropBorder.Visibility = [System.Windows.Visibility]::Visible }
-
-        # Update Clear Button visibility for parked files
-        if ($btnHeaderClearShelf -and $global:activeCardIndex -eq 3) {
-            $btnHeaderClearShelf.Visibility = if ($global:shelfFiles.Count -gt 0) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
-        }
-    }
-}
-
-if ($btnTabScreenshots) {
-    $btnTabScreenshots.Add_MouseLeftButtonDown({
-        Switch-ShelfTab "screenshots"
-    })
-}
-
-if ($btnTabParkedFiles) {
-    $btnTabParkedFiles.Add_MouseLeftButtonDown({
-        Switch-ShelfTab "files"
-    })
-}
-
-# Contextual Clear Button
+# Contextual Clear Button in Header
 if ($btnHeaderClearShelf) {
     $btnHeaderClearShelf.Add_Click({
-        if ($global:shelfActiveTab -eq "screenshots") {
-            Clear-ScreenshotCache
-        } else {
-            $global:shelfFiles = @()
-            Update-ShelfUI
-Initialize-ScreenshotStorage
-Update-ScreenshotShelfUI
-            ShowActionFeedback "Shelf Parkir Dibersihkan!" ([char]0xE74D) "#FF5252"
-        }
+        try {
+            foreach ($f in $global:shelfFiles) {
+                if ($f -like "*screenshot_*.png") {
+                    try { Remove-Item -Force $f -ErrorAction SilentlyContinue } catch {}
+                }
+            }
+            if (Test-Path $global:screenshotCacheDir) {
+                Get-ChildItem -Path $global:screenshotCacheDir -Filter "screenshot_*.png" -ErrorAction SilentlyContinue |
+                    ForEach-Object { try { Remove-Item -Force $_.FullName -ErrorAction SilentlyContinue } catch {} }
+            }
+        } catch {}
+        $global:shelfFiles = @()
+        Update-ShelfUI
+        ShowActionFeedback "Shelf Dibersihkan!" ([char]0xE74D) "#FF5252"
     })
 }
 
-function Update-ScreenshotShelfUI {
-    if (-not $shelfScreenshotsList) { return }
-    $shelfScreenshotsList.Children.Clear()
+function Update-ShelfUI {
+    if (-not $shelfFilesList) { return }
+    $shelfFilesList.Children.Clear()
 
-    $count = $global:screenshotHistory.Count
-    if ($txtTabScreenshotsTitle) {
-        $txtTabScreenshotsTitle.Text = "Screenshots ($count/5)"
-    }
-
+    $count = $global:shelfFiles.Count
     if ($count -eq 0) {
-        if ($shelfEmptyScreenshotsZone) { $shelfEmptyScreenshotsZone.Visibility = [System.Windows.Visibility]::Visible }
-        if ($btnHeaderClearShelf -and $global:activeCardIndex -eq 3 -and $global:shelfActiveTab -eq "screenshots") {
-            $btnHeaderClearShelf.Visibility = [System.Windows.Visibility]::Collapsed
-        }
+        if ($shelfEmptyDropZone) { $shelfEmptyDropZone.Visibility = [System.Windows.Visibility]::Visible }
+        if ($shelfFilesContainer) { $shelfFilesContainer.Visibility = [System.Windows.Visibility]::Collapsed }
+        if ($btnHeaderClearShelf) { $btnHeaderClearShelf.Visibility = [System.Windows.Visibility]::Collapsed }
+        if ($shelfDropBorder) { $shelfDropBorder.Cursor = [System.Windows.Input.Cursors]::Arrow }
         return
     }
 
-    if ($shelfEmptyScreenshotsZone) { $shelfEmptyScreenshotsZone.Visibility = [System.Windows.Visibility]::Collapsed }
-    if ($btnHeaderClearShelf -and $global:activeCardIndex -eq 3 -and $global:shelfActiveTab -eq "screenshots") {
-        $btnHeaderClearShelf.Visibility = [System.Windows.Visibility]::Visible
-    }
+    if ($shelfEmptyDropZone) { $shelfEmptyDropZone.Visibility = [System.Windows.Visibility]::Collapsed }
+    if ($shelfFilesContainer) { $shelfFilesContainer.Visibility = [System.Windows.Visibility]::Visible }
+    if ($btnHeaderClearShelf -and $global:activeCardIndex -eq 3) { $btnHeaderClearShelf.Visibility = [System.Windows.Visibility]::Visible }
+    if ($shelfDropBorder) { $shelfDropBorder.Cursor = [System.Windows.Input.Cursors]::Hand }
 
-    # Render up to 5 screenshot cards
-    $idx = 1
     $now = [DateTime]::Now
-    foreach ($scPath in $global:screenshotHistory) {
-        if (-not (Test-Path $scPath)) { continue }
-        $fi = New-Object System.IO.FileInfo($scPath)
+    $scCounter = 1
 
-        # Calculate friendly time diff
+    foreach ($file in $global:shelfFiles) {
+        if (-not (Test-Path $file)) { continue }
+        $fi = New-Object System.IO.FileInfo($file)
+        $fName = $fi.Name
+        $fExt = $fi.Extension.ToLower()
+        $isScreenshot = ($fName -like "screenshot_*.png" -or $fi.DirectoryName -eq $global:screenshotCacheDir)
+
         $diff = $now - $fi.CreationTime
         $timeStr = if ($diff.TotalMinutes -lt 1) {
             "Baru saja"
@@ -8333,10 +8206,10 @@ function Update-ScreenshotShelfUI {
             $fi.CreationTime.ToString("dd/MM")
         }
 
-        # Card container
+        # Unified Card Container
         $itemBorder = New-Object System.Windows.Controls.Border
         $itemBorder.Width = 84
-        $itemBorder.Height = 98
+        $itemBorder.Height = 100
         $itemBorder.Margin = [System.Windows.Thickness]::new(3.5, 0, 3.5, 0)
         $itemBorder.CornerRadius = [System.Windows.CornerRadius]::new(10)
         $itemBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#131722")
@@ -8344,60 +8217,101 @@ function Update-ScreenshotShelfUI {
         $itemBorder.BorderThickness = [System.Windows.Thickness]::new(1)
         $itemBorder.Padding = [System.Windows.Thickness]::new(4, 4, 4, 3)
         $itemBorder.Cursor = [System.Windows.Input.Cursors]::Hand
-        $itemBorder.ToolTip = "Screenshot #$idx ($timeStr)`n(Tahan & seret ke WA/Discord/Browser, Klik 2x untuk buka)"
+        $itemBorder.ToolTip = "$fName`n(Tahan & seret ke WA/Discord/Browser, Klik 2x untuk buka)"
 
         $itemGrid = New-Object System.Windows.Controls.Grid
         $r0 = New-Object System.Windows.Controls.RowDefinition; $r0.Height = [System.Windows.GridLength]::new(62, [System.Windows.GridUnitType]::Pixel)
-        $r1 = New-Object System.Windows.Controls.RowDefinition; $r1.Height = [System.Windows.GridLength]::new(16, [System.Windows.GridUnitType]::Pixel)
+        $r1 = New-Object System.Windows.Controls.RowDefinition; $r1.Height = [System.Windows.GridLength]::new(17, [System.Windows.GridUnitType]::Pixel)
         $r2 = New-Object System.Windows.Controls.RowDefinition; $r2.Height = [System.Windows.GridLength]::new(13, [System.Windows.GridUnitType]::Pixel)
         [void]$itemGrid.RowDefinitions.Add($r0)
         [void]$itemGrid.RowDefinitions.Add($r1)
         [void]$itemGrid.RowDefinitions.Add($r2)
 
-        # Image preview with rounded corners
-        $imgBorder = New-Object System.Windows.Controls.Border
-        $imgBorder.CornerRadius = [System.Windows.CornerRadius]::new(7)
-        $imgBorder.ClipToBounds = $true
-        $imgBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#0B0E14")
+        $loadedBmp = $null
 
-        try {
-            $bmp = New-Object System.Windows.Media.Imaging.BitmapImage
-            $bmp.BeginInit()
-            $bmp.UriSource = New-Object System.Uri($scPath)
-            $bmp.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad
-            $bmp.DecodePixelWidth = 160
-            $bmp.EndInit()
-            $bmp.Freeze()
+        # If Image file or Screenshot: Render real image thumbnail
+        if ($fExt -match '\.(jpg|jpeg|png|webp|bmp|gif)$') {
+            $imgBorder = New-Object System.Windows.Controls.Border
+            $imgBorder.CornerRadius = [System.Windows.CornerRadius]::new(7)
+            $imgBorder.ClipToBounds = $true
+            $imgBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#0B0E14")
 
-            $img = New-Object System.Windows.Controls.Image
-            $img.Source = $bmp
-            $img.Stretch = [System.Windows.Media.Stretch]::UniformToFill
-            $imgBorder.Child = $img
-        } catch {}
+            try {
+                $loadedBmp = New-Object System.Windows.Media.Imaging.BitmapImage
+                $loadedBmp.BeginInit()
+                $loadedBmp.UriSource = New-Object System.Uri($file)
+                $loadedBmp.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad
+                $loadedBmp.DecodePixelWidth = 160
+                $loadedBmp.EndInit()
+                $loadedBmp.Freeze()
 
-        [System.Windows.Controls.Grid]::SetRow($imgBorder, 0)
-        [void]$itemGrid.Children.Add($imgBorder)
+                $img = New-Object System.Windows.Controls.Image
+                $img.Source = $loadedBmp
+                $img.Stretch = [System.Windows.Media.Stretch]::UniformToFill
+                $imgBorder.Child = $img
+            } catch {}
 
-        # Time badge text
-        $badgeTxt = New-Object System.Windows.Controls.TextBlock
-        $badgeTxt.Text = "#$idx • $timeStr"
-        $badgeTxt.FontSize = 8.5
-        $badgeTxt.FontWeight = [System.Windows.FontWeights]::SemiBold
-        $badgeTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#38BDF8")
-        $badgeTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
-        $badgeTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
-        [System.Windows.Controls.Grid]::SetRow($badgeTxt, 1)
-        [void]$itemGrid.Children.Add($badgeTxt)
+            [System.Windows.Controls.Grid]::SetRow($imgBorder, 0)
+            [void]$itemGrid.Children.Add($imgBorder)
+        } else {
+            # Non-image file type icon styling
+            $iconBox = New-Object System.Windows.Controls.Border
+            $iconBox.CornerRadius = [System.Windows.CornerRadius]::new(7)
+            $iconBox.Background = if ($fExt -match '\.(pdf|docx?|txt|md|xlsx?|pptx?)$') {
+                [System.Windows.Media.BrushConverter]::new().ConvertFromString("#EA580C")
+            } elseif ($fExt -match '\.(mp3|wav|flac|m4a|mp4|mkv|mov)$') {
+                [System.Windows.Media.BrushConverter]::new().ConvertFromString("#9333EA")
+            } elseif ($fExt -match '\.(zip|rar|7z|tar|gz)$') {
+                [System.Windows.Media.BrushConverter]::new().ConvertFromString("#F59E0B")
+            } else {
+                [System.Windows.Media.BrushConverter]::new().ConvertFromString("#2563EB")
+            }
+            $iconBox.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Stretch
+            $iconBox.VerticalAlignment = [System.Windows.VerticalAlignment]::Stretch
 
-        # Drag hint text
-        $dragHintTxt = New-Object System.Windows.Controls.TextBlock
-        $dragHintTxt.Text = "Tahan & seret"
-        $dragHintTxt.FontSize = 7.5
-        $dragHintTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
-        $dragHintTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
-        $dragHintTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
-        [System.Windows.Controls.Grid]::SetRow($dragHintTxt, 2)
-        [void]$itemGrid.Children.Add($dragHintTxt)
+            $iconTxt = New-Object System.Windows.Controls.TextBlock
+            $iconTxt.Text = if ($fExt -match '\.(pdf|docx?|txt|md|xlsx?|pptx?)$') { [char]0xE8A5 }
+                            elseif ($fExt -match '\.(mp3|wav|flac|m4a|mp4|mkv|mov)$') { [char]0xE8B2 }
+                            elseif ($fExt -match '\.(zip|rar|7z|tar|gz)$') { [char]0xF012 }
+                            else { [char]0xE7C3 }
+            $iconTxt.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe MDL2 Assets")
+            $iconTxt.FontSize = 24
+            $iconTxt.Foreground = [System.Windows.Media.Brushes]::White
+            $iconTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
+            $iconTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+            $iconBox.Child = $iconTxt
+
+            [System.Windows.Controls.Grid]::SetRow($iconBox, 0)
+            [void]$itemGrid.Children.Add($iconBox)
+        }
+
+        # Row 1: Title / Time Badge
+        $nameTxt = New-Object System.Windows.Controls.TextBlock
+        if ($isScreenshot) {
+            $nameTxt.Text = "#$scCounter $([char]0x2022) $timeStr"
+            $nameTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#38BDF8")
+            $scCounter++
+        } else {
+            $nameTxt.Text = $fName
+            $nameTxt.Foreground = [System.Windows.Media.Brushes]::White
+        }
+        $nameTxt.FontSize = 8.5
+        $nameTxt.FontWeight = [System.Windows.FontWeights]::SemiBold
+        $nameTxt.TextTrimming = [System.Windows.TextTrimming]::CharacterEllipsis
+        $nameTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
+        $nameTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+        [System.Windows.Controls.Grid]::SetRow($nameTxt, 1)
+        [void]$itemGrid.Children.Add($nameTxt)
+
+        # Row 2: Subtitle / Drag Hint
+        $subTxt = New-Object System.Windows.Controls.TextBlock
+        $subTxt.Text = "Tahan & seret"
+        $subTxt.FontSize = 7.5
+        $subTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
+        $subTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
+        $subTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
+        [System.Windows.Controls.Grid]::SetRow($subTxt, 2)
+        [void]$itemGrid.Children.Add($subTxt)
 
         $itemBorder.Child = $itemGrid
 
@@ -8411,8 +8325,9 @@ function Update-ScreenshotShelfUI {
             $this.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#131722")
         })
 
-        # Drag & Drop + Double-click wiring
-        $capturedScPath = $scPath
+        # Drag & Drop with auto-collapse protection
+        $capturedFile = $file
+        $capturedBmp = $loadedBmp
         $dragStart = $null
 
         $itemBorder.Add_PreviewMouseLeftButtonDown({
@@ -8435,11 +8350,11 @@ function Update-ScreenshotShelfUI {
                     $dragStart = $null
                     $global:isDragging = $true
                     $dataObj = New-Object System.Windows.DataObject
-                    $dataObj.SetData([System.Windows.DataFormats]::FileDrop, [string[]]@($capturedScPath))
-                    if ($bmp -ne $null) {
-                        try { $dataObj.SetData([System.Windows.DataFormats]::Bitmap, $bmp) } catch {}
+                    $dataObj.SetData([System.Windows.DataFormats]::FileDrop, [string[]]@($capturedFile))
+                    if ($capturedBmp -ne $null) {
+                        try { $dataObj.SetData([System.Windows.DataFormats]::Bitmap, $capturedBmp) } catch {}
                     }
-                    ShowActionFeedback "Menyeret Screenshot #$idx..." ([char]0xE722) "#38BDF8"
+                    ShowActionFeedback "Menyeret $fName..." ([char]0xE722) "#38BDF8"
                     try {
                         [System.Windows.DragDrop]::DoDragDrop($itemBorder, $dataObj, [System.Windows.DragDropEffects]::Copy -bor [System.Windows.DragDropEffects]::Link) | Out-Null
                     } finally {
@@ -8452,209 +8367,11 @@ function Update-ScreenshotShelfUI {
         $itemBorder.Add_MouseLeftButtonDown({
             param($s, $e)
             if ($e.ClickCount -ge 2) {
-                try { Start-Process $capturedScPath } catch {}
+                try { Start-Process $capturedFile } catch {}
             }
         })
 
-        [void]$shelfScreenshotsList.Children.Add($itemBorder)
-        $idx++
-    }
-
-    # Add placeholder dashed slots for remaining up to 5
-    while ($idx -le 5) {
-        $emptySlot = New-Object System.Windows.Controls.Border
-        $emptySlot.Width = 84
-        $emptySlot.Height = 98
-        $emptySlot.Margin = [System.Windows.Thickness]::new(3.5, 0, 3.5, 0)
-        $emptySlot.CornerRadius = [System.Windows.CornerRadius]::new(10)
-        $emptySlot.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#090C12")
-        $emptySlot.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#1E2536")
-        $emptySlot.BorderThickness = [System.Windows.Thickness]::new(1)
-        $emptySlot.Opacity = 0.55
-
-        $emptyGrid = New-Object System.Windows.Controls.Grid
-        $icon = New-Object System.Windows.Controls.TextBlock
-        $icon.Text = [char]0xE722; $icon.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe MDL2 Assets")
-        $icon.FontSize = 16; $icon.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#475569")
-        $icon.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
-        $icon.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
-        $icon.Margin = [System.Windows.Thickness]::new(0, 0, 0, 16)
-        [void]$emptyGrid.Children.Add($icon)
-
-        $slotTxt = New-Object System.Windows.Controls.TextBlock
-        $slotTxt.Text = "Slot #$idx"
-        $slotTxt.FontSize = 8; $slotTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#475569")
-        $slotTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
-        $slotTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Bottom
-        $slotTxt.Margin = [System.Windows.Thickness]::new(0, 0, 0, 10)
-        [void]$emptyGrid.Children.Add($slotTxt)
-
-        $emptySlot.Child = $emptyGrid
-        [void]$shelfScreenshotsList.Children.Add($emptySlot)
-        $idx++
-    }
-}
-
-
-function Update-ShelfUI {
-    if (-not $shelfFilesList) { return }
-    $shelfFilesList.Children.Clear()
-
-    $count = $global:shelfFiles.Count
-    if ($count -eq 0) {
-        if ($shelfEmptyDropZone) { $shelfEmptyDropZone.Visibility = [System.Windows.Visibility]::Visible }
-        if ($shelfFilesContainer) { $shelfFilesContainer.Visibility = [System.Windows.Visibility]::Collapsed }
-        if ($btnHeaderClearShelf) { $btnHeaderClearShelf.Visibility = [System.Windows.Visibility]::Collapsed }
-        if ($shelfDropBorder) { $shelfDropBorder.Cursor = [System.Windows.Input.Cursors]::Arrow }
-    } else {
-        if ($shelfEmptyDropZone) { $shelfEmptyDropZone.Visibility = [System.Windows.Visibility]::Collapsed }
-        if ($shelfFilesContainer) { $shelfFilesContainer.Visibility = [System.Windows.Visibility]::Visible }
-        if ($btnHeaderClearShelf -and $global:activeCardIndex -eq 3) { $btnHeaderClearShelf.Visibility = [System.Windows.Visibility]::Visible }
-        if ($shelfDropBorder) { $shelfDropBorder.Cursor = [System.Windows.Input.Cursors]::Hand }
-
-        foreach ($file in $global:shelfFiles) {
-            if (-not (Test-Path $file)) { continue }
-            $fi = New-Object System.IO.FileInfo($file)
-            $fName = $fi.Name
-            $fExt = $fi.Extension.ToLower()
-            $fSize = if ($fi.Length -ge 1048576) {
-                "{0:N1} MB" -f ($fi.Length / 1048576)
-            } else {
-                "{0:N0} KB" -f ($fi.Length / 1024)
-            }
-
-            # File Card Container (Matching Dedicated Shelf Design)
-            $itemBorder = New-Object System.Windows.Controls.Border
-            $itemBorder.Width = 92
-            $itemBorder.Height = 102
-            $itemBorder.Margin = [System.Windows.Thickness]::new(4, 0, 4, 0)
-            $itemBorder.CornerRadius = [System.Windows.CornerRadius]::new(12)
-            $itemBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#131722")
-            $itemBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#232B3D")
-            $itemBorder.BorderThickness = [System.Windows.Thickness]::new(1)
-            $itemBorder.Padding = [System.Windows.Thickness]::new(6, 6, 6, 6)
-            $itemBorder.Cursor = [System.Windows.Input.Cursors]::Hand
-            $itemBorder.ToolTip = "$($fi.FullName)`n(Tahan & seret untuk copy ke WA/Email, Klik 2x untuk buka)"
-
-            $itemGrid = New-Object System.Windows.Controls.Grid
-            $r0 = New-Object System.Windows.Controls.RowDefinition; $r0.Height = [System.Windows.GridLength]::new(50, [System.Windows.GridUnitType]::Pixel)
-            $r1 = New-Object System.Windows.Controls.RowDefinition; $r1.Height = [System.Windows.GridLength]::new(18, [System.Windows.GridUnitType]::Pixel)
-            $r2 = New-Object System.Windows.Controls.RowDefinition; $r2.Height = [System.Windows.GridLength]::new(14, [System.Windows.GridUnitType]::Pixel)
-            [void]$itemGrid.RowDefinitions.Add($r0)
-            [void]$itemGrid.RowDefinitions.Add($r1)
-            [void]$itemGrid.RowDefinitions.Add($r2)
-
-            # Icon Box with file type styling
-            $iconBox = New-Object System.Windows.Controls.Border
-            $iconBox.Width = 46
-            $iconBox.Height = 46
-            $iconBox.CornerRadius = [System.Windows.CornerRadius]::new(12)
-            $iconBox.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
-            $iconBox.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
-
-            if ($fExt -match '\.(jpg|jpeg|png|webp|gif|bmp|svg)$') {
-                # Image thumbnail style (Sky blue with yellow sun & sand)
-                $iconBox.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#2B90D9")
-                $imgGrid = New-Object System.Windows.Controls.Grid
-                $imgGrid.ClipToBounds = $true
-
-                $sun = New-Object System.Windows.Controls.Border
-                $sun.Width = 10; $sun.Height = 10; $sun.CornerRadius = [System.Windows.CornerRadius]::new(5)
-                $sun.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FCD34D")
-                $sun.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Right
-                $sun.VerticalAlignment = [System.Windows.VerticalAlignment]::Top
-                $sun.Margin = [System.Windows.Thickness]::new(0, 8, 8, 0)
-                [void]$imgGrid.Children.Add($sun)
-
-                $ground = New-Object System.Windows.Controls.Border
-                $ground.Height = 14; $ground.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FDE68A")
-                $ground.VerticalAlignment = [System.Windows.VerticalAlignment]::Bottom
-                [void]$imgGrid.Children.Add($ground)
-
-                $iconBox.Child = $imgGrid
-            } elseif ($fExt -match '\.(pdf|docx?|txt|md|xlsx?|pptx?)$') {
-                $iconBox.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#EA580C")
-                $iconTxt = New-Object System.Windows.Controls.TextBlock
-                $iconTxt.Text = [char]0xE8A5; $iconTxt.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe MDL2 Assets")
-                $iconTxt.FontSize = 22; $iconTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
-                $iconTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center; $iconTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
-                $iconBox.Child = $iconTxt
-            } elseif ($fExt -match '\.(mp3|wav|flac|m4a|mp4|mkv|mov)$') {
-                $iconBox.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#9333EA")
-                $iconTxt = New-Object System.Windows.Controls.TextBlock
-                $iconTxt.Text = [char]0xE8D6; $iconTxt.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe MDL2 Assets")
-                $iconTxt.FontSize = 22; $iconTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
-                $iconTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center; $iconTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
-                $iconBox.Child = $iconTxt
-            } else {
-                $iconBox.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#0D9488")
-                $iconTxt = New-Object System.Windows.Controls.TextBlock
-                $iconTxt.Text = [char]0xE8B7; $iconTxt.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe MDL2 Assets")
-                $iconTxt.FontSize = 22; $iconTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
-                $iconTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center; $iconTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
-                $iconBox.Child = $iconTxt
-            }
-
-            [System.Windows.Controls.Grid]::SetRow($iconBox, 0)
-            [void]$itemGrid.Children.Add($iconBox)
-
-            # File Name
-            $nameTxt = New-Object System.Windows.Controls.TextBlock
-            $nameTxt.Text = $fName
-            $nameTxt.FontSize = 10.5
-            $nameTxt.FontWeight = [System.Windows.FontWeights]::SemiBold
-            $nameTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#FFFFFF")
-            $nameTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
-            $nameTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
-            $nameTxt.TextTrimming = [System.Windows.TextTrimming]::CharacterEllipsis
-            $nameTxt.MaxWidth = 84
-            [System.Windows.Controls.Grid]::SetRow($nameTxt, 1)
-            [void]$itemGrid.Children.Add($nameTxt)
-
-            # File Size
-            $sizeTxt = New-Object System.Windows.Controls.TextBlock
-            $sizeTxt.Text = $fSize
-            $sizeTxt.FontSize = 9.5
-            $sizeTxt.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#8E9AA8")
-            $sizeTxt.HorizontalAlignment = [System.Windows.HorizontalAlignment]::Center
-            $sizeTxt.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
-            [System.Windows.Controls.Grid]::SetRow($sizeTxt, 2)
-            [void]$itemGrid.Children.Add($sizeTxt)
-
-            $itemBorder.Child = $itemGrid
-
-            # Wire Drag-Out & Double-Click Events
-            $capturedFile = $file
-            $dragStart = $null
-
-            $itemBorder.Add_PreviewMouseLeftButtonDown({
-                param($s, $e)
-                $dragStart = $e.GetPosition($null)
-            })
-
-            $itemBorder.Add_PreviewMouseMove({
-                param($s, $e)
-                if ($e.LeftButton -eq [System.Windows.Input.MouseButtonState]::Pressed -and $dragStart -ne $null) {
-                    $cur = $e.GetPosition($null)
-                    $diff = $cur - $dragStart
-                    if ([Math]::Abs($diff.X) -gt 6 -or [Math]::Abs($diff.Y) -gt 6) {
-                        $dragStart = $null
-                        $dataObj = New-Object System.Windows.DataObject([System.Windows.DataFormats]::FileDrop, [string[]]@($capturedFile))
-                        ShowActionFeedback "Menyeret $fName..." ([char]0xE8B7) "#00D2FF"
-                        [System.Windows.DragDrop]::DoDragDrop($itemBorder, $dataObj, [System.Windows.DragDropEffects]::Copy) | Out-Null
-                    }
-                }
-            })
-
-            $itemBorder.Add_MouseLeftButtonDown({
-                param($s, $e)
-                if ($e.ClickCount -ge 2) {
-                    try { Start-Process $capturedFile } catch {}
-                }
-            })
-
-            [void]$shelfFilesList.Children.Add($itemBorder)
-        }
+        [void]$shelfFilesList.Children.Add($itemBorder)
     }
 }
 
@@ -8666,68 +8383,34 @@ function Add-FilesToShelf($files) {
             }
         }
         Update-ShelfUI
-        ShowActionFeedback "$($files.Count) File Diparkir di Shelf!" ([char]0xE8B7) "#F59E0B"
+        ShowActionFeedback "$($files.Count) File Diparkir di Shelf!" ([char]0xE8B7) "#00D2FF"
     }
 }
 
 # Drop directly on ShelfDropBorder
 if ($shelfDropBorder) {
+    $shelfDropBorder.Add_DragEnter({
+        param($s, $e)
+        if ($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)) {
+            $e.Effects = [System.Windows.DragDropEffects]::Copy
+            $shelfDropBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00D2FF")
+        }
+    })
+
+    $shelfDropBorder.Add_DragLeave({
+        param($s, $e)
+        $shelfDropBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#232B3D")
+    })
+
     $shelfDropBorder.Add_Drop({
         param($s, $e)
+        $shelfDropBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#232B3D")
         if ($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)) {
             $dropped = $e.Data.GetData([System.Windows.DataFormats]::FileDrop)
             Add-FilesToShelf $dropped
         }
     })
 }
-
-# Universal Drag & Drop on the Entire Island Window
-$window.Add_DragEnter({
-    param($s, $e)
-    if ($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)) {
-        $e.Effects = [System.Windows.DragDropEffects]::Copy
-        if ($global:islandMode -ne "expanded") {
-            Set-IslandMode "expanded"
-        }
-        SwitchCarouselCard 3
-        if ($shelfDropBorder) {
-            $shelfDropBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#00D2FF")
-            $shelfDropBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#1B2130")
-        }
-    }
-})
-
-$window.Add_DragOver({
-    param($s, $e)
-    if ($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)) {
-        $e.Effects = [System.Windows.DragDropEffects]::Copy
-    }
-})
-
-$window.Add_DragLeave({
-    param($s, $e)
-    if ($shelfDropBorder) {
-        $shelfDropBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#232B3D")
-        $shelfDropBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#11141C")
-    }
-})
-
-$window.Add_Drop({
-    param($s, $e)
-    if ($shelfDropBorder) {
-        $shelfDropBorder.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#232B3D")
-        $shelfDropBorder.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#11141C")
-    }
-    if ($e.Data.GetDataPresent([System.Windows.DataFormats]::FileDrop)) {
-        $dropped = $e.Data.GetData([System.Windows.DataFormats]::FileDrop)
-        Add-FilesToShelf $dropped
-    }
-})
-# CARD 4: SYSTEM MONITOR & TOP MEMORY PROCESSES WIRING
-$btnSysTaskMgr.Add_Click({
-    ShowActionFeedback "Membuka Task Manager..." ([char]0xE9D9) "#00D2FF"
-    [System.Diagnostics.Process]::Start("taskmgr.exe")
-})
 
 function Update-TopProcesses {
     if (-not $topAppsListContainer) { return }
