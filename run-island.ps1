@@ -2195,7 +2195,7 @@ $islandXaml = @'
                                     </Grid>
 
                                     <!-- 5 Thumbnails Horizontal Stack -->
-                                    <ScrollViewer x:Name="ShelfScreenshotsScrollViewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                                    <ScrollViewer x:Name="ShelfScreenshotsScrollViewer" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Stretch" VerticalAlignment="Center">
                                         <StackPanel x:Name="ShelfScreenshotsList" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </ScrollViewer>
                                 </Grid>
@@ -8138,6 +8138,7 @@ $global:screenshotCacheDir = Join-Path $PSScriptRoot "screenshots"
 $global:screenshotHistory = @()
 $global:lastScreenshotHash = ""
 $global:lastPrtScnTick = [int64]0
+$global:isDragging = $false
 $global:shelfFiles = @()
 
 function Initialize-ScreenshotStorage {
@@ -8146,6 +8147,7 @@ function Initialize-ScreenshotStorage {
             [void](New-Item -ItemType Directory -Path $global:screenshotCacheDir -Force)
         }
         $files = Get-ChildItem -Path $global:screenshotCacheDir -Filter "screenshot_*.png" -ErrorAction SilentlyContinue |
+                 Where-Object { $_.Length -gt 1024 } |
                  Sort-Object CreationTime -Descending |
                  Select-Object -First 5
         $global:screenshotHistory = @($files | ForEach-Object { $_.FullName })
@@ -8418,6 +8420,12 @@ function Update-ScreenshotShelfUI {
             $dragStart = $e.GetPosition($null)
         })
 
+        $itemBorder.Add_PreviewMouseLeftButtonUp({
+            param($s, $e)
+            $dragStart = $null
+            $global:isDragging = $false
+        })
+
         $itemBorder.Add_PreviewMouseMove({
             param($s, $e)
             if ($e.LeftButton -eq [System.Windows.Input.MouseButtonState]::Pressed -and $dragStart -ne $null) {
@@ -8425,10 +8433,18 @@ function Update-ScreenshotShelfUI {
                 $diff = $cur - $dragStart
                 if ([Math]::Abs($diff.X) -gt 5 -or [Math]::Abs($diff.Y) -gt 5) {
                     $dragStart = $null
+                    $global:isDragging = $true
                     $dataObj = New-Object System.Windows.DataObject
                     $dataObj.SetData([System.Windows.DataFormats]::FileDrop, [string[]]@($capturedScPath))
+                    if ($bmp -ne $null) {
+                        try { $dataObj.SetData([System.Windows.DataFormats]::Bitmap, $bmp) } catch {}
+                    }
                     ShowActionFeedback "Menyeret Screenshot #$idx..." ([char]0xE722) "#38BDF8"
-                    [System.Windows.DragDrop]::DoDragDrop($itemBorder, $dataObj, [System.Windows.DragDropEffects]::Copy) | Out-Null
+                    try {
+                        [System.Windows.DragDrop]::DoDragDrop($itemBorder, $dataObj, [System.Windows.DragDropEffects]::Copy -bor [System.Windows.DragDropEffects]::Link) | Out-Null
+                    } finally {
+                        $global:isDragging = $false
+                    }
                 }
             }
         })
@@ -10917,11 +10933,10 @@ $fastEyeTimer.Add_Tick({
 
         # -----------------------------------------------------------------
 
-        elseif ($global:islandMode -eq "expanded") {
-
+                elseif ($global:islandMode -eq "expanded") {
             $inExpanded = ($cursorPos.X -ge ($islL - 10)) -and ($cursorPos.X -le ($islR + 10)) -and ($cursorPos.Y -ge 0) -and ($cursorPos.Y -le ($islB + 14))
-
-            if (-not $inExpanded) {
+            # Suspend auto-collapse while user is dragging a screenshot or file to another app
+            if (-not $inExpanded -and -not $global:isDragging) {
 
                 $global:outsideTicks++
 
@@ -11025,7 +11040,14 @@ $mainTimer.Add_Tick({
                 if ([System.Windows.Clipboard]::ContainsImage()) {
                     $cbImg = [System.Windows.Clipboard]::GetImage()
                     if ($cbImg -ne $null) {
-                        $imgHash = "$($cbImg.PixelWidth)x$($cbImg.PixelHeight)_$($cbImg.Format)"
+                        # Sample pixels to create a real content signature (prevents ignoring consecutive fullscreen screenshots)
+                        $pxBytes = New-Object byte[] 32
+                        try {
+                            $cbImg.CopyPixels((New-Object System.Windows.Int32Rect(0, 0, 4, 2)), $pxBytes, 16, 0)
+                            $sig = [System.BitConverter]::ToString($pxBytes)
+                        } catch { $sig = (Get-Date).Ticks.ToString() }
+                        $imgHash = "$($cbImg.PixelWidth)x$($cbImg.PixelHeight)_$sig"
+
                         if ($imgHash -ne $global:lastScreenshotHash -or $isPrtScn) {
                             $global:lastScreenshotHash = $imgHash
                             $global:lastPrtScnTick = $nowMs
